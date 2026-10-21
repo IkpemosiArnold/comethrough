@@ -130,3 +130,21 @@ test("a plan in another zone is written in UTC", () => {
   assert.ok(lines.includes("DTSTART:20261023T180000Z"));
   assert.ok(!lines.includes("BEGIN:VTIMEZONE"));
 });
+
+test("the end to end checker agrees: escaping and folding with commas, semicolons, emoji and Yoruba", async () => {
+  const { checkIcs, escapedText } = await import("../scripts/ics-check.mjs");
+  const tricky = makePlan({
+    id: "p_tricky",
+    title: "Ọjọ́ ìbí Adébáyọ̀; suya, wine & a very long name that goes on 🎉🎉 past seventy five octets for sure",
+    place: { name: "Tolu's place, Yaba; gate 2", address: "12 Herbert Macaulay Way, Yaba", lat: 6.51, lon: 3.37, outdoor: false, private: true },
+    bring: ["chin chin, plantain chips", "a bottle; or two"],
+  });
+  const ics = calendarFeed({ crew: { name: "The uni guys, again", tz: "Africa/Lagos" }, member: { id: "m1" }, plans: [tricky, makeRitual()], now: NOW, uidDomain: "comethrough.tech", extras: () => ({ url: "https://comethrough.tech/c/x/p/p_tricky", going: ["Tolu", "Adébáyọ̀"] }) });
+  const v = checkIcs(ics);
+  assert.deepEqual(v.errors, []);
+  assert.equal(v.events, 2);
+  assert.ok(v.folded > 0 && v.longestLine <= 75);
+  assert.ok(checkIcs(singleEvent(tricky, { memberId: "m1", uidDomain: "comethrough.tech", extras: {} })).ok);
+  assert.equal(escapedText("a, b"), false);
+  assert.equal(checkIcs("BEGIN:VCALENDAR\nEND:VCALENDAR\n").ok, false, "bare LF is caught");
+});
