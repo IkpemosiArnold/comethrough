@@ -14,7 +14,7 @@ import { AreaInput } from '../ui/AreaInput.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
 import { prepareFlyer, formatBytes } from '../lib/image.js';
-import { Privacy } from '../ui/Privacy.jsx';
+import { AiNote, markAiNoted } from '../ui/AiNote.jsx';
 import { dayLabel, timeRange } from '../lib/format.js';
 import { fromLocalParts, toLocalParts } from '../lib/format.js';
 import { packUi } from '../lib/place.js';
@@ -130,6 +130,7 @@ export function AddPlan({ params, query }) {
     }
     if (!payload.text && !payload.url && !payload.image) return;
     lastRead.current = payload;
+    markAiNoted();
     speech.stop();
     setError(null);
     setStep('reading');
@@ -202,7 +203,7 @@ export function AddPlan({ params, query }) {
           )}
           <div class="reading-status" role="status" aria-live="polite">
             <Sloth size={64} mood="reading" branch={false} />
-            <p><b>Gemma</b> is {list[status % list.length]}<Dots /></p>
+            <p>The sloth is {list[status % list.length]}<Dots /></p>
           </div>
           {image && sending && (
             <p class="fine upload-size">
@@ -236,7 +237,7 @@ export function AddPlan({ params, query }) {
     <div class="column add-plan screen-enter">
       <TopBar backTo={`/c/${slug}`} title="Add a plan" />
       <h1 class="display display-lg">What's the plan?</h1>
-      <p class="muted add-lede">A flyer, a link or one sentence. Gemma fills in the details.</p>
+      <p class="muted add-lede">A flyer, a link or one sentence. The sloth fills in the details.</p>
 
       <div class="tiles">
         {pasteFirst ? <>{pasteTile}{flyerTile}</> : <>{flyerTile}{pasteTile}</>}
@@ -266,7 +267,7 @@ export function AddPlan({ params, query }) {
         {speech.error && <p class="error-text">{speech.error}</p>}
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={!text.trim() || (isInstagram && !text.replace(URL_RE, '').trim())}>Read it</button>
-        <Privacy what="what you add here" mic={speech.supported} />
+        <AiNote />
       </form>
 
       {showShareTip && <ShareTip />}
@@ -294,7 +295,7 @@ function Unsure({ conf, low, children, order = 0 }) {
   return (
     <div class={`draft-field${unsure ? ' unsure' : ''}`} style={{ '--i': order }}>
       {children}
-      {unsure && <p class="unsure-note">Gemma guessed this.</p>}
+      {unsure && <p class="unsure-note">A guess. Check it.</p>}
     </div>
   );
 }
@@ -329,26 +330,26 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
         <div>
           {draft.ai === false ? (
             <>
-              <h1 class="display display-lg">Gemma is busy right now</h1>
+              <h1 class="display display-lg">The sloth is busy right now</h1>
               <p class="muted">Fill in the details yourself, or try again in a minute.</p>
               <button type="button" class="btn secondary retry-btn" onClick={onRetry}>Try again</button>
             </>
           ) : unsure ? (
             <>
               <h1 class="display display-lg">Check the marked bits</h1>
-              <p class="muted">Gemma guessed them. The rest came from {from}.</p>
+              <p class="muted">They're guesses. The rest came from {from}.</p>
             </>
           ) : (
             <>
               <h1 class="display display-lg">Here's the plan</h1>
-              <p class="muted">Gemma read it from {from}. Change anything before you post.</p>
+              <p class="muted">Read from {from}. Change anything before you post.</p>
             </>
           )}
         </div>
       </div>
 
       {notes.length > 0 && (
-        <ul class="draft-notes" aria-label="Notes from Gemma">
+        <ul class="draft-notes" aria-label="Notes">
           {notes.map((t) => <li key={t}>{t}</li>)}
         </ul>
       )}

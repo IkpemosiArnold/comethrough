@@ -7,17 +7,22 @@ import { CrewGate, JoinRoute } from './screens/CrewGate.jsx';
 import { getCrew, saveCrew } from './lib/store.js';
 import { AddPlan } from './screens/AddPlan.jsx';
 import { PlanPage } from './screens/PlanPage.jsx';
+import { OneTapIn, OneTapMaybe } from './screens/OneTap.jsx';
 import { ShareTarget } from './screens/ShareTarget.jsx';
 import { NotFound } from './screens/NotFound.jsx';
+import { How } from './screens/How.jsx';
 
 const ROUTES = [
   ['/', Start],
   ['/start', Start],
   ['/share', ShareTarget],
+  ['/how', How],
   ['/c/:slug', CrewGate],
   ['/c/:slug/join', JoinRoute],
   ['/c/:slug/add', AddPlan],
   ['/c/:slug/p/:id', PlanPage],
+  ['/c/:slug/p/:id/in', OneTapIn],
+  ['/c/:slug/p/:id/maybe', OneTapMaybe],
 ];
 
 export function App() {

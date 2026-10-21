@@ -16,7 +16,7 @@ import { AreaInput } from '../ui/AreaInput.jsx';
 import { Dots } from '../ui/misc.jsx';
 import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { toast } from '../ui/toast.jsx';
-import { Privacy } from '../ui/Privacy.jsx';
+import { AiNote, markAiNoted } from '../ui/AiNote.jsx';
 
 // A Lagos example on a phone set to Lagos time; a nearby city's elsewhere (src/lib/place.js)
 const EXAMPLE = exampleSentence();
@@ -38,6 +38,7 @@ export function Start({ query }) {
     e && e.preventDefault();
     if (!sentence.trim()) { setError('Write one sentence about the crew first, or tap Try the example.'); return; }
     speech.stop();
+    markAiNoted();
     setError(null);
     setStep('reading');
     try {
@@ -131,23 +132,21 @@ export function Start({ query }) {
         {speech.error && <p class="error-text">{speech.error}</p>}
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={reading}>
-          {reading ? <>Reading it with Gemma <Dots /></> : 'Set up my crew'}
+          {reading ? <>The sloth is reading it <Dots /></> : 'Set up my crew'}
         </button>
-        <Privacy what="this sentence" mic={speech.supported} />
+        <AiNote />
       </form>
 
       <section class="how" aria-labelledby="how-title">
         <h2 id="how-title" class="section-label">How it works</h2>
         <ol class="how-steps">
-          <li><b>Say who the crew is.</b> Gemma fills in the name, the day and the areas.</li>
+          <li><b>Say who the crew is.</b> The sloth fills in the name, the day and the areas.</li>
           <li><b>Send the link to the group chat.</b> Friends see the plans and tap once, with no app and no sign-up.</li>
           <li><b>Add plans the lazy way,</b> from a flyer, a link or a sentence. Rides sort themselves.</li>
         </ol>
         <p class="how-note">Sloths come down from their tree about once a week, and so does your crew. Give it a regular day, and when nobody plans anything, the sloth picks a green spot in the middle of everyone and checks the weather.</p>
         <p class="fine credits">
-          Places and maps © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, found with Photon and Overpass.
-          Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).
-          Plans read by Gemma. <a href="https://github.com/IkpemosiArnold/comethrough" target="_blank" rel="noopener">Open source</a> (MIT).
+          <a href="/how">How the sloth works</a>. Maps © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors. Weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>. <a href="https://github.com/IkpemosiArnold/comethrough" target="_blank" rel="noopener">Open source</a>.
         </p>
       </section>
     </div>
@@ -223,7 +222,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
       <header class="pv-top">
         <button class="icon-btn" onClick={onBack} aria-label="Back to the sentence"><Icon name="back" /></button>
         <p class="pv-kicker">
-          {draft.ai === false ? 'Gemma is busy right now, so fill these in yourself.' : anyUnsure ? 'Gemma guessed the marked bits. Tap one to fix it.' : 'Your crew, as friends will see it. Tap anything to change it.'}
+          {draft.ai === false ? 'The sloth is busy right now, so fill these in yourself.' : anyUnsure ? 'The marked bits are guesses. Tap one to fix it.' : 'Your crew, as friends will see it. Tap anything to change it.'}
         </p>
       </header>
 
@@ -247,7 +246,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
 
       <div class="pv-card surface">
         <Row label="When you link up" value={r ? rhythmText(r) : 'No regular day'} unsure={low('rhythm')} open={open === 'rhythm'} onToggle={() => toggle('rhythm')}
-          note={r ? 'Gemma guessed the time. Check it.' : 'No regular day in your sentence. Pick one, or leave it.'}>
+          note={r ? 'The time is a guess. Check it.' : 'No regular day in your sentence. Pick one, or leave it.'}>
           <div class="row wrap seg">
             {[['1w', 'Every week'], ['2w', 'Every other week'], ['4w', 'Once a month'], [null, 'No regular day']].map(([v, label]) => (
               <button type="button" key={label} class="chip" aria-pressed={(r?.every || null) === v} onClick={() => setEvery(v)}>{label}</button>
@@ -268,12 +267,12 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
           {r && <p class="hint">On a {DAYS[r.day]} with nothing planned, the sloth picks a spot.</p>}
         </Row>
 
-        <Row label="The vibe" value={draft.vibe || 'Not set'} unsure={low('vibe')} open={open === 'vibe'} onToggle={() => toggle('vibe')} note="Gemma guessed this.">
+        <Row label="The vibe" value={draft.vibe || 'Not set'} unsure={low('vibe')} open={open === 'vibe'} onToggle={() => toggle('vibe')} note="A guess. Check it.">
           <input class="input" value={draft.vibe || ''} maxLength={80} onInput={(e) => set({ vibe: e.currentTarget.value })} aria-label="The vibe" />
           <p class="hint">The sloth uses this when it picks a spot.</p>
         </Row>
 
-        <Row label="Where the crew lives" value={draft.areas.length ? nameList(draft.areas.map((a) => a.label), 4) : 'Add an area'} unsure={low('areas') || !draft.areas.length} open={open === 'areas'} onToggle={() => toggle('areas')} note="Gemma guessed these. Add the areas people come from.">
+        <Row label="Where the crew lives" value={draft.areas.length ? nameList(draft.areas.map((a) => a.label), 4) : 'Add an area'} unsure={low('areas') || !draft.areas.length} open={open === 'areas'} onToggle={() => toggle('areas')} note="Guesses. Add the areas people come from.">
           <ul class="row wrap area-chips" aria-label="Areas">
             {draft.areas.map((a) => (
               <li key={a.label} class="chip area-chip">

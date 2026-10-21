@@ -8,7 +8,7 @@ import { packUi } from '../lib/place.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
 import { copyText, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
-import { whatsappUrl, planMessage } from '../lib/share.js';
+import { whatsappUrl, planMessage, planLinks } from '../lib/share.js';
 import { haptic, prefersReducedMotion, springAnimate } from '../lib/spring.js';
 import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
@@ -80,9 +80,10 @@ export function PlanPage({ params, query }) {
   const host = plan.host && byId[plan.host];
   const crewName = plan.crew?.name || mine?.name || 'the crew';
   const invite = plan.crew?.inviteToken || mine?.invite;
-  const planUrl = `${location.origin}/c/${slug}/p/${id}${invite ? `?t=${encodeURIComponent(invite)}` : ''}`;
+  const links = planLinks(location.origin, slug, id, invite);
+  const planUrl = links.url;
   const when = `${dayLabel(plan.start)}, ${timeRange(plan.start, plan.end)}`;
-  const msg = { title: plan.title, when, place: plan.place?.name, url: planUrl, kind: plan.kind };
+  const msg = { title: plan.title, when, place: plan.place?.name, kind: plan.kind, links };
   const shareText = planMessage(msg);
   const goingText = planMessage({ ...msg, mine: 'going' });
 
@@ -155,7 +156,7 @@ export function PlanPage({ params, query }) {
       {posted && (
         <aside class="posted-card" aria-label="Tell the crew">
           <p><b>Posted.</b> Tell the group chat so people see it.</p>
-          <a class="btn whatsapp block" href={whatsappUrl(planMessage({ ...msg, posted: true }))} target="_blank" rel="noopener" data-external onClick={() => setPosted(false)}>
+          <a class="btn whatsapp block" href={whatsappUrl(shareText)} target="_blank" rel="noopener" data-external onClick={() => setPosted(false)}>
             <WhatsAppIcon /> Tell the crew on WhatsApp
           </a>
         </aside>
@@ -290,11 +291,8 @@ export function PlanPage({ params, query }) {
       {plan.why && (
         <section class="why" aria-labelledby="why-title">
           <div class="why-sloth" aria-hidden="true"><Sloth size={58} branch={false} mood="awake" /></div>
-          <h2 id="why-title" class="why-title">Why this place</h2>
+          <h2 id="why-title" class="why-title">Why this spot</h2>
           <p>{plan.why}</p>
-          {plan.kind === 'ritual' && (
-            <p class="fine why-privacy">Gemma, Google's open model, wrote this from the place, the weather and travel times. No names went to Google.</p>
-          )}
         </section>
       )}
 
@@ -311,7 +309,7 @@ export function PlanPage({ params, query }) {
         <section class="source">
           {plan.source.imageUrl && <img class="source-flyer" src={plan.source.imageUrl} alt={`Flyer for ${plan.title}`} width="150" height="194" loading="lazy" />}
           <div>
-            <p class="small muted">{plan.source.image ? 'Gemma read this from a flyer' : 'Gemma read this from a link'}, so check the details with the organiser.</p>
+            <p class="small muted">{plan.source.image ? 'Read from a flyer' : 'Read from a link'}, so check the details with the organiser.</p>
             {plan.source.url && <a class="small" href={plan.source.url} target="_blank" rel="noopener">See the original</a>}
           </div>
         </section>
@@ -363,7 +361,7 @@ function entryWords(entry) {
 const monthYear = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 // Once per device, right after the first "I'm going": the push opt-in, or the iPhone install hint.
-function NudgeAsk({ slug }) {
+export function NudgeAsk({ slug }) {
   const [state, setState] = useState(() => {
     try { if (localStorage.getItem('ct.nudgeAsked')) return 'hidden'; } catch { /* ignore */ }
     if (notifyState() === 'granted' || notifyState() === 'denied') return 'hidden';

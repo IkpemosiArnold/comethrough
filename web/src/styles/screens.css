@@ -830,13 +830,26 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .draft-preview:active { transform: none; }
 .details-toggle { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 44px; padding: 0 var(--s-1); margin-bottom: var(--s-3); border: 0; background: none; color: var(--lagoon); font: inherit; font-weight: 650; cursor: pointer; }
 
-/* What goes to Google: one line, the detail one tap away */
-.privacy { font-size: var(--t-xs); color: var(--ink-3); line-height: 1.45; }
-.privacy summary { cursor: pointer; list-style: none; }
-.privacy summary::-webkit-details-marker { display: none; }
-.privacy-more { color: var(--lagoon); font-weight: 650; text-decoration: underline; text-underline-offset: 2px; }
-.privacy[open] .privacy-more { display: none; }
-.privacy p { margin-top: var(--s-2); }
+/* Said once, the first time something is sent to be read */
+.ai-note a { color: var(--lagoon); font-weight: 650; }
+
+/* How the sloth works */
+.how-page { display: grid; gap: var(--s-5); padding-bottom: var(--s-14); }
+.how-page section { display: grid; gap: var(--s-3); }
+.how-page p, .how-list { line-height: 1.55; color: var(--ink-2); }
+.how-list { display: grid; gap: var(--s-2); padding-left: 1.2em; list-style: disc; }
+.how-sloth { margin: var(--s-2) 0 calc(var(--s-4) * -1); }
+
+/* The one-tap answer from the chat: the plan, the branch, your face swinging on */
+.one-tap { display: grid; gap: var(--s-4); padding-top: calc(var(--safe-t) + var(--s-6)); padding-bottom: var(--s-14); }
+.one-tap > .crumb { justify-self: start; }
+.ot-plan { display: grid; gap: var(--s-2); justify-items: start; }
+.ot-when { font-size: var(--t-lg); font-weight: 650; }
+.ot-branch { margin: 0 calc(var(--gutter) * -1); min-height: 120px; }
+.ot-done { display: grid; gap: var(--s-3); }
+.ot-done .display-xl { font-size: clamp(2.25rem, 10vw, 3rem); }
+.ot-actions { display: grid; gap: var(--s-2); margin-top: var(--s-2); }
+.ot-ask { display: grid; gap: var(--s-3); }
 
 /* The sloth's first pick on the invite screen */
 .first-pick { margin-top: var(--s-2); }

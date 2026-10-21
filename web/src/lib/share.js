@@ -1,11 +1,22 @@
-// What the crew sees in WhatsApp. For most friends this text is the first screen of Come
-// Through, so the plan comes first, the link last, and one short reason to tap sits between.
-// Every "tell the crew" action is a wa.me link with the plan's own link in the text. Push is
-// the nudge for people who turned it on, and the calendar is an extra. No dashes in the text.
+// What the crew sees in WhatsApp. For most friends this text is all of Come Through they
+// need: the plan in the first line, then one link per answer. "I'm in" marks you going in
+// one tap (the first time on a phone it asks only for a name), and the plan page behind it
+// is the receipt: who's going, rides, the map. No dashes, and nothing says "check the app".
 
 /** A wa.me link that opens WhatsApp with the text ready to send to a chat. */
 export function whatsappUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+/**
+ * A plan's links, carrying the crew's invite key (never a member's own key, which would
+ * let others answer as that member).
+ * @param {string} origin @param {string} slug @param {string} id @param {string|null} key
+ */
+export function planLinks(origin, slug, id, key) {
+  const q = key ? `?t=${encodeURIComponent(key)}` : '';
+  const base = `${origin}/c/${slug}/p/${id}`;
+  return { url: `${base}${q}`, in: `${base}/in${q}`, maybe: `${base}/maybe${q}` };
 }
 
 // "Highlife Under Mangoes, Saturday, 5 to 9pm at The Mango Yard"; a sloth's pick is already
@@ -15,22 +26,23 @@ function line({ title, when, place, kind }) {
   return kind === 'ritual' && place ? `${when}${at}` : `${title}, ${when}${at}`;
 }
 
+const answers = (links) => `I'm in: ${links.in}\nMaybe: ${links.maybe}`;
+
 /**
- * The message for a plan.
- * @param {{ title: string, when: string, place?: string|null, url: string, kind?: string, mine?: 'going'|'maybe'|null, posted?: boolean }} p
+ * The message for a plan: what it is, then "I'm in" and "Maybe".
+ * @param {{ title: string, when: string, place?: string|null, kind?: string, links: { url: string, in: string, maybe: string }, mine?: 'going'|'maybe'|null }} p
  */
-export function planMessage({ title, when, place, url, kind, mine = null, posted = false }) {
-  if (mine === 'going') return `I'm going to ${line({ title, when, place, kind })}. Come through?\n${url}`;
-  if (posted) return `${line({ title, when, place, kind })}. Come through?\nTap if you're coming: ${url}`;
-  return `${line({ title, when, place, kind })}. Come through?\n${url}`;
+export function planMessage({ title, when, place, kind, links, mine = null }) {
+  if (mine === 'going') return `I'm going to ${line({ title, when, place, kind })}. Come through?\n${answers(links)}`;
+  return `${line({ title, when, place, kind })}. Come through?\n${answers(links)}`;
 }
 
 /**
- * The invite to the group chat. With a plan (the sloth's first pick, or the next plan), the
- * plan is the first line and the link opens that plan; without one, it says what the link is for.
- * @param {{ crewName: string, url: string, plan?: { title: string, when: string, place?: string|null, kind?: string, url: string }|null }} p
+ * The invite to the group chat. With a plan (the sloth's first pick, or the next plan), it is
+ * that plan's message; without one, it says what the link is for.
+ * @param {{ crewName: string, url: string, plan?: { title: string, when: string, place?: string|null, kind?: string, links: { url: string, in: string, maybe: string } }|null }} p
  */
 export function inviteMessage({ crewName, url, plan = null }) {
-  if (plan) return `${line(plan)}. Come through?\nTap if you're coming: ${plan.url}`;
-  return `Plans for ${crewName} live here now, so nobody has to chase the group chat. Tap once when you're coming: ${url}`;
+  if (plan) return planMessage(plan);
+  return `Plans for ${crewName} live here now, so nobody has to chase the group chat. See what's on: ${url}`;
 }

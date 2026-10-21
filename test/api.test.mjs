@@ -267,11 +267,11 @@ test("Opera Mini and phones without JavaScript: plain pages to see the plan, say
   assert.match((await get(said.location)).text, /You said maybe/);
   // a guest with the invite link joins from the plain page and lands back on the plan
   const guest = await get(`/c/${S.slug}/p/${S.beach}?t=${S.invite}`);
-  assert.match(guest.text, /Join .* to say you're coming/);
-  const joined = await post(`/basic/join/${S.slug}`, { t: S.invite, name: "Funmi", area: "Yaba", next: S.beach });
+  assert.match(guest.text, /Coming\? Add your name/);
+  const joined = await post(`/basic/join/${S.slug}`, { t: S.invite, name: "Funmi", area: "Yaba", next: S.beach, rsvp: "going" });
   assert.equal(joined.status, 303);
   const after = await get(joined.location);
-  assert.match(after.text, /Are you coming\?/);
+  assert.match(after.text, /You're going/, "joining from a plan answers it in the same tap");
   // the crew page lists plans; ?basic=1 works in any browser; Chrome gets the app
   assert.match((await get(`/c/${S.slug}?t=${S.kene}`)).text, /Coming up/);
   const chrome = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
@@ -286,6 +286,31 @@ test("Opera Mini and phones without JavaScript: plain pages to see the plan, say
   // a link with no key explains itself; a bad key is a plain error page
   assert.equal((await get(`/c/${S.slug}/p/${S.beach}`)).status, 401);
   assert.equal((await get(`/c/${S.slug}/p/${S.beach}?t=nope`)).status, 403);
+});
+
+test("one tap from the chat: a link preview never answers; the plain page answers on a tap", async () => {
+  const going = async () => Object.values((await call("GET", `/api/plans/${S.beach}`, { token: S.tolu })).json.plan.rsvps || {}).filter((v) => v === "going").length;
+  const before = await going();
+  // WhatsApp and Facebook fetch the link to draw a preview: they get a page, and nobody is marked going
+  for (const ua of ["WhatsApp/2.24.20.80 A", "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36"]) {
+    const r = await fetch(`${base}/c/${S.slug}/p/${S.beach}/in?t=${S.invite}`, { headers: { "user-agent": ua } });
+    assert.equal(r.status, 200);
+    assert.match(await r.text(), /<title>Come Through<\/title>/, "the app shell, whose script answers only on a real phone");
+  }
+  const MINI = "Opera/9.80 (Android; Opera Mini/36.2.2254/119.132; U; en) Presto/2.12.423 Version/12.16";
+  const page = await (await fetch(`${base}/c/${S.slug}/p/${S.beach}/in?t=${S.invite}`, { headers: { "user-agent": MINI } })).text();
+  assert.match(page, /What should the crew call you\?/);
+  assert.match(page, /<input type="hidden" name="rsvp" value="going">/);
+  assert.equal(await going(), before, "no GET has answered for anyone");
+  // the one tap: a name and "I'm in"
+  const r = await fetch(`${base}/basic/join/${S.slug}`, { method: "POST", redirect: "manual", headers: { "user-agent": MINI, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ t: S.invite, name: "Ngozi", next: S.beach, rsvp: "going" }).toString() });
+  assert.equal(r.status, 303);
+  assert.equal(await going(), before + 1);
+  // a member's phone gets one button, and opening it again changes nothing
+  const mine = new URL(r.headers.get("location") || "", base).searchParams.get("t");
+  const again = await (await fetch(`${base}/c/${S.slug}/p/${S.beach}/in?t=${mine}`, { headers: { "user-agent": MINI } })).text();
+  assert.match(again, /You're in\./);
+  assert.equal(await going(), before + 1);
 });
 
 test("edits: only the creator or host; a cancel tells who was coming", async () => {

@@ -54,12 +54,16 @@ async function req(method, path, { slug, invite, body, form, token } = {}) {
     const e = data?.error;
     const msg = (typeof e === 'string' ? e : e?.message) ||
       (res.status === 404 ? "That isn't here any more." : res.status === 401 || res.status === 403 ? 'This link has stopped working. Ask the crew for a fresh one.' : 'Something went wrong on our side. Try again in a minute.');
-    throw new ApiError(msg, res.status, e?.code, e?.fields);
+    // the server names the model; the app talks about the sloth
+    throw new ApiError(e?.code === 'slow_down' && /gemma/i.test(msg) ? 'The sloth needs a breather. Try again in a minute.' : msg, res.status, e?.code, e?.fields);
   }
   return data;
 }
 
 const enc = encodeURIComponent;
+
+// "Gemma is busy right now. Fill this in yourself." is said by the screen's own heading.
+const plainNotes = (notes) => (Array.isArray(notes) ? notes : []).filter((n) => !/^Gemma\b/.test(n));
 
 // Ideas may come from the server or the demo; keep only what the card can show.
 function normaliseIdeas(list) {
@@ -102,7 +106,7 @@ export const api = {
   // The visitor's own zone goes with it, so a crew started in Berlin is not looked for in Lagos.
   async draftCrew(sentence) {
     const r = await req('POST', '/api/crews', { body: { sentence, hint: hint() } });
-    return { ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
+    return { ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false };
   },
   // Step 2: the organiser confirms the edited draft, and can join in the same step.
   async createCrew(draft, organiser) {
@@ -181,7 +185,7 @@ export const api = {
       opts = { slug, body: { text: text || undefined, url: url || undefined } };
     }
     const r = await req('POST', `/api/crews/${enc(slug)}/plans/parse`, opts);
-    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false };
   },
   async createPlan(slug, draft) {
     const r = await req('POST', `/api/crews/${enc(slug)}/plans`, { slug, body: { plan: draft } });

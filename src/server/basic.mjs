@@ -24,7 +24,7 @@ import { BASE_HEADERS, compress, pickEncoding } from "./http.mjs";
 /** @typedef {import("node:http").IncomingMessage} Req */
 /** @typedef {import("node:http").ServerResponse} Res */
 
-export const PAGE_ROUTE = /^\/c\/([a-z0-9-]{1,64})(?:\/p\/([A-Za-z0-9_-]{1,64})|\/join)?\/?$/;
+export const PAGE_ROUTE = /^\/c\/([a-z0-9-]{1,64})(?:\/p\/([A-Za-z0-9_-]{1,64})(?:\/(in|maybe))?|\/join)?\/?$/;
 /** Any other page of the app (no file extension): the basic version says what needs the full app. */
 export const APP_ROUTE = /^\/(?:[a-z0-9-]+(?:\/[A-Za-z0-9_-]+)*)?\/?$/;
 
@@ -68,6 +68,35 @@ function sendHtml(/** @type {Res} */ res, /** @type {Req} */ req, /** @type {num
 
 const link = (/** @type {string} */ slug, /** @type {string|null} */ id, /** @type {string} */ token) => `/c/${encodeURIComponent(slug)}${id ? `/p/${encodeURIComponent(id)}` : ""}?t=${encodeURIComponent(token)}&basic=1`;
 
+/** The WhatsApp message for a plan, as the app writes it: the plan first, one link per answer. */
+function planShare(/** @type {any} */ plan, /** @type {any} */ crew, /** @type {string} */ webUrl) {
+  const base = `${webUrl}/c/${crew.slug}/p/${plan.id}`;
+  const q = `?t=${encodeURIComponent(crew.inviteToken)}`;
+  const at = plan.place?.name && !plan.place?.hidden ? ` at ${plan.place.name}` : "";
+  const first = plan.kind === "ritual" && at ? `${whenWords(plan.start, plan.end, plan.tz)}${at}` : `${plan.title}, ${whenWords(plan.start, plan.end, plan.tz)}${at}`;
+  return `https://wa.me/?text=${encodeURIComponent(`${first}. Come through?\nI'm in: ${base}/in${q}\nMaybe: ${base}/maybe${q}`)}`;
+}
+
+/**
+ * The one-tap answer from the chat (/c/<slug>/p/<id>/in or /maybe). A GET never answers, because
+ * WhatsApp fetches links to draw their previews: a member gets one button, a new phone a name
+ * and the same button, and the POST records it.
+ */
+function oneTapHtml({ plan, crew, you }, /** @type {string} */ token, /** @type {"going"|"maybe"} */ answer) {
+  const label = answer === "going" ? "I'm in" : "Maybe";
+  const already = you && plan.you === answer;
+  const head = `<p class="small">${esc(crew.name)}</p><h1>${esc(plan.title)}</h1><p>${esc(whenWords(plan.start, plan.end, plan.tz))}${plan.place?.name ? `, ${esc(plan.place.name)}` : ""}</p>`;
+  const going = (plan.going || []).join(", ");
+  const who = `<p class="small">${going ? `Going: ${esc(going)}` : "Nobody on the branch yet."}</p>`;
+  if (already) return page(`${plan.title}: Come Through`, `${head}<h2>${answer === "going" ? "You're in." : "You said maybe."}</h2>${who}<p><a href="${esc(link(crew.slug, plan.id, token))}">The plan and who's going</a></p>`);
+  const form = you
+    ? `<form method="post" action="/basic/rsvp/${esc(plan.id)}"><input type="hidden" name="t" value="${esc(token)}"><button name="rsvp" value="${answer}">${label}</button></form>`
+    : `<form method="post" action="/basic/join/${esc(crew.slug)}"><input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="next" value="${esc(plan.id)}"><input type="hidden" name="rsvp" value="${answer}">
+<label>What should the crew call you?<input name="name" maxlength="40" required></label>
+<button>${label}</button></form><p class="small">No sign-up. The link this takes you to is yours: keep it to answer again.</p>`;
+  return page(`${plan.title}: Come Through`, `${head}${who}${form}`);
+}
+
 /** The plan as a plain page. */
 function planHtml({ plan, crew, you, members }, /** @type {string} */ token, /** @type {string} */ webUrl) {
   const slug = crew.slug;
@@ -75,8 +104,7 @@ function planHtml({ plan, crew, you, members }, /** @type {string} */ token, /**
   const entry = plan.price ? plan.price.text : plan.place?.entry ? (plan.place.entry.free === true ? "Free to get in" : plan.place.entry.free === false ? plan.place.entry.note || "There is a fee to get in" : "Entry: check at the gate") : null;
   const going = (plan.going || []).join(", ");
   const maybe = (plan.maybe || []).join(", ");
-  const shareUrl = `${webUrl}/c/${slug}/p/${plan.id}?t=${encodeURIComponent(crew.inviteToken)}`;
-  const share = `https://wa.me/?text=${encodeURIComponent(`${plan.title}, ${whenWords(plan.start, plan.end, plan.tz)}. Come through: ${shareUrl}`)}`;
+  const share = planShare(plan, crew, webUrl);
   const rows = [
     `<p><b>When:</b> ${esc(whenWords(plan.start, plan.end, plan.tz))}</p>`,
     where ? `<p><b>Where:</b> ${esc(where)}</p>` : "",
@@ -96,11 +124,11 @@ function planHtml({ plan, crew, you, members }, /** @type {string} */ token, /**
 <button name="rsvp" value="going">I'm going</button><button name="rsvp" value="maybe" class="plain">Maybe</button>${mine ? '<button name="rsvp" value="none" class="plain">Not going</button>' : ""}
 </form><p class="small">Can't make it? No need to say anything.</p>`;
     } else {
-      act = `<h2>Join ${esc(crew.name)} to say you're coming</h2>
+      act = `<h2>Coming? Add your name</h2>
 <form method="post" action="/basic/join/${esc(slug)}"><input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="next" value="${esc(plan.id)}">
 <label>Your name<input name="name" maxlength="40" required></label>
-<label>Your area, like Yaba or Lekki<input name="area" maxlength="60"></label>
-<button>Join and see the plan</button></form>`;
+<label>Where you're coming from (optional)<input name="area" maxlength="60"></label>
+<button name="rsvp" value="going">I'm going</button><button name="rsvp" value="maybe" class="plain">Maybe</button></form>`;
     }
   }
   const back = `<p><a href="${esc(link(slug, null, token))}">All plans from ${esc(crew.name)}</a></p>`;
@@ -116,7 +144,7 @@ function crewHtml({ crew, plans, you }, /** @type {string} */ token) {
   const join = you ? "" : `<h2>Join ${esc(crew.name)}</h2>
 <form method="post" action="/basic/join/${esc(crew.slug)}"><input type="hidden" name="t" value="${esc(token)}">
 <label>Your name<input name="name" maxlength="40" required></label>
-<label>Your area, like Yaba or Lekki<input name="area" maxlength="60"></label>
+<label>Where you're coming from (optional)<input name="area" maxlength="60"></label>
 <button>Join the crew</button></form>`;
   return page(`${crew.name}: Come Through`, `<h1>${esc(crew.name)}</h1>${you ? `<p class="small">You're in as ${esc(you.name)}.</p>` : ""}<h2>Coming up</h2>${list}${join}`);
 }
@@ -153,7 +181,8 @@ export function basicHandler({ service, webUrl }) {
           sendHtml(res, req, 401, page("Come Through", "<h1>This link is missing its key</h1><p>Open the link from the group chat again: it ends in ?t=...</p>"));
           return true;
         }
-        if (m[2]) sendHtml(res, req, 200, planHtml(await service.getPlan({ id: m[2], token }), token, webUrl));
+        if (m[2] && m[3]) sendHtml(res, req, 200, oneTapHtml(await service.getPlan({ id: m[2], token }), token, m[3] === "in" ? "going" : "maybe"));
+        else if (m[2]) sendHtml(res, req, 200, planHtml(await service.getPlan({ id: m[2], token }), token, webUrl));
         else sendHtml(res, req, 200, crewHtml(await service.getCrew({ slug: m[1], token }), token));
         return true;
       }
@@ -172,6 +201,9 @@ export function basicHandler({ service, webUrl }) {
         }
         const joined = await service.joinCrew({ slug: /** @type {RegExpExecArray} */ (join)[1], token: t, body: { name: form.get("name"), area: form.get("area") || null } });
         const next = form.get("next");
+        // joining from a plan answers it in the same tap
+        const answer = form.get("rsvp");
+        if (next && /^[A-Za-z0-9_-]{1,64}$/.test(next) && (answer === "going" || answer === "maybe")) await service.patchPlan({ id: next, token: joined.memberToken, body: { rsvp: answer } });
         res.writeHead(303, { ...BASE_HEADERS, location: link(/** @type {RegExpExecArray} */ (join)[1], next && /^[A-Za-z0-9_-]{1,64}$/.test(next) ? next : null, joined.memberToken) }).end();
         return true;
       }

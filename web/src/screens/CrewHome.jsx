@@ -8,7 +8,7 @@ import { setPlace } from '../lib/place.js';
 import { navigate } from '../lib/router.js';
 import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
 import { copyText, isIOS, isAndroid } from '../lib/platform.js';
-import { whatsappUrl, inviteMessage } from '../lib/share.js';
+import { whatsappUrl, inviteMessage, planLinks } from '../lib/share.js';
 import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
@@ -22,7 +22,7 @@ export function crewInvite(crew, plans, invite) {
   const key = invite ? `?t=${encodeURIComponent(invite)}` : '';
   const url = `${location.origin}/c/${crew.slug}${key}`;
   const next = (plans || []).find((p) => !isPast(p) && p.status !== 'cancelled');
-  const plan = next ? { title: next.title, kind: next.kind, place: next.place?.name, when: `${dayLabel(next.start)}, ${timeRange(next.start, next.end)}`, url: `${location.origin}/c/${crew.slug}/p/${next.id}${key}` } : null;
+  const plan = next ? { title: next.title, kind: next.kind, place: next.place?.name, when: `${dayLabel(next.start)}, ${timeRange(next.start, next.end)}`, links: planLinks(location.origin, crew.slug, next.id, invite) } : null;
   return inviteMessage({ crewName: crew.name, url, plan });
 }
 
