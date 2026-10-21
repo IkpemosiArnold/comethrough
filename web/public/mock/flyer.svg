@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 388" width="300" height="388">
+  <rect width="300" height="388" fill="#2b1846"/>
+  <circle cx="230" cy="92" r="70" fill="#ff8a3d"/>
+  <circle cx="230" cy="92" r="52" fill="#ffc21a"/>
+  <g fill="#1a0f2c">
+    <path d="M0 250 Q 60 205 120 238 T 300 222 V388 H0z"/>
+  </g>
+  <g stroke="#ffc21a" stroke-width="3" opacity=".6">
+    <path d="M24 300 h40 M24 312 h28"/>
+  </g>
+  <text x="22" y="64" font-family="Georgia, serif" font-style="italic" font-weight="700" font-size="22" fill="#ffd9ec">Sunday</text>
+  <text x="22" y="118" font-family="Impact, 'Arial Black', sans-serif" font-size="56" fill="#fff" letter-spacing="1">GROOVE</text>
+  <text x="22" y="168" font-family="Impact, 'Arial Black', sans-serif" font-size="46" fill="#ffc21a" letter-spacing="1">SESSIONS</text>
+  <text x="22" y="204" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#fff">LIVE BAND + DJ KOLO</text>
+  <text x="22" y="340" font-family="Arial, sans-serif" font-weight="700" font-size="16" fill="#fff">SUN 6PM · FREEDOM PARK</text>
+  <text x="22" y="362" font-family="Arial, sans-serif" font-size="13" fill="#ffd9ec">Gate: N5,000 · Lagos Island</text>
+</svg>
