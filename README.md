@@ -12,13 +12,16 @@ Lagos, where the hard part of meeting up is rarely the wanting. It is the asking
 waiting for answers, the choosing of a place and the traffic.
 
 <p>
-  <img src="docs/screens/real/17-crew-home.png" width="260" alt="A crew's home screen: the sloth picked Tinubu Square on Saturday morning, moved to dodge the rain, with three plans coming up">
-  <img src="docs/screens/real/19-ritual-rain.png" width="260" alt="The sloth's plan, with a note that rain is likely in the afternoon so it moved to the morning">
-  <img src="docs/screens/real/16-plan-going-uber-estimate.png" width="260" alt="A ride card: leave Yaba by 12:10pm, about 33 minutes, an estimate, with how the guess was made and an Uber button">
+  <img src="docs/screens/real/17-crew-home.png" width="260" alt="A crew's home screen: rain is likely all Saturday afternoon, so the sloth picked Nike Art Gallery, somewhere with a roof, from 3 to 6pm">
+  <img src="docs/screens/real/19-ritual-rain.png" width="260" alt="The sloth's plan at Nike Art Gallery, with the note that rain is likely from 3 pm to 6:30 pm (up to 90%), and Entry: check at the gate">
+  <img src="docs/screens/real/16-plan-going-rides-estimate.png" width="260" alt="A ride card: leave Yaba by 11:25am, about 17 minutes, a rough estimate from a 6.2 km road route, with Copy address and buttons for Bolt and inDrive">
 </p>
 
-Screens from a real run on 21 Oct 2026 with live Gemma, Photon, Overpass and Open-Meteo.
-More in [docs/screens/real](docs/screens/real).
+Screens from a real run on 21 Oct 2026 with live Gemma, Photon, Overpass, OSRM and
+Open-Meteo. More in [docs/screens/real](docs/screens/real), including the plain page Opera
+Mini gets ([23-opera-mini-basic-plan.png](docs/screens/real/23-opera-mini-basic-plan.png)).
+What the app claims about Lagos, and where each claim comes from, is in
+[docs/LOCAL-FACTS.md](docs/LOCAL-FACTS.md).
 
 ## What it does
 
@@ -102,7 +105,7 @@ For the real thing, copy `.env.example` to `.env`, add `GEMINI_API_KEY`
 (aistudio.google.com/apikey) and run `npm run dev`.
 
 ```sh
-npm test                 # 99 tests: core, adapters, service and the HTTP API
+npm test                 # 127 tests: core, adapters, service and the HTTP API
 npm run typecheck        # tsc over the JSDoc types
 npm run e2e -- http://localhost:3000 <event link>   # the whole flow against a running server
 ```
@@ -122,6 +125,7 @@ checks after deploy, and the list of things to try on a real phone are in
 - [docs/SPEC.md](docs/SPEC.md): the product and the API contract
 - [docs/DESIGN.md](docs/DESIGN.md): the look (a hand-painted Lagos afternoon)
 - [docs/NOTES.md](docs/NOTES.md): engineering notes, live test results and open items
+- [docs/LOCAL-FACTS.md](docs/LOCAL-FACTS.md): every claim about Lagos, with its source and the date it was checked
 
 ## Credits
 

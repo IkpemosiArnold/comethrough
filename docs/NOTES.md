@@ -90,7 +90,7 @@ Not found in OSM under their names on 21 Oct 2026: Elegushi Beach (only a road),
 
 ```sh
 npm install
-npm test               # 99 tests: core, adapters (fakes and a local HTTP server), service, API end to end
+npm test               # 127 tests: core, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
@@ -100,6 +100,7 @@ node scripts/events-check.mjs <url> ...     # real event pages through the link 
 npm run e2e -- <base> <event link>          # the whole flow over HTTP (scripts/e2e.mjs)
 node scripts/push-check.mjs <base>          # real Web Push through headless Chrome and FCM
 node scripts/screens-real.mjs <base> docs/screens/real <event link>   # screenshots on live data
+node scripts/screens-mock.mjs <base> docs/screens                    # the plan screens on the demo data
 ```
 
 The web dev server (Vite) proxies `/api`, `/cal` and `/healthz` to port 3000.
