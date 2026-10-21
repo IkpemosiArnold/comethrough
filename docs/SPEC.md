@@ -57,10 +57,11 @@ Gemma runs through the Gemini API (free tier) with a server-held key. Google may
 
 | Feature | Sent to Gemma | Never sent |
 |---|---|---|
-| Start a crew | the setup sentence | the crew list, member names, locations |
+| Start a crew | the setup sentence and the optional "what you're into" line (read once, never kept) | the crew list, member names, locations |
+| Tell the sloth what you're into (later) | that line | the crew list, member names, locations |
 | Add a plan | the sentence, the flyer picture, or the link plus its page's title, description and text; today's date | who is adding it, the crew list, locations |
-| The ritual (explain and invite) | the picked place, its kind, the weather, the crew's vibe words, the minutes from each neighbourhood, the runners-up | member names, the crew list |
-| The sloth's 3 ideas (ranking) | the crew's vibe words, budget and "tonight" or "weekend"; for each candidate its name, kind, day and time, place and area, price as stated, the weather, the longest trip and the minutes from each neighbourhood, the guide's name, and the crew's own history with it (visits, days ago, how many came) | member names, the crew list, tokens |
+| The ritual (explain and invite) | the picked place, its kind, what of the crew's taste it fits ("an art gallery") and whether it is low-key, the weather, the crew's vibe words, the minutes from each neighbourhood, the runners-up | member names, the crew list, the crew's needs (never sent with the invite) |
+| The sloth's 3 ideas (ranking) | the crew's vibe words, budget, taste (scenes, likes, place kinds, things to avoid, needs, age band, energy) and "tonight" or "weekend"; for each candidate its name, kind, day and time, place and area, price as stated, the weather, the longest trip and the minutes from each neighbourhood, the guide's name, and the crew's own history with it (visits, days ago, how many came) | member names, the crew list, tokens |
 | Reading a curated weekly guide (Lagos) | the post's text from its public RSS feed, its title and date, today's date | anything about any crew |
 
 **Run your own sloth.** Every Gemma task goes through one LLM port (`src/adapters/llm.mjs`). `LLM=gemini` (the default) uses the Gemini API as above. `LLM=ollama` uses Gemma on your own machine or server through Ollama (`OLLAMA_URL`, default `http://localhost:11434`; `OLLAMA_MODEL`, default `gemma3:4b`; `OLLAMA_VISION=auto|yes|no`; `OLLAMA_TIMEOUT_MS`, default 180000): then nothing goes to Google at all. The task's JSON schema is Ollama's `format`. A flyer needs a model with vision (Ollama reports it in `/api/show`); a text-only model refuses it with `hint`: "Reading a flyer needs a vision model, and this server runs ..., which reads text only. Type the plan or paste the link instead." and the parse screen shows that note.
@@ -70,7 +71,7 @@ Gemma runs through the Gemini API (free tier) with a server-held key. Google may
 ## Data model (JSON; MongoDB Atlas in production, a file store in development)
 
 ```js
-Crew   { id, slug, name, vibe, vibeTags: [string], budget: "free"|"cheap"|"any",
+Crew   { id, slug, name, vibe, vibeTags: [string], budget: "free"|"cheap"|"any", taste: Taste | null,
          rhythm: { every: "1w"|"2w"|"4w", day: 0..6, window: { from: "15:00", to: "19:00" }, anchor?: "YYYY-MM-DD" } | null,
          areas: [{ label, lat, lon }], tz: "Europe/Berlin", createdAt, inviteToken,
          region: { center: { lat, lon } | null, countryCode: "DE" | null, city: "Berlin" | null,
@@ -106,9 +107,10 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 | Method | Path | Auth | Request | Response |
 |---|---|---|---|---|
-| POST | `/api/crews` | none | `{ sentence, hint?: { tz } }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }], region }, pack: PackView, confidence: { name, vibe, rhythm, areas }, low: [field], notes: [string], ai: bool }` (Gemma reads the sentence; areas are geocoded; nothing is saved). `hint.tz` is the visitor's own zone: none, or "Africa/Lagos", starts the crew in Lagos as before; any other zone looks the areas up anywhere, the visitor's country first. `ai: false` means Gemma was busy: the draft is empty and the form is filled by hand |
-| POST | `/api/crews` | none | `{ confirm: draft, hint?: { tz }, organiser?: { name, area } }` | `201 { crew, inviteUrl, inviteToken, member?, memberToken?, calendarUrl?, webcalUrl? }` (the crew keeps `draft.region`, its centre moved to the confirmed areas; with no region, the hint decides, and with no hint, Lagos) |
-| GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, region: { center, countryCode, city, timezone }, pack: PackView, inviteToken, createdAt }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
+| POST | `/api/crews` | none | `{ sentence, into?, hint?: { tz } }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }], region, taste: Taste }, taste: TasteView, pack: PackView, confidence: { name, vibe, rhythm, areas }, low: [field], notes: [string], ai: bool }` (Gemma reads the sentence and the optional `into` line, "what you're into", at most 300 characters; areas are geocoded; nothing is saved, and neither text is kept anywhere). `hint.tz` is the visitor's own zone: none, or "Africa/Lagos", starts the crew in Lagos as before; any other zone looks the areas up anywhere, the visitor's country first. `ai: false` means Gemma was busy: the draft is empty and the form is filled by hand |
+| POST | `/api/crews` | none | `{ confirm: draft, hint?: { tz }, organiser?: { name, area } }` | `201 { crew, inviteUrl, inviteToken, member?, memberToken?, calendarUrl?, webcalUrl? }` (the crew keeps `draft.region`, its centre moved to the confirmed areas; with no region, the hint decides, and with no hint, Lagos). `draft.taste` (the edited chips) is checked again. A name that says who the crew is (orientation, gender identity, health) is refused: `invalid`, field `name` |
+| POST | `/api/crews/:slug/taste` | member | `{ sentence }` (read a "what you're into" line; nothing saved) or `{ taste: Taste }` (save the edited chips) | `200 { taste: Taste, chips, summary, saved: bool, ai?, notes? }` |
+| GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, region: { center, countryCode, city, timezone }, pack: PackView, inviteToken, createdAt, taste?: Taste (members only) }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
 | POST | `/api/crews/:slug/members` | invite | `{ name, area }` where area is a label ("Yaba") or `{ label, lat, lon }` from `/api/areas` | `201 { member, memberToken, memberUrl, calendarUrl, webcalUrl, notes }` (`memberUrl` is `/c/<slug>?t=<memberToken>`) |
 | GET | `/api/areas?q=Yab&near=6.48,3.42&cc=NG` or `&tz=Europe/Berlin` | none (rate limited) | | `{ results: [{ label, detail, lat, lon, country?, city? }] }` (Photon type-ahead for neighbourhoods and towns, cached; falls back to any place). Biased to `near` (the crew's centre) and kept to `cc` when given; else by the visitor's zone `tz`: none or Lagos searches Lagos as before, any other searches anywhere |
 | GET | `/api/crews/:slug/ideas?when=tonight\|weekend` | invite or member | | `200 IdeasCard` (see "Ideas: the sloth has 3 ideas"). One card of at most three ideas; cached per crew and slot for 3 hours. `400 invalid` for any other `when`; `503 ideas_off` on a server built without it |
@@ -125,6 +127,8 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 | DELETE | `/api/members/:id/push-subscription` | that member | `{ endpoint }` | `204` |
 | POST | `/api/tick` | `Bearer TICK_SECRET` | | `{ rituals, weatherChecked, rainAlerts, pushes, expired }`; idempotent |
 | GET | `/healthz` | none | | `{ ok, store, ai, push, you }` (`you` is the client address the rate limits see; check it after a deploy) |
+
+`Taste` is what the crew is into and needs (src/core/taste.mjs): `{ scenes: [string], likes: [string], placeKinds: [string], eventKeywords: [string], avoid: [string], needs: ["safe"|"discreet"|"women-friendly"|"inclusive"|"no alcohol"|"kid-friendly"|"step-free"|"quiet"|"daytime"], budget: "free"|"cheap"|"any"|null, ageBand: string|null, energy: "chill"|"lively"|"mixed"|null }`. `placeKinds` come from a closed list (park, garden, beach, playground, gallery, museum, arts centre, cafe, restaurant, street food, ice cream, bar, pub, nightclub, live music, cinema, theatre, bookshop, thrift, market, library, community centre, sports, bowling, arcade, theme park, zoo) that code maps to OpenStreetMap tags. It never holds a word for who the crew is (docs/LOCAL-FACTS.md, "Sensitive attributes"). `TasteView` is `{ chips: [{ field, value, label }], summary: "Got it: alte, art and live music, late 20s, around Yaba and Lekki Phase 1." | null }`.
 
 `PackView` is what the web app may know about the crew's city pack: `{ id: "lagos"|"default", name, directions: bool (no ride app named), example, areaPlaceholder, pricePlaceholder, city, countryCode }`.
 
@@ -208,6 +212,17 @@ Render web service and MongoDB Atlas (Free tier), both in **Frankfurt** (eu-cent
 - Rides: "Copy address" (`pod.destinationText`), then a button per ride app from `rides` (Bolt, then inDrive), going to `links.android`, `links.ios` or `links.web` by platform. `dropoff` is false for every app (none documents a drop-off link).
 - Highlight draft fields listed in `low` (confidence under 0.6). Show the "only what you submit goes to Google" note on the parse screen.
 - Instagram links do not give the server the flyer (Instagram returns an empty page), so for Instagram ask for a screenshot of the flyer.
+
+### UI requests: taste ("tell the sloth what you're into")
+
+From the backend builder, 21 Oct. The setup sentence now shapes what the sloth suggests, so the setup flow should show that it understood, and let people correct it.
+
+- **One more optional field on the setup screen,** under the crew sentence, sent as `into`: "Tell the sloth what you're into and what makes a place feel right. You don't need to say who you are." Placeholder from the crew's city, for example "art, live music, somewhere quiet". Keep that second sentence exactly; it is a safety line (same-sex relationships are criminalised in Nigeria, docs/LOCAL-FACTS.md).
+- **Show the understanding.** After the draft comes back, show `taste.summary` ("Got it: alte, art and live music, late 20s, around Yaba") above the confirm form, and `taste.chips` as removable chips under it. Each chip has `field`, `value` and `label`; removing one removes `value` from `draft.taste[field]` (for `ageBand` and `energy`, set it to null). Chips with `field: "needs"` read as the organiser's own settings ("Low-key places", "No alcohol"): show them in their own row titled "What makes a place feel right". Send the edited `draft.taste` back with the confirm.
+- **Never show the taste outside the members' own screens.** Not in the invite text, the WhatsApp share, the plan page a guest sees, or link previews. `crew.taste` comes only to members.
+- **Edit later.** On the crew's own settings (members only), the same field: send `{ sentence }` to `POST /api/crews/:slug/taste`, show the chips that come back, then send `{ taste }` to save. Saving makes the next ideas card new.
+- **A name refused.** `invalid` with field `name` on confirm means the name says who the crew is; show the message as it is, next to the name field.
+- **Ideas: a new kind.** `kind: "home"` is "A night in at one of yours" (offered to a crew whose needs say discreet or safe). It has no place and no travel; its `draftPlan` is a hosted, private plan with no address, so "Make it a plan" should open the plan form for the host to add theirs rather than posting straight away.
 
 ### UI requests: ideas card
 

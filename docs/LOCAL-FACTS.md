@@ -558,6 +558,92 @@ Bengaluru), as in Lagos, with the reason given.
   what local slang to teach.
 - **The brand voice.** "Come through" stays everywhere: it is the name.
 
+## Taste: what a crew is into
+
+Describing the crew changes what the sloth suggests (`src/core/taste.mjs`). Gemma reads the
+setup sentence into a taste, with these notes from the Lagos pack (`TASTE_NOTES`):
+
+- **"Alte" (alté) is Lagos's alternative scene.** Dazed, "An introduction to Nigeria's
+  innovative 'alté' scene" (Tanya Akinola, 5 Jul 2019,
+  dazeddigital.com/music/article/45115/1/introduction-to-nigeria-alte-music-scene): "This new
+  movement has been labelled 'Alté', meaning 'alternative'." and "Alté comprises a diverse
+  range of styles, sometimes drawing on dancehall, indie, R&B, and more." It names Santi,
+  Odunsi, Lady Donli, Wavy the Creator, Tay Iwar and DRB, who coined the name. i-D, "How a
+  Lagos subculture shaped the look and sound of Africa's youth" (8 Dec 2023, i-d.co/?p=823):
+  alté is "a fully-fledged lifestyle, a way of being that's expressed as much through style
+  and art as through music." Checked 21 Oct 2026. **Our reading, not the sources':** that an
+  alte crew likes galleries, art spaces, cafés, bookshops and thrift. Neither article mentions
+  thrift; it is in the notes because the scene is about fashion, and it only adds a place kind.
+- **Place kinds are OpenStreetMap tags,** mapped in code (`PLACE_KINDS`), never by the model:
+  tourism=gallery ("an area or building that displays a variety of visual art exhibitions"),
+  amenity=arts_centre ("a venue where the arts are staged or made"), shop=second_hand (resale
+  or thrift shop), shop=books, amenity=cafe, leisure=playground ("areas specifically designed
+  for children to play"), and so on (wiki.openstreetmap.org/wiki/Tag:..., the one-line
+  definitions as of 21 Oct 2026; the wiki itself answered 503 that day, so they were read
+  through search summaries). A café counts as half outdoors only when OpenStreetMap tags it
+  outdoor_seating=yes or its name says garden.
+- **A cheap crew's ticket ceiling: ₦5,000, an assumption.** The national minimum wage is
+  ₦70,000 a month: ICIR, "Tinubu signs N70,000 new minimum wage bill into law" (29 Jul 2024,
+  icirnigeria.org/tinubu-signs-n70000-new-minimum-wage-bill-into-law/), checked 21 Oct 2026.
+  ₦5,000 is about 7% of that. For a crew whose budget is "cheap" (students, "broke"), "The
+  sloth has 3 ideas" drops guide events priced over it (`LAGOS.cheapMax`). Other packs set
+  no ceiling, so nothing is assumed there; a "free" crew anywhere gets no paid events.
+- **What we do not claim.** No venue is ever called "queer-friendly", "women-friendly" or "a
+  safe space": no source we can cite says so of any Lagos venue, and the reason and invite
+  checks throw such sentences away (`UNSOURCED_CLAIM`). A crew that needs "discreet" or
+  "safe" gets quiet, seated places (gardens, galleries, cafés, museums, bookshops) scored up,
+  beaches and nightlife scored down, and a night in at a member's home offered first among the
+  ideas; the explanation says "quiet and low-key", never why.
+
+## Sensitive attributes: who a crew is never gets stored
+
+**Same-sex relationships are criminalised in Nigeria.** The Same Sex Marriage (Prohibition)
+Act 2013 was assented to and commenced on 7 January 2014 (judy.legal,
+lite.judy.legal/amp/legislation/akn/ng/act/2013/ssmpa-2013/). Its text (ICNL legal library,
+icnl.org/research/library/nigeria_marriageact/): s.1(1) "A marriage contract or civil union
+entered into between persons of same sex: (a) is prohibited in Nigeria"; s.4(2) "The public
+show of same sex amorous relationship directly or indirectly is prohibited"; s.5(2) a person
+who "registers, operates or participates in gay clubs, societies and organisations" or makes
+such a public show "commits an offence and is liable on conviction to a term of 10 years
+imprisonment"; s.5(1), a marriage or civil union, 14 years. Reuters (via NBC News, 13 Jan
+2014, "Nigerian president signs anti-gay bill into law",
+nbcnews.com/news/world/nigerian-president-signs-anti-gay-bill-law-flna2D11916706) reports
+the same penalties. The Criminal Code Act also punishes "carnal knowledge ... against the
+order of nature" with 14 years (s.214) and "gross indecency" between men with 3 years
+(s.217): Immigration and Refugee Board of Canada, Response NGA103958.E (3 Feb 2012,
+ecoi.net/en/document/1040199.html). All checked 21 Oct 2026. (Refworld and HRW's 2016
+report "Tell Me Where I Can Be Safe" could not be fetched that day.)
+
+So a crew's sexual orientation, gender identity, religion, health and ethnicity are treated
+as sensitive (`SENSITIVE` in `src/core/taste.mjs`):
+
+- **They become needs.** Gemma is told to turn them into needs (safe, discreet,
+  women-friendly, inclusive, no alcohol, kid-friendly, step-free, quiet, daytime) and never to
+  repeat the words. Code adds its own needs as a floor (`impliedNeeds`), so a safety need
+  never depends on the model: a queer crew always gets safe, discreet and inclusive (and
+  women-friendly for a women's crew); a mosque group, a Pentecostal church or a church youth
+  group gets no alcohol; a wheelchair user, step-free.
+- **The words are dropped everywhere they could be kept.** From the taste, the vibe, and the
+  name Gemma suggests (orientation, gender identity and health words; a crew name typed with
+  one is refused at confirm, because names show in WhatsApp previews, calendars and push).
+  Religion and ethnicity in a name the organiser types ("St Paul's youth") are left as theirs.
+  The edited chips are checked again on save.
+- **The setup text is read once and never kept:** not in the crew, the logs (which record
+  only that a taste exists), the ideas card cache (keyed by a hash of the taste, not its
+  words), or anything else. Production has no LLM cache; the persona eval's cache is keyed by
+  a SHA-256 of the request and keeps only the scrubbed answer.
+- **Taste and needs stay inside the app.** They are not in WhatsApp invite text, calendar
+  feeds, link previews, push payloads or the Opera Mini pages. The ritual's invite (which
+  travels: calendar, push, the plain page) is written without the needs-shaped explanation,
+  and an invite that says "discreet", "low-key", "private" or "safe" is replaced by the
+  code's plain one. Guests with only the invite link do not see the crew's taste; members do.
+- **The setup screen says it plainly:** "Tell the sloth what you're into and what makes a
+  place feel right. You don't need to say who you are." (docs/SPEC.md, "UI requests: taste").
+- **What still leaves the server:** the setup sentence goes to Gemma (Google's Gemini API,
+  free tier) to be read, as the setup screen already says. Anyone who would rather not send
+  it can describe what they are into instead of who they are, or run Gemma on their own
+  machine (`LLM=ollama`).
+
 ## Also found and fixed in this pass
 
 - **The naira sign.** Gemma read the test flyer's "GATE ₦3,000" as "Gate ‸3,000" (U+2038, a
