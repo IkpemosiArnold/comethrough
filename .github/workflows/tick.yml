@@ -1,0 +1,33 @@
+# The heartbeat. Render's free web service sleeps after 15 minutes and Render cron jobs are
+# not free, so GitHub Actions calls POST /api/tick every 3 hours: it creates due rituals,
+# rechecks the weather on outdoor plans and deletes expired ones. The call also wakes the
+# service, which can take about a minute, hence the 120 s timeout and the retries. GitHub
+# may run a schedule late or drop it; the tick is idempotent, so that is harmless.
+#
+# Repository settings: secret TICK_SECRET (the same value as on Render) and variable
+# COMETHROUGH_URL (for example https://comethrough.tech). Schedules run only on the
+# default branch and pause after 60 days without repository activity.
+name: tick
+on:
+  schedule:
+    - cron: "17 */3 * * *" # minute 17 avoids the top-of-the-hour rush on GitHub's runners
+  workflow_dispatch: {}
+permissions: {}
+concurrency:
+  group: tick
+  cancel-in-progress: false
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/tick
+        env:
+          URL: ${{ vars.COMETHROUGH_URL }}
+          TICK_SECRET: ${{ secrets.TICK_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$TICK_SECRET" ]; then echo "Set COMETHROUGH_URL and TICK_SECRET first."; exit 0; fi
+          curl --fail-with-body --silent --show-error \
+            --max-time 120 --retry 2 --retry-delay 20 --retry-all-errors \
+            -X POST -H "Authorization: Bearer $TICK_SECRET" "$URL/api/tick"
+          echo

@@ -1,0 +1,38 @@
+# Render Blueprint for Come Through: one free Node web service in Frankfurt (next to the
+# MongoDB Atlas cluster in eu-central-1) that serves the API and the built web app from
+# one origin. The heartbeat is a GitHub Actions schedule (.github/workflows/tick.yml),
+# because Render cron jobs are not free and the free service sleeps when idle.
+services:
+  - type: web
+    name: comethrough
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --omit=dev && npm --prefix web ci && npm --prefix web run build
+    startCommand: node src/server/server.mjs
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # the public origin, for example https://comethrough.tech (calendar and invite links)
+      - key: PUBLIC_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: TICK_SECRET
+        generateValue: true
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:hello@comethrough.tech
+      - key: CONTACT
+        value: https://github.com/IkpemosiArnold/comethrough
+      # Render sits behind Cloudflare: X-Forwarded-For ends "client, cloudflare-edge,
+      # render-internal" (measured for Selects on 21 Oct 2026). Check after deploy:
+      # curl -H 'X-Forwarded-For: 1.2.3.4' $PUBLIC_URL/healthz must show your own address in "you".
+      - key: TRUST_PROXY_HOPS
+        value: "3"
