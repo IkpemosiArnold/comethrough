@@ -99,7 +99,9 @@ When you tap "I'm going", these things happen in order:
 3. **The weight.** Everyone already on the branch slides one place to the right (320 ms ease-out, using FLIP). The branch dips 6 px as your hands catch, then springs back (damping 0.4, response 0.65 s). The resting sag of the branch also grows with the number of people.
 4. **The pod forms.** The ride pod card fades up 450 ms later with your leave-by time, and your face in the pod pops in from 60 percent scale with a small spring.
 5. **The bar changes.** The bottom bar becomes "Going" (a pill you can tap to change your answer) and "Tell the crew", which opens WhatsApp with "I'm going to ... Come through: <link>" ready to send. WhatsApp is how plans travel in Lagos, so it is the main action. "Add to my calendar" (a one-event .ics file for Android and iPhone) sits under the page as an extra. The swap uses a 2 px blur crossfade.
-6. **One nudge.** The first time on a device, a small card asks "Get a nudge if this plan changes?". On iPhone outside an installed app, it explains Add to Home Screen instead.
+6. **One nudge.** The first time on a device, a small card asks "Want a nudge if this changes?" and says exactly what is sent (the time or the weather changing, and the ride group forming). On iPhone outside an installed app, it explains Add to Home Screen instead.
+
+The same swing plays on the one-tap page (`/c/:slug/p/:id/in`), which is where most friends meet it: they tap "I'm in" in the WhatsApp message, type a name the first time, and their face swings on without leaving the page.
 
 With reduced motion turned on, your face fades in and nothing swings, slides or bounces.
 
@@ -131,19 +133,20 @@ The flyer path is the other moment people should enjoy:
 
 ## The sloth
 
-The sloth is a character, and it appears sparingly. It appears on the start screen, in the ritual panel, on "Why this place", while Gemma reads, on the invite and joined screens, and on empty or error pages. It never appears inside lists or on buttons. It has three moods: asleep (the default), awake (good news), and one eye open (reading). In copy, "the sloth" is the one who plans rituals ("The sloth is planning Saturday..."). Gemma is named as the model that reads things, because the challenge is about open models and users should know what reads their data.
+The sloth is a character, and it appears sparingly. It appears on the start screen, in the ritual panel, on "Why this place", while Gemma reads, on the invite and joined screens, and on empty or error pages. It never appears inside lists or on buttons. It has three moods: asleep (the default), awake (good news), and one eye open (reading). In copy, "the sloth" does the reading, guessing, picking and writing, always in the third person ("The sloth is reading the flyer", "The sloth picked Saturday"). Gemma is named once: in the line shown the first time a phone sends something to be read, and on How the sloth works (`/how`).
 
 ## Voice
 
-The copy follows the core of Arnold's copywriting manual. It names the person's situation, says exactly what happens next, and makes the button say the action. The tone is plain Nigerian English with warmth and without caricature.
+The app speaks plainly, in the second person, like a friend in the group chat. There is no "we" and no "I". The sloth is the crew's lazy assistant, talked about in the third person. Laziness is the feature: the copy says what you no longer have to do. The full reasoning is in docs/UX-REVIEW-2.md.
 
-- "Come through", "Who's going", "Leave Yaba by 3:05pm", "Drop this link in the group chat".
+- The WhatsApp message is the main interface: the plan in the first line, then "I'm in" and "Maybe", one link per answer. Nothing ever says "check the app".
+- "Come through", "link up", "Who's going", "Leave Yaba by 3:05pm". Warmth comes from the nouns people already use, not from added Pidgin.
 - Saying no is never required: "Can't make it? No need to say anything."
-- Buttons name the action: "Set up my crew", "Join the crew", "Post it to the crew", "Tell the crew on WhatsApp", "Copy address".
-- Privacy is stated where data leaves the phone: "To read your sentence we send it to Gemma, Google's open model. That's all that goes to Google."
-- Errors say what failed and what to do: "Couldn't reach Come Through. Check your data and try again."
-- Empty states point to the next action: "Bring the crew in first" with a WhatsApp invite button.
-- There are no em dashes, no exclamation marks except in the WhatsApp invite text people send to friends, and no slang added to sound local.
+- Buttons name the action, and the next screen confirms it with the same verb: "Set up my crew", "Make the crew", "I'm in", "Post it", "Tell the crew".
+- One question at the moment its answer is used: a name at the first "I'm in", the area when a ride needs it, the nudge after the first "I'm going".
+- What goes to Google is said once, the first time something is sent to be read: "The sloth uses Gemma, Google's open model, to read and write. What you send here goes to Google." The detail lives on How the sloth works. Cards never carry AI or data-flow lines.
+- Errors say what failed and what to do. Empty states point to the next action.
+- No em dashes, no colons joining clauses, no staged closers ("That's the whole job."), and times as "3pm", never "15:00".
 
 ## Platform rules
 

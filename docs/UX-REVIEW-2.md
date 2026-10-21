@@ -325,8 +325,90 @@ The platform layer is already right: `viewport-fit=cover` with safe-area padding
 7. Rewrite every string above, take city examples from the city pack, and keep the Opera Mini pages in step.
 8. Fix the skipped-ritual panel, the time formats, and the server notes.
 
-Server additions for this (all small): `POST /api/crews` starts the first pick in the background; `PATCH /api/members/:id` sets your own area; `GET /api/areas/near?lat=&lon=` names the neighbourhood at an already rounded point.
+Server additions for this (all small and additive): `POST /api/crews/:slug/first-pick` makes the sloth's first pick when a crew is made; `PATCH /api/members/:id` sets your own area, typed or from an already rounded point (the server rounds again and keeps only the neighbourhood's centre); and the Opera Mini pages answer `/c/:slug/p/:id/in` and `/maybe` with a one-button form.
+
+## Changes after the first draft of this review
+
+Three instructions arrived during phase 2 and changed the plan above.
+
+**The group chat is the benchmark.** Arnold asked why anyone lazy would not just use the group chat. So the WhatsApp message itself became the main interface: the plan in the first line, then "I'm in" and "Maybe" links. Tapping one answers on a small page where your face swings onto the branch, with a name asked only the first time on a phone. The plan page is now the receipt (who's going, rides, the map), not a place people have to visit. A GET never answers, because WhatsApp fetches links to draw previews: the page's script sends the answer, and Opera Mini gets a one-button form. Tests fetch the links as WhatsApp, Facebook and Chrome and check that nobody was marked going.
+
+**AI disclosure, once.** The privacy paragraph on every screen, and the line under "Why this spot", are gone. The first time a phone sends something to be read, one line near the button says "The sloth uses Gemma, Google's open model, to read and write. What you send here goes to Google." with a link to one page, How the sloth works (`/how`), which has the full detail and "Run your own sloth" (Gemma on your own computer through Ollama). This also changes the voice decision above: the sloth now does all the reading, guessing and picking in the copy, still in the third person, and Gemma is named only in that line and on that page.
+
+**"You do less" framing.** The tagline became "The lazy way to link up. You send one sentence, your crew taps once." The sloth's planning panel and the start screen say "Sloths come down from their tree about once a week, and so does your crew." The ideas card ("Too lazy to think? The sloth has three ideas.") is one calm card with three ideas, each with a reason, the guide's credit and one tap to make it a plan, shown only when nothing else is on.
+
+### The AI lines, before and after
+
+| Where | Before | After |
+|---|---|---|
+| Start, under the button | "To read it, we send this sentence to Gemma, Google's open model, through Google's free API. Google may use it to improve its products. Your crew list and locations stay with Come Through. The mic uses your phone's own voice typing, which may send the audio to Google or Apple." | First send only: "The sloth uses Gemma, Google's open model, to read and write. What you send here goes to Google. How the sloth works" |
+| Add a plan, under the button | 63 words, as above, for flyers and links | The same one line, first send only |
+| Why this spot (the sloth's pick) | "Gemma, Google's open model, wrote the sloth's words through Google's free API. We sent it the place, the weather, your crew's vibe words and the minutes from each neighbourhood, with no names. Google may use that to improve its products. Your crew list and locations stay with Come Through." | Nothing. The card says why the spot suits the crew. |
+| Reading a flyer | "Gemma is reading the flyer" | "The sloth is reading the flyer" |
+| Busy | "Over to you. Gemma is busy, so fill this in." / "Gemma needs a breather." | "The sloth is busy right now, so fill these in yourself." / "The sloth needs a breather. Try again in a minute." |
+| A guessed field | "Gemma wasn't sure. Check this one." | "A guess. Check it." |
+| A plan from a flyer | "Gemma read this from a flyer. Check the details with the organiser." | "Read from a flyer, so check the details with the organiser." |
+| Footer | "Plans read by Gemma." | "How the sloth works" |
 
 ## After
 
-(Filled in after phase 2.)
+The same three people, inputs and time model, on the new build (HEAD after phase 2, exported to a scratch folder), on the live server. Screenshots are `docs/screens/v2/after-*.png`.
+
+### Counts, before and after
+
+| Person and job | Taps | Fields | Typed | Decisions | Words read | Estimated time (people) |
+|---|---|---|---|---|---|---|
+| A: crew and invite | 9 → 7 | 3 → 2 | 104 → 100 | 8 → 5 | 183 → 218 | 1 min 39 s → 1 min 40 s |
+| A: flyer plan | 8 → 8 | 0 → 0 | 0 → 0 | 5 → 3 | 357 → 324 | 1 min 46 s → 1 min 34 s |
+| A: link plan | 10 → 10 | 1 → 1 | 0 → 0 | 4 → 3 | 229 → 159 | 1 min 14 s → 55 s |
+| A: sentence plan | 8 → 8 | 1 → 1 | 50 → 50 | 4 → 3 | 210 → 137 | 1 min 22 s → 1 min 3 s |
+| **A in all** | **35 → 33** | **5 → 4** | **154 → 150** | **21 → 14** | **979 → 838** | **6 min 1 s → 5 min 12 s** |
+| **B1: from the invite to going** | **7 → 4** | **2 → 1** | **9 → 4** | **5 → 3** | **258 → 26** | **1 min 22 s, ending on an empty page → 17 s, on the branch** |
+| **B2: from a plan link to going** | **dead end → 4** | **→ 1** | **→ 5** | **→ 3** | **→ 33** | **dead end (2 min 38 s had it worked) → 19 s** |
+
+The estimated time leaves out the system wait, which is reported separately because it moved for reasons outside the interface. The organiser's waits rose from 54 s to 182 s in this run, and the cause is on the server: reading the crew sentence took 43 s (4 s at the baseline; the Gemma call itself took 3.2 s, and the rest is the new region lookups), and reading and posting the link plan took about 48 s each while the ideas feature's background calls (two Gemma calls of 29 and 33 s) were running. Those are flagged for the backend. The friends' waits fell from 12.6 s and 15.3 s to 5.8 s and 5.9 s. The sloth's first pick took 30 s on the invite screen, and it does not block sending.
+
+The friends' numbers are the point of this pass. A friend now goes from the WhatsApp message to their face on the branch in 4 taps and one short field, reading 26 to 33 words, instead of 7 to 10 taps, two fields and 258 to 532 words, and the most common path (a plan link) no longer dead-ends. The organiser saves a field, a third of the decisions and about a seventh of the reading, and the invite now carries a plan.
+
+### Against doing it in WhatsApp
+
+Taps, fields and screens per job, for a crew of six. "WhatsApp" is the same job done by hand in the group chat.
+
+| Job | In WhatsApp | In Come Through | Verdict |
+|---|---|---|---|
+| Propose a plan (the organiser) | Sentence: open the chat, type, send. 2 taps, 1 field, 1 screen. Flyer: open the chat, attach, gallery, pick, send. 5 taps, 1 screen. | Sentence: open the crew, Add a plan, type, Read it, Post it, Tell the crew, pick the chat, send. 8 taps, 1 field, 3 screens plus WhatsApp. Flyer: 8 taps, or 6 when shared straight from the gallery or WhatsApp to Come Through (Android). The sloth's regular pick: 0 taps. An idea from the ideas card: 2 taps, then 3 to send. | **Worse by 3 to 6 taps** for a plan you bring yourself. It earns them back on the next three jobs, and the regular pick costs nothing. Kept, with the sloth's pick and the ideas as the lazy defaults. |
+| Find out who's going (each friend) | Open the chat, type "I'm in", send: 2 taps and typing, and the answer scrolls away. | Tap "I'm in" in the message: 1 tap. The first time on a phone, a name and one more tap: 3 taps, 1 field. "Maybe" is one tap too. Saying no needs nothing. | **Better** after the first time, and never worse than typing a reply. |
+| Find out who's going (the organiser) | Scroll up and count replies, then chase the silent ones ("abeg who's coming?"): 2 taps and typing per chase, repeated. | 0 taps: the faces are on the branch, and silence counts as a no without anyone asking. | **Much better.** |
+| Sort rides | Ask where everyone is coming from, read N replies, work out who shares and when to leave, post it, then everyone copies the address into Bolt. Easily 10 or more messages. | Each rider says where they're coming from once (1 tap for a rough location, or type the area), then 0: the ride group, the time to leave, "Copy address" (1) and the ride app (1). | **Much better.** |
+| Remember and remind | Someone posts a reminder the day before (2 taps and typing); people scroll up for the address; changes get lost in the chat. | "Add to my calendar" on the confirmation (1 tap, then the calendar's own save), with an alert before it's time to leave. One nudge opt-in brings an alert when the time, the place or the weather changes. | **Better**, after one tap. |
+
+The one job where the chat is faster is proposing your own plan, by 3 to 6 taps. The rest of the cost of a plan in WhatsApp falls on everyone else, and repeatedly, so the trade is worth it. The messages Come Through writes never ask anyone to "check the app": the plan is in the first line, and each link does one thing.
+
+### Screens, before and after
+
+| Moment | Before | After |
+|---|---|---|
+| Start | `before-01-A-land-on-start.png` | `after-01-A-land-on-start.png`, `after-x10-start.png` |
+| Set-up check | `before-04-A-confirm-and-add-yourself.png` | `after-04b-crew-preview-fixed.png` |
+| Invite | `before-06-A-send-invite-on-whatsapp.png` | `after-06-A-send-invite-on-whatsapp.png` (the sloth's first pick) |
+| A friend from the invite | `before-07-B1-tap-invite-link-cold.png` (a form) | `after-07-B1-tap-i-m-in-in-whatsapp.png` (a name), `after-08-B1-name-and-i-m-in.png` (on the branch) |
+| A friend from a plan link | `before-26-B2-tap-plan-link-cold-dead-end-.png` | `after-24-B2-tap-i-m-in-in-whatsapp.png`, `after-25-B2-name-and-i-m-in.png` |
+| The receipt | `before-b2-06-B2-back-to-the-plan.png` | `after-receipt-plan.png` |
+| Crew page | `before-x1-crew-home-with-plans.png` | `after-x1-crew-home.png`, guest `after-x5-guest-crew-page.png`, dark `after-x8-crew-home-dark.png` |
+| Opera Mini | `before-x5-opera-mini-crew.png` | `after-x9-opera-mini-one-tap.png` |
+| How the sloth works | (none) | `after-x7-how-the-sloth-works.png` |
+
+### Size
+
+The JavaScript a friend downloads from a WhatsApp link fell from 36.0 KB to 31.0 KB gzipped, because Start, Add a plan, Share and How now load when they are first opened (Start adds 4.7 KB, Add a plan 6.0 KB). CSS is 9.9 KB.
+
+### Checks
+
+`npm test`, the type check and the web build pass. break-ui ran the worst-case crew (long Yoruba names with diacritics, a 49-character crew name with an emoji, 41 members, a 100-character event title) and a new quiet-week dataset for the ideas card at 390 and 320 px, in light and dark: no horizontal scroll, and the one break (answer buttons wrapping mid-label at 320 px) is fixed.
+
+### Still open
+
+- Organiser waits on the server: the crew read (43 s) and posting while the ideas feeds refresh (about 48 s).
+- A link's page title can keep its SEO tail ("Selfie Sunday at Alali VI! : Things to do in Lagos Every Sunday").
+- WhatsApp's link preview is the generic Come Through card. A preview with the plan's name and day would make the first screen even plainer.
+- Not checked on a real phone yet: the sheet with the keyboard open, the rough location prompt, and the calendar file on iPhone.
