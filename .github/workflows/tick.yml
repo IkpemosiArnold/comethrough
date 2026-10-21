@@ -1,8 +1,9 @@
 # The heartbeat. Render's free web service sleeps after 15 minutes and Render cron jobs are
 # not free, so GitHub Actions calls POST /api/tick every 3 hours: it creates due rituals,
 # rechecks the weather on outdoor plans and deletes expired ones. The call also wakes the
-# service, which can take about a minute, hence the 120 s timeout and the retries. GitHub
-# may run a schedule late or drop it; the tick is idempotent, so that is harmless.
+# service, which can take about a minute, so the workflow wakes it with /healthz first and
+# then ticks, with retries. GitHub may run a schedule late or drop it; the tick is
+# idempotent, so that is harmless.
 #
 # Repository settings: secret TICK_SECRET (the same value as on Render) and variable
 # COMETHROUGH_URL (for example https://comethrough.tech). Schedules run only on the
@@ -26,8 +27,14 @@ jobs:
           URL: ${{ vars.COMETHROUGH_URL }}
           TICK_SECRET: ${{ secrets.TICK_SECRET }}
         run: |
-          if [ -z "$URL" ] || [ -z "$TICK_SECRET" ]; then echo "Set COMETHROUGH_URL and TICK_SECRET first."; exit 0; fi
+          if [ -z "$URL" ] || [ -z "$TICK_SECRET" ]; then
+            echo "::warning::Set the COMETHROUGH_URL variable and the TICK_SECRET secret in the repository settings."
+            exit 0
+          fi
+          # wake the free service first (a cold start takes up to a minute), then tick; the
+          # tick itself answers within Cloudflare's 100 s (Overpass gets at most 40 s of it)
+          curl --silent --output /dev/null --max-time 90 --retry 2 --retry-delay 10 --retry-all-errors "$URL/healthz" || true
           curl --fail-with-body --silent --show-error \
-            --max-time 120 --retry 2 --retry-delay 20 --retry-all-errors \
+            --max-time 100 --retry 2 --retry-delay 20 --retry-all-errors \
             -X POST -H "Authorization: Bearer $TICK_SECRET" "$URL/api/tick"
           echo

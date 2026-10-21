@@ -2,37 +2,51 @@
 # MongoDB Atlas cluster in eu-central-1) that serves the API and the built web app from
 # one origin. The heartbeat is a GitHub Actions schedule (.github/workflows/tick.yml),
 # because Render cron jobs are not free and the free service sleeps when idle.
+# Step by step: docs/DEPLOY.md.
 services:
   - type: web
     name: comethrough
     runtime: node
     plan: free
     region: frankfurt
-    buildCommand: npm ci --omit=dev && npm --prefix web ci && npm --prefix web run build
+    # the web build needs Vite, a dev dependency of web/, so include dev there
+    buildCommand: npm ci --omit=dev && npm --prefix web ci --include=dev && npm --prefix web run build
     startCommand: node src/server/server.mjs
     healthCheckPath: /healthz
+    autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # the public origin, for example https://comethrough.tech (calendar and invite links)
+      # the public origin, for example https://comethrough.tech (calendar, invite and push links)
       - key: PUBLIC_URL
         sync: false
+      # Gemma through the Gemini API (aistudio.google.com/apikey)
       - key: GEMINI_API_KEY
         sync: false
+      # MongoDB Atlas, Frankfurt (eu-central-1); without it the server would use files that
+      # Render's free disk loses on every deploy
       - key: MONGODB_URI
         sync: false
-      - key: TICK_SECRET
-        generateValue: true
+      # Web Push keys: npx web-push generate-vapid-keys (or the pair in your local .env)
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY
         sync: false
+      # a contact push services can reach: mailto: an inbox you read
       - key: VAPID_SUBJECT
-        value: mailto:hello@comethrough.tech
-      - key: CONTACT
-        value: https://github.com/IkpemosiArnold/comethrough
+        sync: false
+      # the heartbeat's secret; the same value goes in GitHub as the TICK_SECRET secret
+      - key: TICK_SECRET
+        sync: false
+      # other origins allowed to call the API from a browser; empty when the app and the API
+      # share PUBLIC_URL (the normal case)
+      - key: ALLOWED_ORIGINS
+        sync: false
       # Render sits behind Cloudflare: X-Forwarded-For ends "client, cloudflare-edge,
-      # render-internal" (measured for Selects on 21 Oct 2026). Check after deploy:
+      # render-internal", so the real client is the 3rd entry from the right (measured on
+      # Render for Selects, 21 Oct 2026). Check after deploy:
       # curl -H 'X-Forwarded-For: 1.2.3.4' $PUBLIC_URL/healthz must show your own address in "you".
       - key: TRUST_PROXY_HOPS
         value: "3"
+      - key: CONTACT
+        value: https://github.com/IkpemosiArnold/comethrough
