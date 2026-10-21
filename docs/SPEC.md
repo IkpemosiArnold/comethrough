@@ -30,7 +30,7 @@ Friend groups don't fail to meet for lack of wanting to. They fail on the **orga
 3. **Add a plan (seconds):** share, paste or upload. Gemma extracts the title, start and end, venue, price and host from the flyer image, the page text or the sentence. One confirm screen (everything editable, nothing silently guessed: low-confidence fields are highlighted).
 4. **Tap once:** "I'm going" or "Maybe". The crew sees who's going. No polls, no threads.
 5. **Rides sort themselves:** when two or more members are going, Come Through groups them into **ride pods** by area and gives each pod a leave-by time, plus a one-tap Uber link with the destination filled in (Bolt: address copied).
-6. **The ritual:** if the crew has a rhythm and nothing is planned in the window, Come Through creates a `ritual` plan 2 to 3 days ahead: it finds actual green space near the crew's middle (OpenStreetMap), rotates places, picks the best weather window (Open-Meteo: no rain, after the worst heat), and Gemma writes the invite in the crew's voice and explains the pick. "Come through if you can": no RSVP needed.
+6. **The ritual:** if the crew has a rhythm and nothing is planned in the window, Come Through creates a `ritual` plan 2 to 3 days ahead: it finds actual green space near the crew's middle (OpenStreetMap), rotates places, picks the best weather window (Open-Meteo: no rain, after the worst heat), and Gemma writes the invite in the crew's voice and explains the pick. "Come through if you can": no RSVP needed. "Nothing planned" means no plan in the slot's own hours and no outdoor plan within half a cycle: an indoor wine night on the Friday does not cancel Saturday in the park. **When the window is wet**, the sloth moves to a dry daylight stretch that day (at least two hours), else the next day in the crew's window, else keeps the least wet hours; each case carries an honest `rainPlan.note` built from the forecast numbers.
 7. **Weather watch:** outdoor plans are rechecked; if rain moves in, the plan is marked and a one-tap WhatsApp heads-up is offered.
 
 ## Laziness rules (UX)
@@ -53,7 +53,15 @@ Friend groups don't fail to meet for lack of wanting to. They fail on the **orga
 | Fair place choice, rotation, pods, leave-by times | Deterministic code, tested | Never trust a model with arithmetic |
 | Calendar feeds | Deterministic code (ICS) | Standards |
 
-Gemma runs through the Gemini API (free tier) with a server-held key. Only the text or image the user deliberately submitted goes to Google; the UI says so plainly. (A future option is in-browser Gemma, reusing Selects Web's engine.)
+Gemma runs through the Gemini API (free tier) with a server-held key. Google may use what the free tier receives to improve its products, and the UI says so where Gemma is used. What goes to Google, exactly:
+
+| Feature | Sent to Gemma | Never sent |
+|---|---|---|
+| Start a crew | the setup sentence | the crew list, member names, locations |
+| Add a plan | the sentence, the flyer picture, or the link plus its page's title, description and text; today's date | who is adding it, the crew list, locations |
+| The ritual (explain and invite) | the picked place, its kind, the weather, the crew's vibe words, the minutes from each neighbourhood, the runners-up | member names, the crew list |
+
+(A future option is in-browser Gemma, reusing Selects Web's engine.)
 
 ## Data model (JSON; MongoDB Atlas in production, a file store in development)
 
@@ -69,9 +77,13 @@ Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end,
          weather: { checkedAt, summary, rainProb, tempC, ok: bool } | null,
          status: "on"|"moved"|"cancelled", confidence: { field: 0..1 },
          rsvps: { [memberId]: "going"|"maybe" }, createdBy: memberId | "sloth", createdAt, updatedAt, seq, expiresAt,
-         ritualFor?: "YYYY-MM-DD" }
+         ritualFor?: "YYYY-MM-DD", rainPlan?: { kind: "moved"|"next_day"|"wet", note, wanted: { date, from, to, rainProb } } }
+         // place.near?: { label, lat, lon }: an unpinned place's neighbourhood (from its address, or the host's area), for ride times and weather only
 Push   { id, memberId, crewId, endpoint, keys: { p256dh, auth }, createdAt }
-Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, uberUrl, boltText, shareText }
+Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, uberUrl, boltText, shareText,
+         estimate: { band, roadKm, speedKmh, lagoonMin, pickupMin, bufferMin, judgedAt, approxTo, text } | null }
+         // travelMin is an estimate from the map, never live traffic; estimate.text says what was assumed.
+         // A place with no pin uses place.near (or the host's area) for times; uberUrl stays null.
 ```
 
 Times are ISO 8601 with an offset (`2026-10-24T16:00:00+01:00`). Plans expire 30 days after they end. A hosted place marked `private` (a home address) is visible only to crew members. `seq` goes up on every change (it is the calendar SEQUENCE). `token` is the member's own link secret (read and write as that member); `calToken` only reads the calendar feed, because calendar apps and Google's servers see that URL.
@@ -107,7 +119,7 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 `PlanView` is a Plan as the viewer may see it: a private place's `address`, `lat` and `lon` are `null` (and `place.hidden: true`, and `source` is `{}`) unless the viewer is a member; and it adds `rsvps` (by member id), `going: [name]`, `maybe: [name]`, `you: "going"|"maybe"|null`, `source.imageUrl` (the flyer thumbnail, when there is one), `eventIcsUrl` (members only) and, when rain moved in, `headsUp: { text, whatsappUrl }`. A plan whose time or place is edited becomes `status: "moved"`.
 
-**Errors and limits.** Codes the UI may branch on: `invalid` (400, with `fields`), `no_token` (401), `bad_token` (403), `members_only` (403), `not_yours` (403), `not_found` (404), `link_unreadable` (422), `too_large` (413), `not_an_image` (415), `slow_down` (429, with `Retry-After`). Gemma calls (crew drafts and plan parsing) are limited to 8 a minute and 80 a day per visitor and 20 a minute in all.
+**Errors and limits.** Codes the UI may branch on: `invalid` (400, with `fields`), `no_token` (401), `bad_token` (403), `members_only` (403), `not_yours` (403), `not_found` (404), `link_unreadable` (422), `link_locked` (422: an Instagram, Facebook or Threads link with nothing else to read; the UI asks for the flyer picture, and no Gemma call is made), `too_large` (413), `not_an_image` (415), `slow_down` (429, with `Retry-After`). Gemma calls (crew drafts and plan parsing) are limited to 8 a minute and 80 a day per visitor and 20 a minute in all.
 
 **Serving and development.** The Node server also serves the built web app (`web/dist`) from the same origin: `index.html` for app routes, `sw.js` and `manifest.webmanifest` with `no-cache`, hashed assets for a year. It listens on port 3000 by default (the Vite proxy's target). `OFFLINE=1 npm run dev` runs the API with fakes for every outside service (no keys, no network; a regex stand-in plays Gemma), for UI work.
 
