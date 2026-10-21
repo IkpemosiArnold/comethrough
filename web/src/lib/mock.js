@@ -294,7 +294,8 @@ function pods(db, plan) {
     return {
       memberIds: people.map((p) => p.id), names: people.map((p) => p.name), fromLabel: hub.label, solo: people.length === 1,
       leaveBy: leave.toISOString(), travelMin, crossesLagoon,
-      estimate: { band: 'weekend', text: `A guess from the map, not live traffic: ${Math.round(km(hub, dest) * 1.4 * 10) / 10} km of road at about 22 km/h in weekend traffic${crossesLagoon ? ', 8 min for the bridge' : ''}. Leave-by adds 15 min to spare.` },
+      bridge: null,
+      estimate: { band: 'weekend', source: 'straight', text: `A rough estimate, not live traffic: ${Math.round(km(hub, dest) * 1.4 * 10) / 10} km at about 22 km/h in weekend traffic (the road route was not available, so this is the straight line plus 40%)${crossesLagoon ? ', 8 min in case the trip crosses the lagoon' : ''}. Leave-by adds 15 min to spare.` },
       destinationText: [dest.name, dest.address].filter(Boolean).join(', '),
       shareText: `Leaving ${hub.label} by ${leave.toISOString()} for ${plan.title}`,
     };

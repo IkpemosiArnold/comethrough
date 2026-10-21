@@ -1,7 +1,8 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clusterRiders, podsForPlan } from "../src/core/pods.mjs";
+import { clusterRiders, podTrips, podsForPlan } from "../src/core/pods.mjs";
+import { tripKey } from "../src/core/geo.mjs";
 import { RIDE_PROVIDERS, destinationText, rideLink, ridesForApi } from "../src/core/rides.mjs";
 import { parseInstant } from "../src/core/time.mjs";
 import { AREAS, PLACES } from "./fixtures/lagos.mjs";
@@ -107,8 +108,27 @@ test("ride times say what they assume, and a place with no pin uses where it rou
   assert.equal(p.estimate.band, "peak");
   assert.equal(p.estimate.approxTo, "Yaba");
   assert.equal(p.estimate.lagoonMin, 20);
-  assert.match(p.estimate.text, /^A guess from the map, not live traffic: [\d.]+ km of road at about 13 km\/h in rush hour traffic, 20 min for the bridge\. The exact address is not on the map, so this is from Yaba\. Leave-by adds 15 min to spare\.$/);
-  assert.equal(estimateText({ roadKm: 4, band: "weekend", crossesLagoon: false }), "A guess from the map, not live traffic: 4 km of road at about 22 km/h in weekend traffic.");
+  assert.equal(p.bridge, null, "no road route, so no bridge is named");
+  assert.match(p.estimate.text, /^A rough estimate, not live traffic: [\d.]+ km at about 13 km\/h in weekday rush hour traffic \(the road route was not available, so this is the straight line plus 40%\), 20 min in case the trip crosses the lagoon\. The exact address is not on the map, so this is from Yaba\. Leave-by adds 15 min to spare\.$/);
+  assert.equal(estimateText({ roadKm: 4, band: "weekend", crossesLagoon: false, source: "road", bridge: null }), "A rough estimate, not live traffic: 4 km by road at about 22 km/h in weekend traffic. Route: OSRM, OpenStreetMap data.");
+});
+
+test("with a road route, the pod names the bridge the route takes, and only then", () => {
+  const plan = { start: "2026-10-24T16:00:00+01:00", tz: "Africa/Lagos", place: { name: "Muri Okunola Park", address: null, lat: 6.4378, lon: 3.4251 } };
+  const going = [{ id: "a", name: "Tolu", area: AREAS.yaba }];
+  const trips = podTrips(plan, going);
+  assert.equal(trips.length, 1);
+  const routes = new Map([[tripKey(trips[0].from, trips[0].to), { km: 15.1, min: 14, bridges: ["Third Mainland Bridge"] }]]);
+  const [p] = podsForPlan(plan, going, { route: (a, b) => routes.get(tripKey(a, b)) ?? null }).pods;
+  assert.equal(p.bridge, "Third Mainland Bridge");
+  assert.equal(p.estimate.source, "road");
+  assert.equal(p.estimate.band, "saturday", "judged an hour before a Saturday 4 pm start");
+  assert.equal(p.travelMin, Math.round((15.1 / 18) * 60 + 12));
+  assert.match(p.estimate.text, /^A rough estimate, not live traffic: 15\.1 km by road at about 18 km\/h in Saturday afternoon traffic, 12 min for Third Mainland Bridge\. Leave-by adds 15 min to spare\. Route: OSRM, OpenStreetMap data\.$/);
+  const [q] = podsForPlan(plan, going, { route: () => ({ km: 9, min: 12, bridges: [] }) }).pods;
+  assert.equal(q.bridge, null);
+  assert.equal(q.crossesLagoon, false);
+  assert.ok(!/bridge/i.test(q.estimate.text));
 });
 
 test("a pod from two neighbourhoods names both", () => {

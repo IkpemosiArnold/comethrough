@@ -1,12 +1,17 @@
 // @ts-check
-// Distances and travel-time estimates. These are estimates, not routing: straight-line
-// (haversine) distance times a road factor, at a speed that depends on the hour, plus a
-// penalty for crossing the Lagos Lagoon (the Third Mainland, Carter and Eko bridges are
-// the city's worst chokepoints). They are good enough to compare places fairly and to
-// suggest a leave-by time with a buffer; the UI says "about".
+// Travel-time estimates for Lagos. They are rough estimates, not live traffic, and the UI
+// says so. Two inputs, in order of preference:
+//   1. a road route from OSRM (OpenStreetMap data): the real road distance, and the names of
+//      the bridges it uses, so a lagoon crossing is claimed only when the route takes Third
+//      Mainland, Carter or Eko Bridge;
+//   2. when no route is available (OSRM down, or offline), the old straight-line estimate:
+//      haversine distance times a road factor, with a lagoon penalty when the two ends are
+//      on different sides of the lagoon. The estimate says it is the fallback.
+// Either way the time is the road distance at a speed for the hour's traffic band, plus the
+// bridge penalty, and never less than OSRM's own free-flow time.
 //
-// The constants are documented guesses from living with Lagos traffic, kept in one place
-// so a contributor in another city can tune them (pass { model } to travelEstimate).
+// The bands and speeds are assumptions, written down in docs/LOCAL-FACTS.md ("Travel times")
+// and kept in one place so they can be tuned (pass { model } to travelEstimate).
 
 import { localParts, DEFAULT_TZ } from "./time.mjs";
 
@@ -52,46 +57,69 @@ export const crossesLagoon = (/** @type {LatLon} */ a, /** @type {LatLon} */ b) 
 
 /**
  * The traffic model. Speeds are door-to-door averages in km/h on the road distance;
- * penalties are extra minutes for a lagoon crossing.
+ * penalties are extra minutes for crossing the lagoon on one of its bridges. Assumptions,
+ * not measurements (docs/LOCAL-FACTS.md, "Travel times").
  */
 export const LAGOS_TRAFFIC = {
-  roadFactor: 1.4, // Lagos roads wind around the lagoon and creeks: road km is about 1.4x the straight line
-  speedKmh: { peak: 13, day: 20, weekend: 22, night: 32 },
-  lagoonPenaltyMin: { peak: 20, day: 10, weekend: 8, night: 3 },
+  roadFactor: 1.4, // the fallback only: road km is about 1.4x the straight line
+  speedKmh: { peak: 13, day: 20, saturday: 18, weekend: 22, night: 32 },
+  lagoonPenaltyMin: { peak: 20, day: 10, saturday: 12, weekend: 8, night: 3 },
   minMinutes: 5,
   /** weekday rush hours, local time: [from, to) in hours */
   peaks: [[6, 10], [16, 21]],
+  /** Saturday afternoon and evening, when parties, weddings and markets fill the roads: [from, to) */
+  saturday: [12, 21],
 };
+
+/** The bridges that cross the Lagos Lagoon between the mainland and the island. */
+export const LAGOON_BRIDGES = /^(third mainland|carter|eko) bridge$/i;
+
+/**
+ * A road route as the OSRM adapter returns it.
+ * @typedef {{ km: number, min: number, bridges?: string[] }} Route
+ *   km: road distance; min: OSRM's free-flow minutes (no traffic); bridges: the named
+ *   bridges on the route (absent from a table lookup, which has no step names)
+ */
 
 /**
  * Which traffic band an instant falls in.
  * @param {number} ms
  * @param {string} [tz]
  * @param {typeof LAGOS_TRAFFIC} [model]
- * @returns {"peak"|"day"|"weekend"|"night"}
+ * @returns {"peak"|"day"|"saturday"|"weekend"|"night"}
  */
 export function trafficBand(ms, tz = DEFAULT_TZ, model = LAGOS_TRAFFIC) {
   const p = localParts(ms, tz);
   const h = p.h + p.mi / 60;
   if (h >= 22 || h < 5) return "night";
+  if (p.weekday === 6 && h >= model.saturday[0] && h < model.saturday[1]) return "saturday";
   if (p.weekday === 0 || p.weekday === 6) return "weekend";
   return model.peaks.some(([a, b]) => h >= a && h < b) ? "peak" : "day";
 }
 
 /**
  * An estimate of a road trip. `at` is when the trip happens (ms); without it, daytime
- * traffic is assumed.
+ * traffic is assumed. `route` is the OSRM route when there is one.
  * @param {LatLon} from
  * @param {LatLon} to
- * @param {{ at?: number, tz?: string, model?: typeof LAGOS_TRAFFIC }} [opts]
+ * @param {{ at?: number, tz?: string, model?: typeof LAGOS_TRAFFIC, route?: Route|null }} [opts]
  */
-export function travelEstimate(from, to, { at, tz = DEFAULT_TZ, model = LAGOS_TRAFFIC } = {}) {
+export function travelEstimate(from, to, { at, tz = DEFAULT_TZ, model = LAGOS_TRAFFIC, route = null } = {}) {
   const km = haversineKm(from, to);
-  const roadKm = km * model.roadFactor;
   const band = at == null ? "day" : trafficBand(at, tz, model);
-  const lagoon = crossesLagoon(from, to);
-  const minutes = Math.max(model.minMinutes, Math.round((roadKm / model.speedKmh[band]) * 60 + (lagoon ? model.lagoonPenaltyMin[band] : 0)));
-  return { km: round1(km), roadKm: round1(roadKm), minutes, crossesLagoon: lagoon, band };
+  const useRoute = !!route && Number.isFinite(route.km) && Number.isFinite(route.min);
+  const roadKm = useRoute ? /** @type {Route} */ (route).km : km * model.roadFactor;
+  // the bridge is named only when the route says so; without step names (a table lookup, or
+  // no route at all) the two ends' sides of the lagoon decide, and the text says it is a guess
+  const bridge = useRoute && Array.isArray(route?.bridges) ? route.bridges.find((b) => LAGOON_BRIDGES.test(b)) ?? null : null;
+  const lagoon = useRoute && Array.isArray(route?.bridges) ? !!bridge : crossesLagoon(from, to);
+  const moving = (roadKm / model.speedKmh[band]) * 60;
+  const floor = useRoute ? /** @type {Route} */ (route).min : 0;
+  const minutes = Math.max(model.minMinutes, Math.round(Math.max(moving, floor) + (lagoon ? model.lagoonPenaltyMin[band] : 0)));
+  return { km: round1(km), roadKm: round1(roadKm), minutes, crossesLagoon: lagoon, bridge, band, source: /** @type {"road"|"straight"} */ (useRoute ? "road" : "straight") };
 }
+
+/** A stable key for a trip between two points (about 10 m), for route lookups. */
+export const tripKey = (/** @type {LatLon} */ a, /** @type {LatLon} */ b) => `${a.lat.toFixed(4)},${a.lon.toFixed(4)}>${b.lat.toFixed(4)},${b.lon.toFixed(4)}`;
 
 const round1 = (/** @type {number} */ x) => Math.round(x * 10) / 10;

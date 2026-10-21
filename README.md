@@ -59,6 +59,7 @@ decision about fairness.
 | Find neighbourhoods and venues on the map | Photon (OpenStreetMap), cached | Facts |
 | Find parks and beaches near the crew | Overpass (OpenStreetMap), plus 38 checked Lagos spots from OpenStreetMap and Wikidata | Open data |
 | Pick the weather window | Open-Meteo | Open data |
+| Road distances and which bridge a trip takes | OSRM (OpenStreetMap), cached | Open data |
 | Choose a fair place, group rides, set leave-by times | Code, with tests | Fairness and arithmetic |
 | Calendar files and feeds | Code (RFC 5545) | Standards |
 
@@ -131,6 +132,7 @@ checks after deploy, and the list of things to try on a real phone are in
 - **Photon** by komoot: geocoding and type-ahead over OpenStreetMap data.
 - **Overpass API**: green spaces from OpenStreetMap.
 - **Wikidata**: coordinates for Lagos spots OpenStreetMap does not have by name (CC0).
+- **OSRM**: road routes over OpenStreetMap data, for travel times ([project-osrm.org](https://project-osrm.org/)).
 - **Open-Meteo**: weather forecasts. Weather data by
   [Open-Meteo.com](https://open-meteo.com/), licensed under CC BY 4.0.
 - **Gemma** by Google DeepMind, an open model, served through the Gemini API.

@@ -81,6 +81,8 @@ export function config(env = process.env) {
     /** comma-separated; each is tried in turn when the one before is at capacity or slow */
     overpassUrls: list(env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.private.coffee/api/interpreter"),
     openMeteoUrl: env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast",
+    /** road routes for travel times; the public OSRM demo by default (light, non-commercial use, one request a second); OSRM_URL=off for the straight-line estimate */
+    osrmUrl: env.OSRM_URL === "off" ? "" : env.OSRM_URL || "https://router.project-osrm.org",
     /** sent in User-Agent to OpenStreetMap services, as their usage policies ask */
     contact: env.CONTACT || "https://github.com/IkpemosiArnold/comethrough",
     tickSecret: env.TICK_SECRET || "",

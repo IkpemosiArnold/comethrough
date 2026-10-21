@@ -80,8 +80,10 @@ Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end,
          ritualFor?: "YYYY-MM-DD", rainPlan?: { kind: "moved"|"next_day"|"covered"|"skip", note, wanted: { date, from, to, rainProb } } }
          // place.near?: { label, lat, lon }: an unpinned place's neighbourhood (from its address, or the host's area), for ride times and weather only
 Push   { id, memberId, crewId, endpoint, keys: { p256dh, auth }, createdAt }
-Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, destinationText, shareText,
-         estimate: { band, roadKm, speedKmh, lagoonMin, pickupMin, bufferMin, judgedAt, approxTo, text } | null }
+Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, bridge, destinationText, shareText,
+         estimate: { band, source: "road"|"straight", roadKm, speedKmh, lagoonMin, bridge, pickupMin, bufferMin, judgedAt, approxTo, text } | null }
+         // roadKm and bridge come from an OSRM road route when there is one (source "road"); bridge is the lagoon
+         // bridge the route takes, by name, else null. Without a route the straight-line estimate is used and says so.
          // travelMin is an estimate from the map, never live traffic; estimate.text says what was assumed.
          // A place with no pin uses place.near (or the host's area) for times, never as the drop-off.
 ```

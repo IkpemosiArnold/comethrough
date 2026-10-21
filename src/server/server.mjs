@@ -21,6 +21,7 @@ import { createGemini } from "../adapters/gemini.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
 import { layeredCache, memoryCache, storeCache } from "../adapters/http.mjs";
 import { createOpenMeteo } from "../adapters/openmeteo.mjs";
+import { createOsrm } from "../adapters/osrm.mjs";
 import { createOverpass } from "../adapters/overpass.mjs";
 import { createPageMeta } from "../adapters/pagemeta.mjs";
 import { createWebPush } from "../adapters/push.mjs";
@@ -235,6 +236,7 @@ export async function buildDeps(cfg, log = jsonLog) {
     geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache }),
     places: createOverpass({ urls: cfg.overpassUrls, contact: cfg.contact, cache }),
     weather: createOpenMeteo({ url: cfg.openMeteoUrl, cache }),
+    routes: cfg.osrmUrl ? createOsrm({ url: cfg.osrmUrl, contact: cfg.contact, cache, log }) : null,
     pages: createPageMeta({ contact: cfg.contact, imageMaxBytes: cfg.imageMaxBytes }),
     push: await createWebPush(cfg.vapid),
   };

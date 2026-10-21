@@ -4,8 +4,9 @@
 // A place is good when it is fair (nobody has a much longer trip than the others), fits
 // what the crew likes (green and outdoor, its vibe, its budget) and is not where the crew
 // went last time. Each part is a number from 0 to 1, and the total is a weighted sum minus
-// a variety penalty. Travel times are estimates from ./geo.mjs (haversine, a road factor,
-// the hour's traffic and the Lagos lagoon), so they rank places well but are not routes.
+// a variety penalty. Travel times are rough estimates from ./geo.mjs: road distances from
+// OSRM when the caller has them (else the straight line), the hour's traffic band and the
+// Lagos lagoon. They rank places fairly; they are not live traffic.
 //
 // scorePlaces also returns an explanation object: the facts behind the pick, in a shape
 // Gemma can phrase ("Freedom Park keeps everyone under 40 minutes") without inventing any.
@@ -156,15 +157,16 @@ export function varietyPenalty(key, recent = [], now = 0) {
  * @param {boolean} [input.outdoor]   the crew wants to be outside (green counts double)
  * @param {RecentUse[]} [input.recent]
  * @param {number} [input.now]
+ * @param {(from: LatLon, to: LatLon) => import("./geo.mjs").Route|null} [input.route]  road distances the caller fetched (OSRM's table); null falls back to the straight line
  */
-export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0 }) {
+export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0, route }) {
   const located = members.filter((m) => m.area && Number.isFinite(m.area.lat) && Number.isFinite(m.area.lon));
   const scored = candidates
     .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon))
     .map((c) => {
       const travel = located.map((m) => {
-        const e = travelEstimate(/** @type {LatLon} */ (m.area), c, { at, tz });
-        return { memberId: m.id, name: m.name, from: /** @type {any} */ (m.area).label, minutes: e.minutes, crossesLagoon: e.crossesLagoon };
+        const e = travelEstimate(/** @type {LatLon} */ (m.area), c, { at, tz, route: route ? route(/** @type {LatLon} */ (m.area), c) : null });
+        return { memberId: m.id, name: m.name, from: /** @type {any} */ (m.area).label, minutes: e.minutes, crossesLagoon: e.crossesLagoon, source: e.source };
       });
       const mins = travel.map((t) => t.minutes);
       const maxMin = mins.length ? Math.max(...mins) : 0;
@@ -234,7 +236,7 @@ function explain(pick, ranked, { members, bestCost, at }) {
     vibeMatched: pick.vibe.matched,
     lastUsedDaysAgo: pick.variety.daysAgo,
     reasons,
-    estimate: at == null ? "daytime traffic" : "traffic at the plan's time",
+    estimate: `${at == null ? "daytime traffic" : "traffic at the plan's time"}, ${pick.travel.every((t) => t.source === "road") ? "road distances" : "straight-line distances"}, rough`,
     notChosen: ranked.slice(1, 3).map((r) => ({ name: r.candidate.name, why: whyNot(r, pick) })),
   };
 }

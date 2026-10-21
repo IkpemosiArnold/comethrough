@@ -89,4 +89,35 @@ test("travel estimates: distance, rush hour and the bridge", () => {
   assert.ok(rush.minutes > calm.minutes, "rush hour is slower");
   assert.ok(rush.minutes >= 90 && rush.minutes <= 130, `Friday rush Yaba to Lekki is long, got ${rush.minutes}`);
   assert.equal(travelEstimate(AREAS.yaba, AREAS.yaba).minutes, 5, "never below the minimum");
+  assert.equal(rush.source, "straight");
+  assert.equal(rush.bridge, null, "no route, so no bridge is named");
+});
+
+test("travel estimates on a road route: real distance, and a bridge only when the route takes one", () => {
+  const friday6pm = zonedToMs("2026-10-23", "18:00");
+  // OSRM's answer on 21 Oct 2026 for Yaba to Lekki Phase 1: 17.3 km, 15.6 min free flow, over Third Mainland Bridge
+  const viaBridge = { km: 17.3, min: 15.6, bridges: ["Third Mainland Bridge", "Lekki - Ikoyi Bridge"] };
+  const r = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: viaBridge });
+  assert.equal(r.source, "road");
+  assert.equal(r.roadKm, 17.3);
+  assert.equal(r.bridge, "Third Mainland Bridge");
+  assert.ok(r.crossesLagoon);
+  assert.equal(r.minutes, Math.round((17.3 / 13) * 60 + 20));
+  // Ikeja to Yaba: all mainland; OSRM names no bridge, so no penalty and no bridge claim
+  const ikeja = travelEstimate(AREAS.ikeja, AREAS.yaba, { at: friday6pm, route: { km: 14.2, min: 12.6, bridges: [] } });
+  assert.equal(ikeja.crossesLagoon, false);
+  assert.equal(ikeja.bridge, null);
+  // a route whose ends look like they are on two sides, but which uses no lagoon bridge, is believed
+  const noCross = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: { km: 30, min: 40, bridges: ["Lekki - Ikoyi Bridge"] } });
+  assert.equal(noCross.crossesLagoon, false);
+  // OSRM's free-flow time is a floor: a fast road never beats it
+  assert.equal(travelEstimate(AREAS.yaba, AREAS.lekki, { at: zonedToMs("2026-10-23", "23:30"), route: { km: 1, min: 30, bridges: [] } }).minutes, 30);
+  // a table lookup has no bridge names: the sides of the lagoon decide, with no bridge named
+  const table = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: { km: 17.3, min: 15.6 } });
+  assert.ok(table.crossesLagoon);
+  assert.equal(table.bridge, null);
+  // Saturday afternoon is its own band
+  assert.equal(trafficBand(zonedToMs("2026-10-24", "15:00")), "saturday");
+  assert.equal(trafficBand(zonedToMs("2026-10-24", "10:00")), "weekend");
+  assert.equal(trafficBand(zonedToMs("2026-10-25", "15:00")), "weekend");
 });

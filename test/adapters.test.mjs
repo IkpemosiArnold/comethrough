@@ -253,3 +253,40 @@ test("push subscriptions are checked before they are stored", () => {
   assert.ok(!isSubscription({ endpoint: "http://evil.test", keys: { p256dh: "a", auth: "b" } }));
   assert.ok(!isSubscription({ endpoint: "https://x.test" }));
 });
+
+test("osrm: a route's road km, free-flow minutes and bridge names; a table; cached, throttled, and null when down", async () => {
+  const { createOsrm, readRoute, readTable } = await import("../src/adapters/osrm.mjs");
+  // the shape OSRM returned on 21 Oct 2026 for Yaba to Lekki Phase 1 (steps trimmed)
+  const yabaLekki = { code: "Ok", routes: [{ distance: 17284.6, duration: 933.1, legs: [{ steps: [{ name: "Commercial Avenue" }, { name: "Third Mainland Bridge" }, { name: "Ring Road" }, { name: "Lekki - Ikoyi Bridge" }, { name: "Admiralty Way" }] }] }] };
+  assert.deepEqual(readRoute(yabaLekki), { km: 17.3, min: 15.6, bridges: ["Third Mainland Bridge", "Lekki - Ikoyi Bridge"] });
+  assert.equal(readRoute({ code: "NoRoute" }), null);
+  assert.deepEqual(readTable({ code: "Ok", distances: [[1000, null]], durations: [[60, null]] }), { km: [[1, null]], min: [[1, null]] });
+
+  /** @type {string[]} */
+  const urls = [];
+  let fail = false;
+  const fetchImpl = /** @type {any} */ (async (/** @type {string} */ u, /** @type {any} */ init) => {
+    urls.push(u);
+    assert.match(init.headers["user-agent"], /^ComeThrough\/0\.1 \(\+/, "names the app, as the policy asks");
+    if (fail) throw new Error("down");
+    return new Response(JSON.stringify(u.includes("/table/") ? { code: "Ok", distances: [[5000]], durations: [[600]] } : yabaLekki), { status: 200, headers: { "content-type": "application/json" } });
+  });
+  let t = 1_000_000;
+  const osrm = createOsrm({ contact: "test", cache: memoryCache(), fetchImpl, now: () => t });
+  const a = { lat: 6.5068, lon: 3.3755 }, b = { lat: 6.4474, lon: 3.4721 };
+  const r1 = await osrm.route(a, b);
+  assert.equal(r1?.bridges?.[0], "Third Mainland Bridge");
+  assert.match(urls[0], /^https:\/\/router\.project-osrm\.org\/route\/v1\/driving\/3\.37550,6\.50680;3\.47210,6\.44740\?overview=false&steps=true$/);
+  await osrm.route(a, b);
+  assert.equal(urls.length, 1, "cached");
+  assert.deepEqual(await osrm.table([a], [b]), { km: [[5]], min: [[10]] });
+  assert.match(urls[1], /\/table\/v1\/driving\/.*\?sources=0&destinations=1&annotations=distance,duration$/);
+  fail = true;
+  assert.equal(await osrm.route(b, a), null, "a failure falls back");
+  const n = urls.length;
+  assert.equal(await osrm.route({ lat: 6.6, lon: 3.35 }, a), null);
+  assert.equal(urls.length, n, "after a failure it stops asking for a while");
+  t += 6 * 60_000;
+  fail = false;
+  assert.ok(await osrm.route({ lat: 6.6, lon: 3.35 }, a), "and tries again later");
+});

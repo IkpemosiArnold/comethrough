@@ -8,11 +8,11 @@
 // by hand, a failed geocode leaves a place without a pin, Overpass at capacity falls back to
 // the curated spots, and the ritual still goes out with a plain invite written by code.
 
-import { centroid, haversineKm, isLatLon } from "../core/geo.mjs";
+import { centroid, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
-import { podsForPlan } from "../core/pods.mjs";
+import { podTrips, podsForPlan } from "../core/pods.mjs";
 import { ridesForApi } from "../core/rides.mjs";
 import { fallbackInvite, ritualDraft, ritualDue } from "../core/ritual.mjs";
 import {
@@ -47,6 +47,8 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {{ hourly(at: { lat: number, lon: number }, opts?: { tz?: string, days?: number }): Promise<any[]> }} deps.weather
  * @param {{ fetchPage(url: string): Promise<{ meta: any, image: any, note: string|null }> }} deps.pages
  * @param {import("../adapters/push.mjs").PushPort} deps.push
+ * @param {{ route(from: { lat: number, lon: number }, to: { lat: number, lon: number }): Promise<any>, table(sources: { lat: number, lon: number }[], destinations: { lat: number, lon: number }[]): Promise<{ km: (number|null)[][], min: (number|null)[][] }|null> }|null} [deps.routes]
+ *   road routes (OSRM); null or failing means the straight-line estimate, which says so
  * @param {any[]} deps.spots           curated outdoor spots (data/lagos-spots.json)
  * @param {Record<string, import("../core/tasks.mjs").Prompt>} deps.prompts
  * @param {import("./ids.mjs").Ids} deps.ids
@@ -54,7 +56,7 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {{ publicUrl: string, webUrl: string, uidDomain: string }} deps.cfg
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
  */
-export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {} }) {
+export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null }) {
   // ------------------------------------------------------------ links
 
   const links = {
@@ -449,17 +451,33 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return host && isLatLon(host.area) ? { label: /** @type {string} */ (host.area.label), lat: /** @type {number} */ (host.area.lat), lon: /** @type {number} */ (host.area.lon) } : null;
   }
 
-  const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { near: nearOf(plan, members) });
+  /** Pod membership only (no routes needed): who rides with whom. */
+  const podGroups = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { near: nearOf(plan, members) });
+
+  /** Pods with road routes for each pickup (OSRM, cached), falling back to the straight line. */
+  async function computePods(/** @type {Plan} */ plan, /** @type {Member[]} */ members) {
+    const going = riders(plan, members);
+    const near = nearOf(plan, members);
+    /** @type {Map<string, any>} */
+    const found = new Map();
+    if (routes) {
+      for (const t of podTrips(plan, going, { near })) {
+        const r = await routes.route(t.from, t.to).catch(() => null);
+        if (r) found.set(tripKey(t.from, t.to), r);
+      }
+    }
+    return podsForPlan(plan, going, { near, route: (a, b) => found.get(tripKey(a, b)) ?? null });
+  }
 
   /** Pod memberships as keys, to tell when a new pod of two or more has formed. */
   function podKeys(plan, members) {
     if (!isLatLon(plan.place) && !nearOf(plan, members)) return new Set();
-    return new Set(computePods(plan, members).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
+    return new Set(podGroups(plan, members).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
   }
 
   async function notifyNewPods(plan, crew, members, before) {
     if ((!isLatLon(plan.place) && !nearOf(plan, members)) || plan.status === "cancelled") return;
-    for (const pod of computePods(plan, members).pods) {
+    for (const pod of (await computePods(plan, members)).pods) {
       const key = pod.memberIds.join(",");
       if (pod.memberIds.length < 2 || before.has(key)) continue;
       await notify(pod.memberIds, { title: `Ride pod for ${plan.title}`, body: pod.shareText, url: links.plan(crew, plan.id), tag: `${plan.id}-pod` }, `${plan.id}:pod:${key}`);
@@ -489,13 +507,13 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { crew, plan } = await planFor(id, token);
     const members = await membersOf(crew.id);
     // the ride apps that work in Lagos, Bolt first; none takes a drop-off from a link
-    return { ...computePods(plan, members), rides: ridesForApi() };
+    return { ...(await computePods(plan, members)), rides: ridesForApi() };
   }
 
   /** The member's pod line and leave-by for a plan, for the calendar. */
-  function podExtras(plan, members, memberId) {
+  async function podExtras(plan, members, memberId) {
     if (plan.rsvps?.[memberId] !== "going" || (!isLatLon(plan.place) && !nearOf(plan, members))) return {};
-    const pod = computePods(plan, members).pods.find((p) => p.memberIds.includes(memberId));
+    const pod = (await computePods(plan, members)).pods.find((p) => p.memberIds.includes(memberId));
     return pod?.leaveBy ? { leaveBy: pod.leaveBy, podText: pod.shareText } : {};
   }
 
@@ -504,7 +522,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { member, crew, plan } = await planFor(id, token);
     const members = await membersOf(crew.id);
     const names = namesOf(members);
-    const ics = singleEvent(plan, { memberId: member.id, uidDomain: cfg.uidDomain, extras: { url: links.plan(crew, plan.id), going: goingIds(plan).map((i) => names[i]).filter(Boolean), ...podExtras(plan, members, member.id) } });
+    const ics = singleEvent(plan, { memberId: member.id, uidDomain: cfg.uidDomain, extras: { url: links.plan(crew, plan.id), going: goingIds(plan).map((i) => names[i]).filter(Boolean), ...(await podExtras(plan, members, member.id)) } });
     return { ics, filename: icsFileName(plan.title) };
   }
 
@@ -517,9 +535,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const members = await membersOf(crew.id);
     const names = namesOf(members);
     const plans = await plansOf(crew.id);
+    /** @type {Map<string, any>} */
+    const pods = new Map();
+    for (const p of plans) pods.set(p.id, await podExtras(p, members, member.id));
     return calendarFeed({
       crew, member, plans, now: now(), uidDomain: cfg.uidDomain,
-      extras: (p) => ({ url: links.plan(crew, p.id), going: goingIds(p).map((i) => names[i]).filter(Boolean), ...podExtras(p, members, member.id) }),
+      extras: (p) => ({ url: links.plan(crew, p.id), going: goingIds(p).map((i) => names[i]).filter(Boolean), ...pods.get(p.id) }),
     });
   }
 
@@ -668,7 +689,19 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     const at = zonedToMs(date, window.from, tz);
     const outdoor = pool === open;
-    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now() });
+    // road distances from every member's area to every candidate, in one OSRM table request
+    /** @type {Map<string, any>} */
+    const roads = new Map();
+    const located = points.filter((p) => isLatLon(p.area));
+    if (routes && located.length) {
+      const t = await routes.table(located.map((p) => p.area), pool).catch(() => null);
+      if (t) located.forEach((p, i) => pool.forEach((c, j) => {
+        const km = t.km[i]?.[j];
+        const min = t.min[i]?.[j];
+        if (km != null && min != null) roads.set(tripKey(p.area, c), { km, min });
+      }));
+    }
+    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null });
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
     if (rainPlan?.kind === "skip" && !outdoor) rainPlan = { ...rainPlan, kind: "covered", note: coveredNote(rainPlan, pick.name, window) };

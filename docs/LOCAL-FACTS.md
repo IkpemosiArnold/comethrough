@@ -100,6 +100,66 @@ Fixed in this pass: the demo data said "Free to get in" for Muri Okunola Park, a
 sample explanation said "It's free"; neither had a source. The demo's worst-case text also
 claimed "proper toilets" and "the gate closes at 7" for JJT Park; both are gone.
 
+## Travel times
+
+Leave-by times are **rough estimates, not live traffic**, and the app says so. Since this pass
+they start from a real road route:
+
+- **Road distance and bridges from OSRM** (Open Source Routing Machine) on OpenStreetMap data,
+  through the public demo server `router.project-osrm.org`. Its policy (checked 21 Oct 2026,
+  https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server): "reasonable, non-commercial
+  use-cases. Do not exceed 1 request per second. We provide no guarantees"; the older usage
+  policy page adds a valid User-Agent and ODbL attribution. The adapter sends one request at a
+  time at least 1.1 s apart, names the app in its User-Agent, caches each route for a week,
+  gives up after 3 s and backs off for 5 minutes after a failure. **If Come Through ever
+  charges money, it needs its own OSRM server** (`OSRM_URL`), because the demo is
+  non-commercial.
+- **OSRM's own durations are free-flow times** with no traffic (osrm-talk mailing list, Nov
+  2023, https://lists.openstreetmap.org/pipermail/osrm-talk/2023-November/002062.html). Live
+  test on 21 Oct 2026: Yaba to Lekki Phase 1 is 17.3 km and "15.6 minutes", over Third
+  Mainland Bridge. Nobody in Lagos does that trip in 15 minutes at 6 pm. So the app uses
+  OSRM's distance and bridge names, and its own traffic bands for the speed; OSRM's time is
+  only a floor.
+- **A bridge is named only when the route takes it.** OSRM returns the street names of each
+  step; when they include Third Mainland Bridge, Carter Bridge or Eko Bridge (the lagoon
+  crossings between the mainland and the island), the estimate adds the bridge penalty and
+  the ride card says "The time allows for Third Mainland Bridge." The old card said "The time
+  allows for the bridge" from a two-line guess about which side of the lagoon each end was on.
+  Live test: Surulere to Freedom Park takes Eko Bridge (10.1 km); Ikeja to Yaba takes no
+  lagoon bridge (14.2 km).
+- **When OSRM fails**, the old straight-line estimate is used (the straight line plus 40%,
+  with a lagoon penalty when the ends are on different sides), and the "How we guess" line
+  says "the road route was not available" and "in case the trip crosses the lagoon".
+- The sloth's place ranking uses one OSRM table request (road distances from every member's
+  area to every candidate); a table has no street names, so there the lagoon is judged from
+  the two ends, as before.
+
+The traffic bands are **assumptions**, kept in `LAGOS_TRAFFIC` in `src/core/geo.mjs`:
+
+| Band | When (Lagos time) | Speed on the road distance | Lagoon bridge |
+|---|---|---|---|
+| Weekday rush hour | Mon to Fri, 06:00 to 10:00 and 16:00 to 21:00 | 13 km/h | +20 min |
+| Weekday daytime | Mon to Fri, other hours from 05:00 to 22:00 | 20 km/h | +10 min |
+| Saturday afternoon | Sat 12:00 to 21:00 (parties, weddings, markets) | 18 km/h | +12 min |
+| Weekend other | Sat morning, all of Sunday | 22 km/h | +8 min |
+| Night | 22:00 to 05:00 | 32 km/h | +3 min |
+
+What backs them, and what does not:
+
+- Lagos is not in the TomTom Traffic Index (its 551-city ranking has no Nigerian city, and
+  tomtom.com/traffic-index/lagos-traffic/ returns 404; checked 21 Oct 2026).
+- A 2008 study of Lagos commuters (Raji Bashiru, Indonesian Journal of Geography 40(1),
+  https://journal.ugm.ac.id/ijg/article/view/2246) found three daily peaks, Monday the most
+  congested day, and 57% of commuters spending 30 to 60 minutes in congestion. It does not
+  give hours in its abstract.
+- News on the 2019 Lekki toll gate rush-hour study puts the evening peak around 4:30 pm to
+  7:30 or 8 pm (https://ripplesnigeria.com/sanwo-olu-authorises-free-passage-at-lekki-ikoyi-tollgates-on-wednesday).
+  The rush-hour band (16:00 to 21:00) is wider on purpose.
+- **No source was found for Saturday traffic.** The Saturday afternoon band is a Lagos
+  resident's assumption and is labelled as one.
+- The speeds themselves are not measured. They should be tuned against real trips by the
+  crew (a "how long did it take?" tap would do it).
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

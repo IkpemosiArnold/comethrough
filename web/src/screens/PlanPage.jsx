@@ -371,8 +371,8 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, host = null }) {
         ? <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
         : <p class="pod-leave">From {pod.fromLabel}</p>}
       <p class="muted small">
-        {pod.travelMin != null ? <>About {pod.travelMin} min, an estimate</> : 'No ride time yet: the place is not on the map'}{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
-        {pod.crossesLagoon ? ' The time allows for the bridge.' : ''}
+        {pod.travelMin != null ? <>About {pod.travelMin} min, a rough estimate</> : 'No ride time yet: the place is not on the map'}{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
+        {pod.bridge ? ` The time allows for ${pod.bridge}.` : ''}
         {pod.estimate?.text && (
           <> <button type="button" class="link-btn how-btn" aria-expanded={how} onClick={() => setHow(!how)}>{how ? 'Hide' : 'How we guess'}</button></>
         )}

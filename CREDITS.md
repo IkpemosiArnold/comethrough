@@ -14,4 +14,6 @@
 
 - **OpenStreetMap** contributors (ODbL): places, parks and beaches through **Overpass**, and geocoding through **Nominatim** or **Photon** (komoot). © OpenStreetMap contributors.
 - **Open-Meteo** (CC BY 4.0): weather forecasts.
+- **OSRM** (Project OSRM, BSD-2-Clause) on OpenStreetMap data (ODbL): road routes for travel times, from the public demo server under its usage policy.
+- **Wikidata** (CC0): coordinates for Lagos spots that OpenStreetMap does not have by name.
 - **Gemma** (Google DeepMind), an open model, served through the Gemini API.

@@ -175,3 +175,30 @@ test("a ritual at a park with a sourced fee shows it; one without says check at 
   const v2 = (await bare.svc.getCrew({ slug: CREW.slug, token: "t1" })).plans.find((/** @type {any} */ p) => p.kind === "ritual");
   assert.deepEqual(v2.place.entry, { free: null, note: null, source: null });
 });
+
+test("pods use the road route when OSRM answers, and say so when it does not", async () => {
+  const calls = [];
+  const routes = {
+    async route(/** @type {any} */ from, /** @type {any} */ to) { calls.push([from, to]); return { km: 12.4, min: 16, bridges: ["Eko Bridge"] }; },
+    async table() { return null; },
+  };
+  const { store, svc } = make({ routes });
+  await store.put("crews", CREW);
+  await store.put("members", { id: "m1", crewId: CREW.id, name: "Seyi", area: AREAS.surulere, token: "t1", calToken: "c1", joinedAt: "2026-10-21T08:00:00.000Z" });
+  const plan = { kind: "found", title: "Show", start: "2026-10-24T16:00:00+01:00", end: "2026-10-24T19:00:00+01:00", tz: "Africa/Lagos", place: { name: "Freedom Park", address: null, lat: PLACES.freedom.lat, lon: PLACES.freedom.lon, outdoor: false, private: false }, price: null, host: null, hostName: null, bring: [], source: {} };
+  const created = await svc.addPlan({ slug: CREW.slug, token: "t1", body: { plan } });
+  await svc.patchPlan({ id: created.plan.id, token: "t1", body: { rsvp: "going" } });
+  const { pods } = await svc.getPods({ id: created.plan.id, token: "t1" });
+  assert.equal(pods[0].bridge, "Eko Bridge");
+  assert.equal(pods[0].estimate.source, "road");
+  assert.ok(calls.length >= 1);
+  const down = make({ routes: { async route() { return null; }, async table() { return null; } } });
+  await down.store.put("crews", CREW);
+  await down.store.put("members", { id: "m1", crewId: CREW.id, name: "Seyi", area: AREAS.surulere, token: "t1", calToken: "c1", joinedAt: "2026-10-21T08:00:00.000Z" });
+  const c2 = await down.svc.addPlan({ slug: CREW.slug, token: "t1", body: { plan } });
+  await down.svc.patchPlan({ id: c2.plan.id, token: "t1", body: { rsvp: "going" } });
+  const p2 = (await down.svc.getPods({ id: c2.plan.id, token: "t1" })).pods[0];
+  assert.equal(p2.estimate.source, "straight");
+  assert.equal(p2.bridge, null);
+  assert.match(p2.estimate.text, /the road route was not available/);
+});
