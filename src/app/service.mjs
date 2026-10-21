@@ -974,6 +974,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         return /** @type {any[]} */ ([]);
       })
       : Promise.resolve(/** @type {any[]} */ ([]));
+    // the taste's own query runs beside the green one, so a crew with a taste waits no longer
+    const fromTaste = tastePlaces(center, taste);
     /** @type {any[]} */
     let live = [];
     for (const r of SEARCH_RADII_M) {
@@ -992,7 +994,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const curated = (pack.curated ? spots : [])
       .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
       .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, ...(s.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(s.entry ? { entry: s.entry } : {}) }));
-    const out = [...live, ...(await tastePlaces(center, taste))];
+    const out = [...live, ...(await fromTaste)];
     for (const c of [...curated, ...(await fromWikidata)]) {
       const dup = out.some((o) => placeKey(o) === placeKey(c) || (haversineKm(o, c) < 0.3 && o.name.toLowerCase() === c.name.toLowerCase()));
       if (!dup) out.push(c);
