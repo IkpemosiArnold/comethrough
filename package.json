@@ -1,0 +1,12 @@
+{
+  "name": "comethrough",
+  "version": "0.1.0",
+  "description": "The lazy crew organiser. Plans arrive by flyer, link or one sentence; your crew taps once; rides and reminders sort themselves. Open models (Gemma) and open data (OpenStreetMap, Open-Meteo).",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node src/server/server.mjs",
+    "test": "node --test test/*.test.mjs src/**/*.test.mjs"
+  }
+}
