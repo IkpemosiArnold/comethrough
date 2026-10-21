@@ -45,7 +45,7 @@ export function Start({ query }) {
   async function create() {
     setStep('creating');
     try {
-      const { confidence, low, ...clean } = draft;
+      const { confidence, low, notes, ai, ...clean } = draft;
       const organiser = me.name.trim() && me.area?.label?.trim()
         ? { name: me.name.trim(), area: me.area.lat != null ? me.area : me.area.label.trim() }
         : null;
@@ -189,10 +189,16 @@ function Confirm({ draft, setDraft, me, setMe, busy, error, onBack, onCreate }) 
       <header class="confirm-head">
         <button class="icon-btn" onClick={onBack} aria-label="Back to the sentence"><Icon name="back" /></button>
         <div>
-          <h1 class="display display-lg">Did Gemma get it right?</h1>
-          <p class="muted">Change anything that's off. The highlighted bits are guesses.</p>
+          <h1 class="display display-lg">{draft.ai === false ? 'Over to you' : 'Did Gemma get it right?'}</h1>
+          <p class="muted">{draft.ai === false ? 'Gemma is busy, so fill this in. It takes a minute.' : "Change anything that's off. The highlighted bits are guesses."}</p>
         </div>
       </header>
+
+      {draft.notes?.length > 0 && (
+        <ul class="draft-notes" aria-label="Notes">
+          {draft.notes.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      )}
 
       <div class="confirm-card surface stack" style={{ '--stack': 'var(--s-6)' }}>
         <Unsure conf={c.name} low={low('name')}>
@@ -202,7 +208,7 @@ function Confirm({ draft, setDraft, me, setMe, busy, error, onBack, onCreate }) 
           </label>
         </Unsure>
 
-        <Unsure conf={c.rhythm} low={low('rhythm')} note="Gemma couldn't find a regular day. Pick one, or leave it.">
+        <Unsure conf={c.rhythm} low={low('rhythm')} note={r ? 'Gemma guessed part of this, usually the time. Check the day and the hours.' : "Gemma couldn't find a regular day. Pick one, or leave it."}>
           <fieldset class="field">
             <legend class="label">How often you link up</legend>
             <div class="row wrap seg">

@@ -12,7 +12,7 @@ import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
 import { MapSnippet, mapsUrl } from '../ui/MapSnippet.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
-import { weatherIcon } from '../ui/Weather.jsx';
+import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { TopBar, KindSticker, ErrorNote, Spinner } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
@@ -179,7 +179,7 @@ export function PlanPage({ params, query }) {
           <li><Icon name="ticket" size={20} /><span>{plan.price.free ? (plan.price.text || 'Free') : plan.price.text}</span></li>
         )}
         {w && outdoor && (
-          <li class={w.ok ? '' : 'bad'}><Icon name={weatherIcon(w)} size={20} /><span>{Math.round(w.tempC)}°, {w.ok ? w.summary.replace(/^./, (c) => c.toLowerCase()) : `${w.rainProb}% chance of rain`}</span></li>
+          <li class={w.ok ? '' : 'bad'}><Icon name={weatherIcon(w)} size={20} /><span>{weatherWords(w)}</span></li>
         )}
         {host && (
           <li><Avatar member={host} /><span>{host.id === meId ? "You're hosting" : `${firstName(host.name)} is hosting`}</span></li>
@@ -209,7 +209,7 @@ export function PlanPage({ params, query }) {
         <section class="rides" aria-labelledby="rides-title">
           <h2 id="rides-title" class="section-label">Rides</h2>
           {my === 'going' && myPod && (
-            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onBolt={copyBolt} />
+            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onBolt={copyBolt} canCopy={!!(plan.place?.address || plan.place?.lat != null)} host={host} />
           )}
           {my === 'going' && pods && !myPod && (
             <div class="pod pod-solo">
@@ -324,7 +324,7 @@ function NudgeAsk({ slug }) {
   );
 }
 
-function PodCard({ pod, byId, meId, fresh, onBolt }) {
+function PodCard({ pod, byId, meId, fresh, onBolt, canCopy = true, host = null }) {
   const ref = useRef(null);
   const [how, setHow] = useState(false);
   const people = pod.memberIds.map((m, i) => byId[m] || { id: m, name: pod.names?.[i] || '?' });
@@ -356,8 +356,9 @@ function PodCard({ pod, byId, meId, fresh, onBolt }) {
       {how && pod.estimate?.text && <p class="small how-text">{pod.estimate.text}</p>}
       <div class="pod-actions">
         {pod.uberUrl && <a class="btn secondary" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>}
+        {!canCopy && host && host.id !== meId && <p class="small muted">Ask {firstName(host.name)} for the address, then book your ride.</p>}
         <div class="bolt-pair">
-          <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy address</button>
+          {canCopy && <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy address</button>}
           <a class="btn ghost" href={BOLT_URL} target="_blank" rel="noopener" data-external>Open Bolt</a>
         </div>
       </div>

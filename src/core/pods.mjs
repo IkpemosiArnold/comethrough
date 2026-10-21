@@ -143,7 +143,7 @@ export function podsForPlan(plan, going, opts = {}) {
       const raw = startMs - (travelMin + o.bufferMin) * MINUTE;
       leaveBy = toIsoLocal(Math.floor(raw / (o.roundMin * MINUTE)) * o.roundMin * MINUTE, tz);
     }
-    const fromLabel = mostCommon(g.map((r) => /** @type {any} */ (r.area).label));
+    const fromLabel = labelsOf(g.map((r) => /** @type {any} */ (r.area).label));
     const names = g.map((r) => r.name);
     return {
       memberIds: g.map((r) => r.id),
@@ -172,11 +172,13 @@ export function podsForPlan(plan, going, opts = {}) {
   return { pods, unplaced };
 }
 
-function mostCommon(xs) {
+/** "Yaba", "Yaba and Surulere", or "Yaba, Surulere and Ebute Metta": every neighbourhood in the pod, the commonest first. */
+function labelsOf(xs) {
   /** @type {Map<string, number>} */
   const n = new Map();
   for (const x of xs) n.set(x, (n.get(x) || 0) + 1);
-  return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? "";
+  const ls = [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([l]) => l);
+  return ls.length > 1 ? `${ls.slice(0, -1).join(", ")} and ${ls.at(-1)}` : ls[0] ?? "";
 }
 
 /** A message the pod can paste into its chat. Plain, no dashes. */

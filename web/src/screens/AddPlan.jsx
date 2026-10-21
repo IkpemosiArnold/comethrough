@@ -79,6 +79,7 @@ export function AddPlan({ params, query }) {
   const [locked, setLocked] = useState(false);
   const [status, setStatus] = useState(0);
   const fileRef = useRef(null);
+  const lastRead = useRef(null);
   const speech = useSpeech(setText);
 
   const url = (text.match(URL_RE) || [])[0];
@@ -132,6 +133,7 @@ export function AddPlan({ params, query }) {
       payload.text = rest || (u ? '' : text.trim());
     }
     if (!payload.text && !payload.url && !payload.image) return;
+    lastRead.current = payload;
     speech.stop();
     setError(null);
     setStep('reading');
@@ -160,7 +162,7 @@ export function AddPlan({ params, query }) {
   async function post() {
     setStep('posting');
     try {
-      const { notes, confidence, low, ...clean } = draft;
+      const { notes, confidence, low, ai, ...clean } = draft;
       const plan = await api.createPlan(slug, clean);
       navigate(`/c/${slug}/p/${plan.id}?posted=1`, { replace: true });
     } catch (e) {
@@ -179,6 +181,7 @@ export function AddPlan({ params, query }) {
         error={error}
         onBack={() => { setStep('compose'); setDraft(null); }}
         onPost={post}
+        onRetry={() => lastRead.current && read(lastRead.current)}
         meId={mine?.memberId}
       />
     );
@@ -304,7 +307,7 @@ function Unsure({ conf, low, children, order = 0 }) {
   );
 }
 
-function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) {
+function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry, meId }) {
   const c = draft.confidence || {};
   const isLow = (...f) => f.some((x) => (draft.low || []).includes(x) || (c[x] != null && c[x] < UNSURE));
   const notes = Array.isArray(draft.notes) ? draft.notes : [];
@@ -329,8 +332,18 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
       <div class="draft-head">
         {preview && <img class="poster draft-poster" src={preview} alt="Your flyer" />}
         <div>
-          <h1 class="display display-lg">Here's what Gemma got</h1>
-          <p class="muted">The highlighted bits are guesses. Fix anything that's off.</p>
+          {draft.ai === false ? (
+            <>
+              <h1 class="display display-lg">Over to you</h1>
+              <p class="muted">Gemma is busy, so fill in the details, or give it another go.</p>
+              <button type="button" class="btn secondary retry-btn" onClick={onRetry}>Try Gemma again</button>
+            </>
+          ) : (
+            <>
+              <h1 class="display display-lg">Here's what Gemma got</h1>
+              <p class="muted">The highlighted bits are guesses. Fix anything that's off.</p>
+            </>
+          )}
         </div>
       </div>
 

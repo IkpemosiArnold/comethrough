@@ -724,6 +724,7 @@ a.ritual:active { transform: scale(0.98); }
   .action-bar.state-going .cal-btn, .action-bar.state-going .going-pill { animation: fade-in 200ms ease both; }
   .answer-menu { animation: fade-in 150ms ease both; }
   .mic.on svg, .ellipsis i { animation: none; }
+  .draft-intro .unsure .label, .confirm-card .unsure .label, .confirm-card .unsure legend { animation: none; }
 }
 .confirm-you { margin-top: var(--s-4); }
 .pod-actions { display: grid; gap: var(--s-2); }
@@ -755,3 +756,4 @@ a.ritual:active { transform: scale(0.98); }
 }
 .data-toggle button { border: 0; background: transparent; color: #333; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
 .data-toggle button[aria-pressed='true'] { background: #fff; color: #000; }
+.retry-btn { margin-top: var(--s-3); }

@@ -102,3 +102,11 @@ test("ride times say what they assume, and a place with no pin uses where it rou
   assert.match(p.estimate.text, /^A guess from the map, not live traffic: [\d.]+ km of road at about 13 km\/h in rush hour traffic, 20 min for the bridge\. The exact address is not on the map, so this is from Yaba\. Leave-by adds 15 min to spare\.$/);
   assert.equal(estimateText({ roadKm: 4, band: "weekend", crossesLagoon: false }), "A guess from the map, not live traffic: 4 km of road at about 22 km/h in weekend traffic.");
 });
+
+test("a pod from two neighbourhoods names both", () => {
+  const plan = { start: "2026-10-31T17:00:00+01:00", tz: "Africa/Lagos", place: { name: "The Mango Yard", address: null, lat: 6.495, lon: 3.355 } };
+  const { pods } = podsForPlan(plan, [{ id: "a", name: "Tolu", area: AREAS.yaba }, { id: "b", name: "Seyi", area: AREAS.surulere }]);
+  assert.equal(pods.length, 1);
+  assert.equal(pods[0].fromLabel, "Surulere and Yaba");
+  assert.match(pods[0].shareText, /^Tolu and Seyi: leave Surulere and Yaba by /);
+});

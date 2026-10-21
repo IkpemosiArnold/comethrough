@@ -87,7 +87,7 @@ export const api = {
   // Step 1 of starting a crew: Gemma reads the sentence. Nothing is saved yet.
   async draftCrew(sentence) {
     const r = await req('POST', '/api/crews', { body: { sentence } });
-    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [] };
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
   },
   // Step 2: the organiser confirms the edited draft, and can join in the same step.
   async createCrew(draft, organiser) {
@@ -126,7 +126,7 @@ export const api = {
       opts = { slug, body: { text: text || undefined, url: url || undefined } };
     }
     const r = await req('POST', `/api/crews/${enc(slug)}/plans/parse`, opts);
-    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [] };
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
   },
   async createPlan(slug, draft) {
     const r = await req('POST', `/api/crews/${enc(slug)}/plans`, { slug, body: { plan: draft } });

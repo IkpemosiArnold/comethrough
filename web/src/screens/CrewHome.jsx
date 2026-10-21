@@ -7,7 +7,7 @@ import { copyText, whatsappUrl } from '../lib/platform.js';
 import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
-import { WeatherChip, weatherIcon } from '../ui/Weather.jsx';
+import { WeatherChip, weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { KindSticker, ErrorNote } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
 
@@ -125,7 +125,7 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
         <h2 class="display ritual-title">{ritual.place?.name || ritual.title}</h2>
         <p class="ritual-when">{timeRange(ritual.start, ritual.end)}</p>
         {w && (
-          <p class="ritual-wx"><Icon name={weatherIcon(w)} size={18} /> {Math.round(w.tempC)}°. {w.ok ? w.summary : `${w.rainProb}% chance of rain`}</p>
+          <p class="ritual-wx"><Icon name={weatherIcon(w)} size={18} /> {weatherWords(w)}</p>
         )}
         {ritual.rainPlan && (
           <p class="ritual-wx ritual-rain">{ritual.rainPlan.kind === 'wet' ? 'No dry stretch this weekend. Bring cover.' : 'Moved to dodge the rain. Tap for why.'}</p>

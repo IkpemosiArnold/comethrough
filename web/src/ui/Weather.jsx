@@ -7,6 +7,13 @@ export function weatherIcon(w) {
   return 'sun';
 }
 
+// "Dry, feels like 31°" or "34% chance of rain, feels like 34°": one number for rain, one for heat.
+export function weatherWords(w) {
+  if (!w) return '';
+  const rain = w.rainProb == null ? 'No rain forecast yet' : w.rainProb < 20 ? 'Dry' : `${w.rainProb}% chance of rain`;
+  return w.tempC == null ? rain : `${rain}, feels like ${Math.round(w.tempC)}°`;
+}
+
 // Compact: "29°" with an icon. Used in lists.
 export function WeatherChip({ weather }) {
   if (!weather) return null;

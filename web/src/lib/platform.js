@@ -1,8 +1,9 @@
 // Capability checks. Feature-detect where possible; the OS check is only for copy
 // ("Add to Home Screen" on iPhone) where no feature test exists.
 const ua = navigator.userAgent || '';
-export const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isAndroid = /Android/i.test(ua);
+// iPadOS says it is a Mac, so a touch Mac is an iPad; an Android user agent never is
+export const isIOS = !isAndroid && (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 export const isMobile = isIOS || isAndroid || /Mobi/i.test(ua);
 export const isStandalone = (() => {
   try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch { return false; }

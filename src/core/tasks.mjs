@@ -113,10 +113,11 @@ export function firstCap(s) {
 /** An address with its repeated parts removed ("Ikeja, Lagos, LA 021189, Lagos, LA" keeps one "Lagos"). */
 export function tidyAddress(s) {
   if (!s) return s;
+  const parts = s.split(",").map((x) => x.trim()).filter(Boolean);
   const seen = new Set();
-  return s.split(",").map((x) => x.trim()).filter((x) => {
+  return parts.filter((x) => {
     const k = x.toLowerCase();
-    if (!x || seen.has(k)) return false;
+    if (seen.has(k) || parts.some((o) => o.toLowerCase() !== k && o.toLowerCase().startsWith(`${k} `))) return false;
     seen.add(k);
     return true;
   }).join(", ");
@@ -452,7 +453,7 @@ export function readExplain(data, explanation) {
 
 /**
  * @param {Prompt} prompt
- * @param {{ title: string, day: string, date: string, window: { from: string, to: string }, place: string, weather?: string|null, why?: string|null, vibe?: string|null }} facts
+ * @param {{ title: string, day: string, date: string, time: string, place: string, weather?: string|null, rain?: string|null, why?: string|null, vibe?: string|null }} facts
  * @returns {Message[]}
  */
 export function inviteMessages(prompt, facts) {

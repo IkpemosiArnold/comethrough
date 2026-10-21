@@ -14,6 +14,7 @@
 //   heartbeat missed those runs it still appears the day before, never on the day.
 
 import { DEFAULT_TZ, DAY_NAMES, addDays, daysBetween, localParts, parseInstant, weekdayOf, isDate, zonedToMs, toIsoLocal } from "./time.mjs";
+import { clockWords } from "./weather.mjs";
 
 /** @typedef {import("./types.mjs").Rhythm} Rhythm */
 /** @typedef {import("./types.mjs").Plan} Plan */
@@ -103,5 +104,5 @@ export function ritualDraft({ date, window, place, tz = DEFAULT_TZ }) {
 
 /** A plain invite for when Gemma is unavailable. No dashes. */
 export function fallbackInvite({ title, window, weatherText }) {
-  return `${title}, ${window.from} to ${window.to}. ${weatherText ? `${weatherText} ` : ""}Come through if you can. No need to reply.`;
+  return `${title}, ${clockWords(window.from)} to ${clockWords(window.to)}. ${weatherText ? `${weatherText} ` : ""}Come through if you can. No need to reply.`;
 }

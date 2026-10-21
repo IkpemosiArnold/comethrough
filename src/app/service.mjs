@@ -19,7 +19,7 @@ import {
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
 import { DAY, DAY_NAMES, DEFAULT_TZ, hhmm, isTime, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
-import { rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
+import { clockWords, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
 import { isLockedLink } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
@@ -651,7 +651,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const ex = await gemma("explain-pick", explainMessages(prompts["explain-pick"], scored.explanation), EXPLAIN_SCHEMA);
     const why = readExplain(ex.data, scored.explanation).why;
     const draft = ritualDraft({ date, window, place: { ...pick, address: pick.address }, tz });
-    const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, window, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
+    const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
     const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
     const inv = await gemma("write-invite", inviteMessages(prompts["write-invite"], facts), INVITE_SCHEMA);
     const invite = readInvite(inv.data, facts, fallback).invite;
