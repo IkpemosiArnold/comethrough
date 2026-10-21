@@ -46,3 +46,18 @@ test("no machine-specific paths in the source", () => {
     assert.ok(!/\/Users\/|C:\\\\Users|\/home\//.test(fs.readFileSync(f, "utf8")), `${path.relative(root, f)} has a machine path`);
   }
 });
+
+test("src/core names no city: Lagos lives in src/packs/lagos, and the core takes a pack as a parameter", () => {
+  for (const f of core) {
+    const src = code(f);
+    assert.ok(!/lagos|nigeria|Africa\//i.test(src), `${path.relative(root, f)} mentions a city in its code (comments are fine)`);
+  }
+  for (const f of fs.readdirSync(path.join(root, "src/core/prompts"))) {
+    const md = fs.readFileSync(path.join(root, "src/core/prompts", f), "utf8").split("<!-- system -->")[1] ?? "";
+    assert.ok(!/lagos|nigeria|pidgin|naira/i.test(md), `${f}: the prompt text itself names no place; the pack fills it in`);
+  }
+  for (const f of walk(path.join(root, "src")).filter((x) => x.endsWith(".mjs") && !x.includes(`${path.sep}packs${path.sep}`))) {
+    const src = code(f);
+    assert.ok(!/from\s+["'][^"']*packs\/lagos/.test(src) || f.endsWith(path.join("server", "server.mjs")), `${path.relative(root, f)} imports the Lagos pack directly; go through src/packs/index.mjs`);
+  }
+});
