@@ -61,8 +61,8 @@
 .start { padding-top: 0; }
 .start-hero {
   position: relative;
-  padding-top: calc(var(--safe-t) + 92px);
-  margin: 0 calc(var(--gutter) * -1) var(--s-6);
+  padding-top: calc(var(--safe-t) + 104px);
+  margin: 0 calc(var(--gutter) * -1) var(--s-5);
   padding-left: var(--gutter);
   padding-right: var(--gutter);
 }
@@ -88,14 +88,15 @@
 .start-branch .sloth { position: relative; transform-origin: 60px 20px; animation: hang 7s ease-in-out infinite; }
 @keyframes hang { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
 .sloth-reading { animation-duration: 3s !important; }
-.start-title { font-size: clamp(3rem, 15vw, 4rem); max-width: 7ch; }
+.start-title { font-size: clamp(2.5rem, 11.5vw, 3.25rem); letter-spacing: -0.02em; line-height: 1; }
 .start-tag {
-  margin-top: var(--s-4);
+  margin-top: var(--s-3);
   font-size: var(--t-lg);
   line-height: 1.4;
-  max-width: 24ch;
+  max-width: 26ch;
   color: var(--ink-2);
 }
+.start-label { font-weight: 700; font-size: var(--t-lg); line-height: 1.3; }
 .start-form { display: grid; gap: var(--s-3); }
 .start-form .label { font-size: var(--t-lg); margin-bottom: 0; }
 .start-form .btn { margin-top: var(--s-2); }
@@ -187,7 +188,7 @@ fieldset.field legend { padding: 0; }
 /* The highlighter: guesses look like someone ran a marker over them */
 .confirm-field, .draft-field { position: relative; }
 .unsure > .field > .label, .unsure > fieldset > legend, .unsure .label {
-  background-image: linear-gradient(transparent 12%, var(--highlight) 12%, var(--highlight) 88%, transparent 88%);
+  background-image: linear-gradient(transparent 58%, var(--highlight) 58%, var(--highlight) 94%, transparent 94%);
   background-repeat: no-repeat;
   background-size: 100% 100%;
   padding: 0 4px;
@@ -197,7 +198,6 @@ fieldset.field legend { padding: 0; }
 }
 .unsure .input, .unsure .select, .mini.guess .input {
   box-shadow: inset 0 0 0 2px var(--danfo);
-  background-color: color-mix(in srgb, var(--danfo) 9%, var(--paper));
 }
 .unsure-note { font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--s-2); padding-left: 20px; position: relative; }
 .unsure-note::before {
@@ -775,3 +775,102 @@ a.ritual:active { transform: scale(0.98); }
 .plan-share { display: grid; gap: var(--s-2); }
 .upload-size { margin-top: var(--s-2); }
 .entry-src { white-space: nowrap; }
+
+
+/* ---------- UX pass 2 ---------- */
+
+/* The name sheet: up from the bottom on the drawer curve, down faster */
+.sheet-wrap { position: fixed; inset: 0; z-index: 70; display: grid; align-items: end; }
+.sheet-scrim { position: absolute; inset: 0; background: var(--scrim); animation: fade-in 260ms var(--ease-out) both; }
+.sheet {
+  position: relative;
+  display: grid;
+  gap: var(--s-3);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--s-3) var(--gutter) calc(var(--s-5) + var(--safe-b));
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--paper);
+  box-shadow: 0 -10px 40px -20px rgb(0 0 0 / 0.5);
+  animation: sheet-in 320ms var(--ease-drawer) both;
+}
+.sheet-grip { justify-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin-bottom: var(--s-2); }
+.sheet .display-md { line-height: 1.15; }
+.sheet-wrap.closing .sheet { animation: sheet-out 200ms var(--ease-out) both; }
+.sheet-wrap.closing .sheet-scrim { animation: fade-out 200ms var(--ease-out) both; }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@keyframes sheet-out { to { transform: translateY(100%); } }
+@keyframes fade-out { to { opacity: 0; } }
+html.sheet-open .bottom-bar { visibility: hidden; }
+
+/* The crew preview: the crew as friends will see it, each Gemma reading a row to tap */
+.pv-top { display: flex; gap: var(--s-2); align-items: center; margin: var(--s-2) 0 var(--s-2) calc(var(--s-2) * -1); }
+.pv-kicker { color: var(--ink-2); font-size: var(--t-sm); font-weight: 600; line-height: 1.4; }
+.pv-name { display: flex; align-items: flex-end; gap: var(--s-2); width: 100%; padding: var(--s-2) 0; border: 0; background: none; color: var(--ink-3); text-align: left; cursor: pointer; font: inherit; }
+.pv-name .display { color: var(--ink); }
+.pv-name.unsure .display { background-image: linear-gradient(transparent 62%, var(--highlight) 62%, var(--highlight) 96%, transparent 96%); }
+.pv-name svg { flex: none; margin-bottom: 10px; }
+.pv-name-edit { display: block; margin: var(--s-2) 0; }
+.pv-card { padding: 0; overflow: hidden; margin-top: var(--s-4); }
+.pv-row + .pv-row { border-top: 1px solid var(--line); }
+.pv-head { display: flex; gap: var(--s-3); align-items: center; width: 100%; min-height: 64px; padding: var(--s-4) var(--s-5); border: 0; background: none; color: var(--ink); text-align: left; font: inherit; cursor: pointer; }
+.pv-head:active { background: var(--line); }
+.pv-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.pv-label { font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); }
+.pv-value { font-size: var(--t-md); font-weight: 650; overflow-wrap: anywhere; }
+.pv-row.unsure .pv-value { width: fit-content; background-image: linear-gradient(transparent 60%, var(--highlight) 60%, var(--highlight) 95%, transparent 95%); }
+.pv-note { font-size: var(--t-sm); color: var(--ink-2); }
+.pv-edit { flex: none; font-size: var(--t-sm); font-weight: 650; color: var(--lagoon); }
+.pv-body { display: grid; gap: var(--s-3); padding: 0 var(--s-5) var(--s-5); animation: fade-in 180ms var(--ease-out) both; }
+.pv-you { margin-top: var(--s-6); }
+
+/* Add a plan: the plan as the crew will see it, the form folded away when Gemma is sure */
+.draft-preview { margin-bottom: var(--s-3); cursor: default; }
+.draft-preview:active { transform: none; }
+.details-toggle { display: inline-flex; align-items: center; gap: var(--s-2); min-height: 44px; padding: 0 var(--s-1); margin-bottom: var(--s-3); border: 0; background: none; color: var(--lagoon); font: inherit; font-weight: 650; cursor: pointer; }
+
+/* What goes to Google: one line, the detail one tap away */
+.privacy { font-size: var(--t-xs); color: var(--ink-3); line-height: 1.45; }
+.privacy summary { cursor: pointer; list-style: none; }
+.privacy summary::-webkit-details-marker { display: none; }
+.privacy-more { color: var(--lagoon); font-weight: 650; text-decoration: underline; text-underline-offset: 2px; }
+.privacy[open] .privacy-more { display: none; }
+.privacy p { margin-top: var(--s-2); }
+
+/* The sloth's first pick on the invite screen */
+.first-pick { margin-top: var(--s-2); }
+.first-pick.ritual { padding-top: var(--s-5); }
+.first-pick.ritual::before { display: none; }
+.first-pick .ritual-kicker, .first-pick .ritual-title { margin-right: 0; }
+.first-pick.landed { animation: pick-in 300ms var(--ease-out) both; }
+@keyframes pick-in { from { opacity: 0; transform: translateY(8px); } }
+.rain-skip { margin-top: var(--s-2); }
+
+/* The ideas card: one calm card, three ideas, one tap each */
+.ideas { position: relative; padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); box-shadow: var(--lift); }
+.ideas-sloth { position: absolute; right: 12px; top: -26px; }
+.ideas-title { font-family: var(--font-display); font-size: var(--t-lg); line-height: 1.2; margin-right: 64px; font-weight: 400; }
+.ideas-list { display: grid; margin-top: var(--s-3); }
+.idea { display: grid; gap: 2px; padding: var(--s-4) 0; }
+.idea + .idea { border-top: 1px solid var(--line); }
+.idea-title { font-weight: 700; }
+.idea-why { color: var(--ink-2); font-size: var(--t-sm); line-height: 1.45; }
+.idea-src { color: var(--ink-3); font-size: var(--t-xs); }
+.idea-btn { justify-self: start; margin-top: var(--s-2); min-height: 44px; }
+
+/* Where are you coming from? */
+.area-ask { display: grid; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); box-shadow: inset 0 0 0 2px var(--danfo), var(--lift); }
+.area-ask-title { font-family: var(--font-display); font-size: var(--t-lg); font-weight: 400; line-height: 1.2; }
+
+/* The organiser's moment: the yellow paint drops in behind the crew's name, once */
+.paint-in { animation: paint-in 480ms var(--ease-out) 120ms both; }
+@keyframes paint-in { from { text-shadow: 0 0 0 transparent; } }
+
+.crew-home .kicker { margin-top: var(--s-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet-wrap.closing .sheet { animation: fade-in 160ms ease both; }
+  .sheet-wrap.closing .sheet { animation-name: fade-out; }
+  .paint-in, .first-pick.landed { animation: none; }
+}

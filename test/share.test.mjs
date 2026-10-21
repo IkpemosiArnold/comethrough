@@ -4,17 +4,21 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
 // @ts-ignore: a browser module with plain functions
-import { planMessage, whatsappUrl } from "../web/src/lib/share.js";
+import { inviteMessage, planMessage, whatsappUrl } from "../web/src/lib/share.js";
 
 const url = "https://comethrough.tech/c/yaba-lot/p/p_1?t=inv_x";
 const plan = { title: "Highlife Under Mangoes", when: "Saturday, 5 to 9pm", place: "The Mango Yard", url };
 
-test("the WhatsApp messages carry the plan link, read naturally, and have no dashes", () => {
+test("the WhatsApp messages lead with the plan, end with the link, and have no dashes", () => {
   const posted = planMessage({ ...plan, posted: true });
-  assert.equal(posted, `New plan: Highlife Under Mangoes, Saturday, 5 to 9pm, The Mango Yard. Tap the link and say if you're coming: ${url}`);
-  assert.equal(planMessage({ ...plan, mine: "going" }), `I'm going to Highlife Under Mangoes, Saturday, 5 to 9pm, The Mango Yard. Come through: ${url}`);
-  assert.equal(planMessage(plan), `Highlife Under Mangoes\nSaturday, 5 to 9pm, The Mango Yard\nCome through: ${url}`);
-  for (const m of [posted, planMessage(plan)]) assert.ok(!/[—–]/.test(m));
+  assert.equal(posted, `Highlife Under Mangoes, Saturday, 5 to 9pm at The Mango Yard. Come through?\nTap if you're coming: ${url}`);
+  assert.equal(planMessage({ ...plan, mine: "going" }), `I'm going to Highlife Under Mangoes, Saturday, 5 to 9pm at The Mango Yard. Come through?\n${url}`);
+  assert.equal(planMessage(plan), `Highlife Under Mangoes, Saturday, 5 to 9pm at The Mango Yard. Come through?\n${url}`);
+  const pick = { title: "Saturday at Muri Okunola Park", when: "Saturday, 3 to 6pm", place: "Muri Okunola Park", kind: "ritual", url };
+  const invite = inviteMessage({ crewName: "The uni guys", url: "https://x/c/uni?t=k", plan: pick });
+  assert.equal(invite, `Saturday, 3 to 6pm at Muri Okunola Park. Come through?\nTap if you're coming: ${url}`, "the sloth's pick is the first line, and the link opens it");
+  assert.match(inviteMessage({ crewName: "The uni guys", url: "https://x/c/uni?t=k" }), /^Plans for The uni guys live here now.*https:\/\/x\/c\/uni\?t=k$/);
+  for (const m of [posted, planMessage(plan), invite]) assert.ok(!/[—–]/.test(m));
   const wa = new URL(whatsappUrl(posted));
   assert.equal(wa.origin + wa.pathname, "https://wa.me/");
   assert.equal(wa.searchParams.get("text"), posted);

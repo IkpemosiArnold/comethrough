@@ -5,7 +5,7 @@
 // Auth: `Authorization: Bearer <token>`, the member token when this phone has one for the
 // crew, otherwise the crew's invite token. The .ics download carries the token as ?t=.
 
-import { getCrew, sessionGet, sessionSet, readCrewCache, writeCrewCache } from './store.js';
+import { getCrew, saveCrew, sessionGet, sessionSet, readCrewCache, writeCrewCache } from './store.js';
 import { areaContext, hint, setPlace } from './place.js';
 
 const q = new URLSearchParams(location.search);
@@ -61,6 +61,19 @@ async function req(method, path, { slug, invite, body, form, token } = {}) {
 
 const enc = encodeURIComponent;
 
+// Ideas may come from the server or the demo; keep only what the card can show.
+function normaliseIdeas(list) {
+  return (Array.isArray(list) ? list : []).filter((x) => x && x.title).slice(0, 3).map((x, i) => ({
+    id: x.id || `idea-${i}`,
+    title: String(x.title),
+    reason: x.reason || x.why || '',
+    when: x.when || null,
+    place: x.place || null,
+    source: x.source && (x.source.name || x.source.url) ? { name: x.source.name || null, url: x.source.url || null } : null,
+    draft: x.draft || x.plan || null,
+  }));
+}
+
 // The branch and the pods match faces to member ids. If a PlanView arrives without `rsvps`
 // (only the name lists `going` and `maybe`, plus `you`), rebuild it from the member list.
 function withRsvps(plan, members = [], you = null) {
@@ -97,10 +110,48 @@ export const api = {
     return { ...r, crew: { ...r.crew, inviteToken: r.inviteToken || r.crew?.inviteToken } };
   },
   // { crew, members, plans, you }
+  // A link's ?t= can be the crew's invite key or a member's own key (a member's link opened
+  // on a second phone). When the server answers with `you`, this phone becomes that member.
   async getCrew(slug, invite) {
     const d = await req('GET', `/api/crews/${enc(slug)}`, { slug, invite });
     setPlace(d.crew);
+    const mine = getCrew(slug);
+    if (d.you?.id && mine?.memberId !== d.you.id) {
+      const token = mine?.memberToken || invite || mine?.invite;
+      if (token) saveCrew(slug, { name: d.crew?.name, memberId: d.you.id, memberName: d.you.name, memberToken: token });
+    } else if (d.crew?.name && mine?.name !== d.crew.name) saveCrew(slug, { name: d.crew.name });
     return { ...d, plans: (d.plans || []).map((p) => withRsvps(p, d.members, d.you)) };
+  },
+  // Join with just a name: the first "I'm going", or "Join the crew". The area comes later,
+  // on the first plan with rides. This phone becomes the member.
+  async joinAs(slug, name, crewName) {
+    const res = await api.join(slug, { name }, null);
+    saveCrew(slug, { name: crewName, memberId: res.member.id, memberName: res.member.name, memberToken: res.memberToken, calendarUrl: res.calendarUrl, webcalUrl: res.webcalUrl });
+    return res;
+  },
+  // Where you're coming from: { area: "Yaba" | { label, lat, lon } } or { near: { lat, lon } }
+  // (rounded to two decimals on this phone first). Returns { you, notes }.
+  async setArea(slug, body) {
+    const c = getCrew(slug);
+    if (MOCK) return (await mock()).setArea(c?.memberId, body);
+    return req('PATCH', `/api/members/${enc(c?.memberId || '')}`, { slug, body });
+  },
+  // The sloth's first pick for a new crew with a regular day: { plan, reason }.
+  async firstPick(slug) {
+    const r = await req('POST', `/api/crews/${enc(slug)}/first-pick`, { slug });
+    return { plan: r?.plan ? withRsvps(r.plan, [], null) : null, reason: r?.reason || null };
+  },
+  // Three ideas for a crew with nothing on: [{ id, title, reason, when, place, source, draft }].
+  // A server without the endpoint yet answers 404, and the card simply does not show.
+  async ideas(slug, when = 'weekend') {
+    if (MOCK) return normaliseIdeas((await mock()).ideas(when));
+    try {
+      const r = await req('GET', `/api/crews/${enc(slug)}/ideas?when=${enc(when)}`, { slug });
+      return normaliseIdeas(r?.ideas || r);
+    } catch (e) {
+      if (e.status === 404 || e.status === 405) return [];
+      throw e;
+    }
   },
   // { member, memberToken, memberUrl, calendarUrl, webcalUrl }
   async join(slug, { name, area }, invite) {
@@ -137,10 +188,10 @@ export const api = {
     return r.plan;
   },
   // There is no single-plan read in the contract, so the plan page reads the crew.
-  async getPlan(slug, id) {
+  async getPlan(slug, id, invite) {
     let data, offline = false;
     try {
-      data = await api.getCrew(slug);
+      data = await api.getCrew(slug, invite);
       writeCrewCache(slug, data);
     } catch (e) {
       data = e.code === 'offline' ? readCrewCache(slug) : null;

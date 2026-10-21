@@ -219,6 +219,30 @@ function addMember(db, { name, area: a }) {
   };
 }
 
+// Three ideas for a quiet weekend. Demo data only: the real ones come from the server.
+export function ideas() {
+  const sat = nextDow(6, 1), sun = nextDow(0, 1);
+  const idea = (id, title, reason, place, day, hh, hours, kind, source = null) => ({
+    id, title, reason, place, source,
+    when: { start: lagosDate(day, hh), end: lagosDate(day, hh + hours) },
+    draft: { kind, title, start: lagosDate(day, hh), end: lagosDate(day, hh + hours), tz: 'Africa/Lagos', place, price: null, host: null, bring: [], source: source?.url ? { url: source.url } : {} },
+  });
+  return [
+    idea('i-freedom', 'Sunday evening at Freedom Park', 'Lagos Island is about the middle for Yaba and Lekki, and the evening is cooler.', PLACES.freedom, sun, 16, 3, 'found', { name: 'a weekly Lagos guide (demo)', url: null }),
+    idea('i-muri', 'Lazy Saturday at Muri Okunola Park', 'Shade, space for a mat, and nobody has picked it this month.', PLACES.muri, sat, 15, 3, 'quick'),
+    idea('i-jjt', 'Small chops at JJT Park', 'Closest for the Ikeja side, so they skip the bridge for once.', PLACES.jjt, sat, 16, 2, 'quick'),
+  ];
+}
+
+export async function setArea(memberId, body) {
+  await wait(500);
+  const db = load();
+  const m = db.members.find((x) => x.id === memberId);
+  const label = body.near ? 'Yaba' : (typeof body.area === 'string' ? body.area : body.area?.label);
+  if (m) { m.area = { label }; save(db); }
+  return { you: m ? { id: m.id, name: m.name, area: { label } } : null, notes: [] };
+}
+
 export async function areas(text) {
   await wait(150);
   const t = text.trim().toLowerCase();
@@ -363,6 +387,23 @@ export async function handle(method, path, { body, form, token }) {
     db.plans.push(plan);
     save(db);
     return { plan: view(db, plan, viewer) };
+  }
+  if (method === 'POST' && p.endsWith('/first-pick')) {
+    await wait(2200);
+    let r = db.plans.find((x) => x.kind === 'ritual');
+    if (!r && db.crew.rhythm) {
+      const day = nextDow(db.crew.rhythm.day ?? 6, 1);
+      r = {
+        id: 'p-first', crewId: db.crew.id, kind: 'ritual', title: 'Saturday at Muri Okunola Park', start: lagosDate(day, 15), end: lagosDate(day, 18),
+        tz: 'Africa/Lagos', place: PLACES.muri, price: null, host: null, bring: [], source: {}, status: 'on', confidence: {}, rsvps: {},
+        why: 'Muri Okunola Park keeps everyone within about 35 minutes, and it has shade for the afternoon.',
+        invite: 'Saturday, 3 to 6pm at Muri Okunola Park. Mats out, music low. Come through if you can.',
+        weather: { checkedAt: new Date().toISOString(), summary: 'Dry, a little cloud', rainProb: 10, tempC: 30, ok: true }, createdBy: 'sloth', createdAt: new Date().toISOString(),
+      };
+      db.plans.push(r);
+      save(db);
+    }
+    return { plan: r ? view(db, r, viewer) : null, reason: r ? 'made' : 'no_rhythm' };
   }
   if (method === 'PATCH' && (m = p.match(/^\/api\/plans\/([^/]+)$/))) {
     await wait(250);

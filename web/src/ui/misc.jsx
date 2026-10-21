@@ -1,5 +1,6 @@
 import { Icon } from './icons.jsx';
 import { back } from '../lib/router.js';
+import { firstName } from '../lib/format.js';
 
 export function TopBar({ title, backTo, right, onBack }) {
   return (
@@ -30,14 +31,16 @@ export function Spinner({ label = 'Loading' }) {
 
 export const KIND = {
   found: { label: 'Event', cls: 'found' },
-  hosted: { label: 'Hosted', cls: 'hosted' },
+  hosted: { label: "At someone's", cls: 'hosted' },
   ritual: { label: "Sloth's pick", cls: 'ritual' },
   quick: { label: 'Quick one', cls: 'quick' },
 };
 
-export function KindSticker({ kind }) {
+// A house plan says whose house: "At Tolu's".
+export function KindSticker({ kind, host = null }) {
   const k = KIND[kind] || KIND.quick;
-  return <span class={`sticker sticker-${k.cls}`}>{k.label}</span>;
+  const label = kind === 'hosted' && host?.name ? `At ${firstName(host.name)}'s` : k.label;
+  return <span class={`sticker sticker-${k.cls}`}>{label}</span>;
 }
 
 export function ErrorNote({ error, onRetry }) {

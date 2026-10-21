@@ -18,13 +18,20 @@ import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { TopBar, KindSticker, ErrorNote, Spinner } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
+import { NameSheet } from '../ui/NameSheet.jsx';
+import { AreaAsk } from '../ui/AreaAsk.jsx';
 
 export function PlanPage({ params, query }) {
   const { slug, id } = params;
+  const key = query.get('t');
   const mine = getCrew(slug);
-  const meId = mine?.memberId || null;
+  // a guest becomes a member at their first "I'm going", on this same page
+  const [meId, setMeId] = useState(mine?.memberId || null);
+  const [ask, setAsk] = useState(null); // the answer waiting for a name: 'going' | 'maybe'
   const [plan, setPlan] = useState(null);
   const [pods, setPods] = useState(null);
+  const [unplaced, setUnplaced] = useState([]);
+  const [myArea, setMyArea] = useState(null);
   // Lagos's ride apps until the server says otherwise; a crew elsewhere gets none, and directions
   const [rides, setRides] = useState(() => (packUi().directions ? [] : FALLBACK_RIDES));
   const [directions, setDirections] = useState(null);
@@ -36,8 +43,15 @@ export function PlanPage({ params, query }) {
 
   function load() {
     setError(null);
-    api.getPlan(slug, id).then(setPlan).catch(setError);
-    api.pods(slug, id).then((r) => { setPods(r.pods); if (r.rides) setRides(r.rides); setDirections(r.directions); }).catch(() => setPods([]));
+    api.getPlan(slug, id, key).then((p) => {
+      setPlan(p);
+      if (p.viewer?.id) { setMeId(p.viewer.id); setMyArea(p.viewer.area?.label || null); }
+      loadPods();
+    }).catch(setError);
+  }
+  function loadPods() {
+    if (!getCrew(slug)?.memberToken) { setPods([]); return Promise.resolve(); }
+    return api.pods(slug, id).then((r) => { setPods(r.pods); setUnplaced(r.unplaced || []); if (r.rides) setRides(r.rides); setDirections(r.directions); }).catch(() => setPods([]));
   }
   useEffect(load, [slug, id]);
   const [posted, setPosted] = useState(() => !!query.get('posted'));
@@ -65,20 +79,20 @@ export function PlanPage({ params, query }) {
   const my = meId ? rsvps[meId] || null : null;
   const host = plan.host && byId[plan.host];
   const crewName = plan.crew?.name || mine?.name || 'the crew';
-  const invite = mine?.invite || plan.crew?.inviteToken;
+  const invite = plan.crew?.inviteToken || mine?.invite;
   const planUrl = `${location.origin}/c/${slug}/p/${id}${invite ? `?t=${encodeURIComponent(invite)}` : ''}`;
   const when = `${dayLabel(plan.start)}, ${timeRange(plan.start, plan.end)}`;
-  const msg = { title: plan.title, when, place: plan.place?.name, url: planUrl };
+  const msg = { title: plan.title, when, place: plan.place?.name, url: planUrl, kind: plan.kind };
   const shareText = planMessage(msg);
   const goingText = planMessage({ ...msg, mine: 'going' });
 
-  async function answer(value) {
-    if (!meId) return;
+  async function answer(value, who = meId) {
+    if (!who) { setAsk(value); return; }
     setMenu(false);
-    const prev = my;
+    const prev = who === meId ? my : null;
     const next = value === prev ? null : value;
     const nextRsvps = { ...rsvps };
-    if (next) nextRsvps[meId] = next; else delete nextRsvps[meId];
+    if (next) nextRsvps[who] = next; else delete nextRsvps[who];
     setPlan({ ...plan, rsvps: nextRsvps });
     if (next === 'going') {
       haptic(12);
@@ -87,14 +101,13 @@ export function PlanPage({ params, query }) {
       const visible = r && r.top > 60 && r.bottom < window.innerHeight - 90;
       if (el && !visible) {
         el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
-        setTimeout(() => setSwingId(meId), 360);
-      } else setSwingId(meId);
+        setTimeout(() => setSwingId(who), 360);
+      } else setSwingId(who);
     } else setSwingId(null);
     try {
       await api.rsvp(slug, id, next);
-      const p = await api.pods(slug, id);
       setFreshPod(next === 'going');
-      setPods(p.pods);
+      await loadPods();
     } catch (e) {
       setPlan({ ...plan, rsvps });
       toast(e.message || "Couldn't save that. Try again.");
@@ -106,6 +119,18 @@ export function PlanPage({ params, query }) {
     toast(ok ? 'Address copied. Paste it as your drop-off.' : "Couldn't copy the address");
   }
 
+  // a new friend joins with a name, and the plan needs them in its member list for the branch
+  function joined(res, first) {
+    const m = { id: res.member.id, name: res.member.name, area: { label: null } };
+    plan.members = [...(plan.members || []).filter((x) => x.id !== m.id), m];
+    setMeId(m.id);
+    setMyArea(null);
+    const value = ask;
+    setAsk(null);
+    toast(`You're in, ${first}.`);
+    answer(value, m.id);
+  }
+  const needsArea = my === 'going' && pods !== null && !myArea && (unplaced.some((u) => u.id === meId) || !(pods || []).some((p) => p.memberIds.includes(meId)));
   const myPod = pods && pods.find((p) => p.memberIds.includes(meId));
   const otherPods = (pods || []).filter((p) => p !== myPod);
   const w = plan.weather;
@@ -128,7 +153,7 @@ export function PlanPage({ params, query }) {
 
       {posted && (
         <aside class="posted-card" aria-label="Tell the crew">
-          <p><b>Posted.</b> Now tell the crew: the link in the group chat is how most people will see it.</p>
+          <p><b>Posted.</b> Tell the group chat so people see it.</p>
           <a class="btn whatsapp block" href={whatsappUrl(planMessage({ ...msg, posted: true }))} target="_blank" rel="noopener" data-external onClick={() => setPosted(false)}>
             <WhatsAppIcon /> Tell the crew on WhatsApp
           </a>
@@ -139,7 +164,7 @@ export function PlanPage({ params, query }) {
 
       <header class="plan-head">
         <div class="row plan-head-tags">
-          <KindSticker kind={plan.kind} />
+          <KindSticker kind={plan.kind} host={host} />
           {plan.status === 'moved' && <span class="sticker sticker-warn">Moved</span>}
           {plan.status === 'cancelled' && <span class="sticker sticker-warn">Called off</span>}
         </div>
@@ -160,7 +185,7 @@ export function PlanPage({ params, query }) {
           <Icon name="rain" size={22} />
           <div class="grow">
             <p class="strong">{w.summary}</p>
-            <p class="small">{w.rainProb}% chance of rain. Worth a plan B.</p>
+            <p class="small">{w.rainProb}% chance of rain. Have a backup spot.</p>
             <a class="btn secondary small-btn rain-btn" href={plan.headsUp?.whatsappUrl || whatsappUrl(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}. ${planUrl}`)} target="_blank" rel="noopener" data-external><WhatsAppIcon size={18} /> Warn the crew</a>
           </div>
         </div>
@@ -232,16 +257,19 @@ export function PlanPage({ params, query }) {
       {canRide && (
         <section class="rides" aria-labelledby="rides-title">
           <h2 id="rides-title" class="section-label">Rides</h2>
-          {my === 'going' && myPod && (
+          {needsArea && (
+            <AreaAsk slug={slug} onSet={(label) => { setMyArea(label || 'set'); toast(label ? `Coming from ${label}` : 'Saved'); loadPods(); }} />
+          )}
+          {!needsArea && my === 'going' && myPod && (
             <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onCopy={copyAddress} rides={rides} directions={directions} host={host} />
           )}
-          {my === 'going' && pods && !myPod && (
+          {!needsArea && my === 'going' && pods && !myPod && (
             <div class="pod pod-solo">
               <p>You're the first from your side. When someone near you says yes, you'll share a ride.</p>
             </div>
           )}
           {my !== 'going' && (
-            <p class="muted rides-hint">Tap I'm going and you'll be grouped with people near you, with a time to leave.</p>
+            <p class="muted rides-hint">Tap I'm going to get a time to leave and people to ride with.</p>
           )}
           {otherPods.length > 0 && (
             <ul class="pod-others">
@@ -264,7 +292,7 @@ export function PlanPage({ params, query }) {
           <h2 id="why-title" class="why-title">Why this place</h2>
           <p>{plan.why}</p>
           {plan.kind === 'ritual' && (
-            <p class="fine why-privacy">Gemma, Google's open model, wrote the sloth's words through Google's free API. We sent it the place, the weather, your crew's vibe words and the minutes from each neighbourhood, with no names. Google may use that to improve its products. Your crew list and locations stay with Come Through.</p>
+            <p class="fine why-privacy">Gemma, Google's open model, wrote this from the place, the weather and travel times. No names went to Google.</p>
           )}
         </section>
       )}
@@ -282,7 +310,7 @@ export function PlanPage({ params, query }) {
         <section class="source">
           {plan.source.imageUrl && <img class="source-flyer" src={plan.source.imageUrl} alt={`Flyer for ${plan.title}`} width="150" height="194" loading="lazy" />}
           <div>
-            <p class="small muted">{plan.source.image ? 'Gemma read this from a flyer.' : 'Gemma read this from a link.'} Check the details with the organiser.</p>
+            <p class="small muted">{plan.source.image ? 'Gemma read this from a flyer' : 'Gemma read this from a link'}, so check the details with the organiser.</p>
             {plan.source.url && <a class="small" href={plan.source.url} target="_blank" rel="noopener">See the original</a>}
           </div>
         </section>
@@ -301,16 +329,14 @@ export function PlanPage({ params, query }) {
         )}
       </div>
 
-      {plan.rainPlan?.kind !== 'skip' && <ActionBar
+      {plan.rainPlan?.kind !== 'skip' && plan.status !== 'cancelled' && <ActionBar
         my={my}
-        meId={meId}
         menu={menu}
         setMenu={setMenu}
         answer={answer}
         waUrl={whatsappUrl(goingText)}
-        joinHref={`/c/${slug}/join${invite ? `?t=${encodeURIComponent(invite)}&` : '?'}next=${encodeURIComponent(`/c/${slug}/p/${id}`)}`}
-        crewName={crewName}
       />}
+      {ask && <NameSheet slug={slug} crewName={crewName} action={ask === 'maybe' ? 'Maybe' : "I'm going"} onClose={() => setAsk(null)} onJoined={joined} />}
     </div>
   );
 }
@@ -356,9 +382,9 @@ function NudgeAsk({ slug }) {
       <Icon name="bell" size={22} />
       <div class="grow">
         {state === 'ios' ? (
-          <p><b>Want a nudge if this changes?</b> On iPhone, add Come Through to your Home Screen first: tap Share, then Add to Home Screen.</p>
+          <p><b>Want a nudge if this changes?</b> On iPhone, add Come Through to your Home Screen first. Tap Share, then Add to Home Screen.</p>
         ) : (
-          <p><b>Get a nudge if this plan changes?</b> Rain, a new time, or your ride.</p>
+          <p><b>Want a nudge if this changes?</b> One alert if the time or the weather changes, and one when your ride group forms.</p>
         )}
         <div class="row nudge-actions">
           {state !== 'ios' && <button class="btn primary" onClick={yes} disabled={state === 'asking'}>Yes, nudge me</button>}
@@ -392,7 +418,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
         ? <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
         : <p class="pod-leave">From {pod.fromLabel}</p>}
       <p class="muted small">
-        {pod.travelMin != null ? <>About {pod.travelMin} min, a rough estimate</> : 'No ride time yet: the place is not on the map'}{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
+        {pod.travelMin != null ? <>About {pod.travelMin} min</> : "No ride time yet, because the place isn't on the map"}{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
         {pod.bridge ? ` The time allows for ${pod.bridge}.` : ''}
         {pod.estimate?.text && (
           <> <button type="button" class="link-btn how-btn" aria-expanded={how} onClick={() => setHow(!how)}>{how ? 'Hide' : 'How we guess'}</button></>
@@ -412,7 +438,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
               ))}
             </div>
             <p class="fine ride-fine">
-              No ride app here takes a drop-off from a link yet, so paste the address in.
+              Ride apps don't take a drop-off from a link yet, so paste the address in.
               {rides.length > 2 && <> Also: {rides.slice(2).map((r, i) => <span key={r.id}>{i ? ', ' : ''}<a href={rideHref(r)} target="_blank" rel="noopener" data-external>{r.name}</a></span>)}.</>}
             </p>
           </>
@@ -431,7 +457,8 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
   );
 }
 
-function ActionBar({ my, meId, menu, setMenu, answer, waUrl, joinHref, crewName }) {
+// A guest sees the same two buttons as a member: the name is asked when they tap.
+function ActionBar({ my, menu, setMenu, answer, waUrl }) {
   const menuRef = useRef(null);
   useEffect(() => {
     if (!menu) return;
@@ -450,16 +477,6 @@ function ActionBar({ my, meId, menu, setMenu, answer, waUrl, joinHref, crewName 
     document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
   }, [menu]);
-
-  if (!meId) {
-    return (
-      <div class="bottom-bar">
-        <div>
-          <a class="btn primary block big" href={joinHref}>Join {crewName} to say you're coming</a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div class="bottom-bar">
