@@ -5,6 +5,7 @@
 import { createPageMeta } from "../src/adapters/pagemeta.mjs";
 import { isLockedLink, lockedMessage, lockedSite } from "../src/core/netguard.mjs";
 import { readPlan } from "../src/core/tasks.mjs";
+import { LAGOS_LOCAL } from "../src/packs/lagos/index.mjs";
 
 const pages = createPageMeta({ contact: "https://github.com/IkpemosiArnold/comethrough" });
 const today = new Date(Date.now() + 3600e3).toISOString().slice(0, 10);
@@ -16,7 +17,7 @@ for (const url of process.argv.slice(2)) {
   const t0 = Date.now();
   try {
     const page = await pages.fetchPage(url);
-    const r = readPlan({}, { url, pageMeta: page.meta, today, member: { id: "m", name: "Tester" } });
+    const r = readPlan({}, { url, pageMeta: page.meta, today, tz: "Africa/Lagos", local: LAGOS_LOCAL, member: { id: "m", name: "Tester" } });
     const d = r.draft;
     console.log(JSON.stringify({ url, ms: Date.now() - t0, jsonLd: !!page.meta?.event, title: d.title, start: d.start, end: d.end, venue: d.place.name, address: d.place.address, price: d.price, image: d.source && page.meta?.event?.image ? "json-ld" : page.meta?.image ? "og" : null, notes: r.notes }));
   } catch (e) {

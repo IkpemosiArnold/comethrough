@@ -73,7 +73,10 @@ test("an Instagram link on its own asks for the flyer picture, without a Gemma c
 });
 
 test("an address that is not on the map keeps its neighbourhood for ride times and weather", async () => {
-  const { neighbourhoodsIn } = await import("../src/app/service.mjs");
+  const { neighbourhoodsIn: core } = await import("../src/app/service.mjs");
+  // which address parts name the city (Lagos, LA, Nigeria) comes from the Lagos city pack now
+  const { LAGOS, LAGOS_REGION } = await import("../src/packs/index.mjs");
+  const neighbourhoodsIn = (/** @type {string} */ a) => core(a, LAGOS.addressNoise(LAGOS_REGION));
   assert.deepEqual(neighbourhoodsIn("14 Adeyemo Close off Bode Thomas, Surulere"), ["Surulere"]);
   assert.deepEqual(neighbourhoodsIn("30 Mobolaji Bank Anthony Way, Ikeja, Lagos, LA 021189, Nigeria"), ["Ikeja"]);
   assert.deepEqual(neighbourhoodsIn("Freedom Park"), []);

@@ -16,7 +16,7 @@ import { makeIds, safeEqual } from "../app/ids.mjs";
 import { loadPrompts } from "../app/prompts.mjs";
 import { createService } from "../app/service.mjs";
 import { withEntries } from "../core/places.mjs";
-import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather } from "../adapters/fakes.mjs";
+import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather, fakeWikidata } from "../adapters/fakes.mjs";
 import { createGemini } from "../adapters/gemini.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
 import { layeredCache, memoryCache, storeCache } from "../adapters/http.mjs";
@@ -26,6 +26,8 @@ import { createOverpass } from "../adapters/overpass.mjs";
 import { createPageMeta } from "../adapters/pagemeta.mjs";
 import { createWebPush } from "../adapters/push.mjs";
 import { openStore } from "../adapters/store.mjs";
+import { createWikidata } from "../adapters/wikidata.mjs";
+import { LAGOS } from "../packs/index.mjs";
 import { BASE_HEADERS, HttpFail, clientIp, makeLimiter, parseMultipart, readBody, readJson, sendJson, sniffImage, tokenOf } from "./http.mjs";
 import { staticHandler } from "./static.mjs";
 import { APP_ROUTE, PAGE_ROUTE, basicHandler, wantsBasic } from "./basic.mjs";
@@ -71,16 +73,19 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
     ["GET", /^\/api\/push\/key$/, () => service.pushKey()],
     ["GET", /^\/api\/areas$/, ({ url, ip }) => {
       limit("areas", ip);
-      return service.searchAreas({ q: url.searchParams.get("q") });
+      // near=lat,lon and cc=DE from the crew's region; tz= the visitor's zone before a crew exists
+      const [lat, lon] = String(url.searchParams.get("near") || "").split(",").map(Number);
+      const near = Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+      return service.searchAreas({ q: url.searchParams.get("q"), near, country: url.searchParams.get("cc"), tz: url.searchParams.get("tz") });
     }],
     ["POST", /^\/api\/crews$/, async ({ req, ip }) => {
       const body = await readJson(req);
       if (body.confirm) {
         limit("create", ip);
-        return { status: 201, body: await service.createCrew({ confirm: body.confirm, organiser: body.organiser }) };
+        return { status: 201, body: await service.createCrew({ confirm: body.confirm, organiser: body.organiser, hint: body.hint }) };
       }
       aiLimits(ip);
-      return service.draftCrew({ sentence: body.sentence });
+      return service.draftCrew({ sentence: body.sentence, hint: body.hint });
     }],
     ["GET", /^\/api\/crews\/([a-z0-9-]{1,64})$/, ({ m, token }) => service.getCrew({ slug: m[1], token })],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/members$/, async ({ m, token, req, ip }) => {
@@ -232,13 +237,14 @@ export const jsonLog = (/** @type {string} */ event, fields = {}) => console.log
 export async function buildDeps(cfg, log = jsonLog) {
   const store = await openStore(cfg);
   const cache = layeredCache(memoryCache(), storeCache(store));
-  const spotsFile = path.resolve(here, "../../data/lagos-spots.json");
-  const feesFile = path.resolve(here, "../../data/spot-entry-fees.json");
+  // the Lagos pack's curated spots and their sourced entry fees (the only pack with a list)
+  const spotsFile = path.resolve(here, "../..", /** @type {any} */ (LAGOS.data).spots);
+  const feesFile = path.resolve(here, "../..", /** @type {any} */ (LAGOS.data).fees);
   const fees = fs.existsSync(feesFile) ? JSON.parse(fs.readFileSync(feesFile, "utf8")).fees : [];
   const spots = withEntries(fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [], fees);
   const common = { store, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log };
   if (cfg.offline) {
-    return { ...common, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
+    return { ...common, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
   }
   return {
     ...common,
@@ -246,6 +252,7 @@ export async function buildDeps(cfg, log = jsonLog) {
     geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache }),
     places: createOverpass({ urls: cfg.overpassUrls, contact: cfg.contact, cache }),
     weather: createOpenMeteo({ url: cfg.openMeteoUrl, cache }),
+    wikidata: cfg.wikidataUrl ? createWikidata({ url: cfg.wikidataUrl, contact: cfg.contact, cache }) : null,
     routes: cfg.osrmUrl ? createOsrm({ url: cfg.osrmUrl, contact: cfg.contact, cache, log }) : null,
     pages: createPageMeta({ contact: cfg.contact, imageMaxBytes: cfg.imageMaxBytes }),
     push: await createWebPush(cfg.vapid),

@@ -5,13 +5,14 @@
 // what the crew likes (green and outdoor, its vibe, its budget) and is not where the crew
 // went last time. Each part is a number from 0 to 1, and the total is a weighted sum minus
 // a variety penalty. Travel times are rough estimates from ./geo.mjs: road distances from
-// OSRM when the caller has them (else the straight line), the hour's traffic band and the
-// Lagos lagoon. They rank places fairly; they are not live traffic.
+// OSRM when the caller has them (else the straight line), and the city pack's traffic model
+// when it has one (Lagos: the hour's traffic band and the lagoon). They rank places fairly;
+// they are not live traffic.
 //
 // scorePlaces also returns an explanation object: the facts behind the pick, in a shape
 // Gemma can phrase ("Freedom Park keeps everyone under 40 minutes") without inventing any.
 
-import { travelEstimate } from "./geo.mjs";
+import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { DEFAULT_TZ, DAY } from "./time.mjs";
 
 /** @typedef {import("./types.mjs").LatLon} LatLon */
@@ -22,8 +23,11 @@ import { DEFAULT_TZ, DAY } from "./time.mjs";
  * @property {number} lon
  * @property {string} [address]
  * @property {{ type: "node"|"way"|"relation", id: number, tags: Record<string,string> }} [osm]
+ * @property {Record<string,string>} [tags]  OSM-style tags for a place that is not from OpenStreetMap (a Wikidata park gets { leisure: "park" })
  * @property {boolean} [outdoor]  known to be an outdoor spot (the curated list says so) even if its OSM tags do not
  * @property {{ free: boolean|null }} [entry]  a sourced entry fee from the curated list
+ * @property {string} [wikidata]   the Wikidata item, for a place found there
+ * @property {{ url: string, publisher?: string, says?: string, checkedAt?: string }} [source]  where the place comes from, when not OpenStreetMap
  */
 /**
  * @typedef {object} Traveller
@@ -158,14 +162,15 @@ export function varietyPenalty(key, recent = [], now = 0) {
  * @param {RecentUse[]} [input.recent]
  * @param {number} [input.now]
  * @param {(from: LatLon, to: LatLon) => import("./geo.mjs").Route|null} [input.route]  road distances the caller fetched (OSRM's table); null falls back to the straight line
+ * @param {import("./geo.mjs").TravelModel} [input.model]  the city pack's traffic model; FREE_FLOW when there is none
  */
-export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0, route }) {
+export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0, route, model = FREE_FLOW }) {
   const located = members.filter((m) => m.area && Number.isFinite(m.area.lat) && Number.isFinite(m.area.lon));
   const scored = candidates
     .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon))
     .map((c) => {
       const travel = located.map((m) => {
-        const e = travelEstimate(/** @type {LatLon} */ (m.area), c, { at, tz, route: route ? route(/** @type {LatLon} */ (m.area), c) : null });
+        const e = travelEstimate(/** @type {LatLon} */ (m.area), c, { at, tz, model, route: route ? route(/** @type {LatLon} */ (m.area), c) : null });
         return { memberId: m.id, name: m.name, from: /** @type {any} */ (m.area).label, minutes: e.minutes, crossesLagoon: e.crossesLagoon, source: e.source };
       });
       const mins = travel.map((t) => t.minutes);
@@ -173,7 +178,7 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
       const minMin = mins.length ? Math.min(...mins) : 0;
       const spreadMin = maxMin - minMin;
       const meanMin = mins.length ? Math.round(mins.reduce((a, b) => a + b, 0) / mins.length) : 0;
-      const tags = c.osm?.tags || {};
+      const tags = c.osm?.tags || c.tags || {};
       const key = placeKey(c);
       return {
         candidate: c, key, travel, maxMin, spreadMin, meanMin,
@@ -215,7 +220,7 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
  * VARIETY_DAYS), short (everyone under 30 minutes).
  */
 function explain(pick, ranked, { members, bestCost, at }) {
-  const tags = pick.candidate.osm?.tags || {};
+  const tags = pick.candidate.osm?.tags || pick.candidate.tags || {};
   /** @type {string[]} */
   const reasons = [];
   if (pick.cost <= bestCost + 10) reasons.push("fair");
@@ -290,7 +295,7 @@ export function spotFor(place, spots) {
   return spots.find((s) => {
     if (key && s.osm && `${s.osm.type}/${s.osm.id}` === key) return true;
     if (!n || ![s.name, ...(s.aliases || [])].some((x) => normName(x) === n)) return false;
-    return !Number.isFinite(place.lat) || travelEstimate(/** @type {any} */ (place), s).km <= 0.5;
+    return !Number.isFinite(place.lat) || Math.round(haversineKm(/** @type {any} */ (place), s) * 10) / 10 <= 0.5;
   }) ?? null;
 }
 

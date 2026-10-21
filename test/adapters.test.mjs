@@ -113,13 +113,16 @@ test("geocoding: Photon and Nominatim answers, Lagos bias, caching", async () =>
     { geometry: { coordinates: [3.3711, 6.5095] }, properties: { name: "Yaba", countrycode: "NG", city: "Lagos", state: "Lagos State", osm_type: "R", osm_id: 3720729 } },
     { geometry: { coordinates: [-0.1, 51.5] }, properties: { name: "Yaba", countrycode: "GB" } },
   ] };
-  assert.deepEqual(readPhoton(photon), [{ label: "Yaba", detail: "Lagos, Lagos State", lat: 6.5095, lon: 3.3711, osm: { type: "relation", id: 3720729 } }]);
+  // Nigeria only is the Lagos pack's rule now, passed in; results also carry country and city, for a crew's region
+  assert.deepEqual(readPhoton(photon, { countryCode: "NG" }), [{ label: "Yaba", detail: "Lagos, Lagos State", lat: 6.5095, lon: 3.3711, osm: { type: "relation", id: 3720729 }, country: "NG", city: "Lagos" }]);
   assert.deepEqual(readNominatim([{ display_name: "Yaba, Lagos Mainland, Lagos, Nigeria", name: "Yaba", lat: "6.5095", lon: "3.3711", osm_type: "relation", osm_id: 1 }])[0].detail, "Lagos Mainland, Lagos, Nigeria");
   const f = scripted([[200, photon]]);
   const geo = createGeocoder({ provider: "photon", photonUrl: "https://photon.test", nominatimUrl: "", countryCodes: "ng", contact: "test", cache: memoryCache(), fetchImpl: f });
-  const r = await geo.lookup("Yaba");
+  const { LAGOS, LAGOS_REGION } = await import("../src/packs/index.mjs");
+  const lagos = LAGOS.geocode(LAGOS_REGION);
+  const r = await geo.lookup("Yaba", lagos);
   assert.equal(r?.label, "Yaba");
-  await geo.lookup("yaba");
+  await geo.lookup("yaba", lagos);
   assert.equal(f.calls.length, 1, "cached");
   const u = new URL(f.calls[0].url);
   assert.equal(u.searchParams.get("q"), "yaba, lagos");
@@ -153,9 +156,11 @@ test("overpass: a bounded named-green query, failover between endpoints, unnamed
 });
 
 test("open-meteo: the forecast URL asks for the hours we read, in Lagos time", () => {
-  const u = new URL(forecastUrl("https://api.open-meteo.com/v1/forecast", { lat: 6.4785, lon: 3.4217 }));
+  // the zone is the crew's, passed in; with none, Open-Meteo picks the point's own ("auto")
+  const u = new URL(forecastUrl("https://api.open-meteo.com/v1/forecast", { lat: 6.4785, lon: 3.4217 }, { tz: "Africa/Lagos" }));
   assert.equal(u.searchParams.get("hourly"), "precipitation_probability,apparent_temperature,uv_index,precipitation,temperature_2m");
   assert.equal(u.searchParams.get("timezone"), "Africa/Lagos");
+  assert.equal(new URL(forecastUrl("https://api.open-meteo.com/v1/forecast", { lat: 52.5, lon: 13.4 })).searchParams.get("timezone"), "auto");
   assert.equal(u.searchParams.get("latitude"), "6.479");
 });
 

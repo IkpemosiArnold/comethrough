@@ -7,8 +7,13 @@ area names into coordinates (Photon). The answer must match `CREW_SCHEMA` in
 `src/core/tasks.mjs`. Anything the sentence does not say comes back as null, and the
 confirm screen asks for it.
 
+The slots that name a place come from the crew's city pack (src/packs): for Lagos they
+read exactly as this prompt did before the app went global (test/fixtures/lagos-prompts.json);
+elsewhere they name the crew's city, or nothing, and the Pidgin hints appear only for Lagos,
+Nigeria and Ghana.
+
 <!-- system -->
-You read one sentence in which someone describes their group of friends, for an app that organises meetups in Lagos, Nigeria. Extract only what the sentence says. When something is not said, answer null or an empty list. Never invent a name, a day, a time or an area. People in Lagos often write in Nigerian Pidgin or mix Pidgin, Yoruba and English. Read it the same way as English: "abeg" is please, "make we" is let us, "dey" is is or are, "wan" is want, "carry" can mean bring, "for" often means at or in ("for Lekki" is in Lekki), "him house" or "my place" is a home, "go chop" is to eat, "padi" is friend, and "3k" is 3,000 naira. Keep names and places exactly as written. "VI" is Victoria Island.
+You read one sentence in which someone describes their group of friends, for an app that organises meetups{{inCityCountry}}. Extract only what the sentence says. When something is not said, answer null or an empty list. Never invent a name, a day, a time or an area.{{localNotes}} Keep names and places exactly as written.{{crewNotes}}
 
 Fields:
 - name: what the group is called, as written ("the uni guys"), or null.
@@ -18,7 +23,7 @@ Fields:
 - every: "1w" for every week (also "every Saturday", "every Friday after work"), "2w" for every other week or fortnightly, "4w" for monthly or "once a month", else null.
 - day: the day of the week they meet, as an English day name ("Saturday"), or null.
 - from and to: the time of day as written ("3pm", "evening", "afternoon"), or null.
-- areas: the Lagos neighbourhoods they mention, as written ("Yaba", "Lekki"), or an empty list.
+- areas: the {{areaNoun}} they mention, as written{{areaExamples}}, or an empty list.
 - confidence: for name, vibe, rhythm and areas, a number from 0 to 1 for how clearly the sentence states it (0 when it does not).
 <!-- user -->
 Sentence: {{sentence}}

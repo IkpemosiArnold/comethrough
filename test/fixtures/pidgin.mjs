@@ -6,7 +6,10 @@
 //
 // An expected value of undefined means "not checked" (the input is ambiguous there).
 
-import { crewSetupMessages, feedbackMessages, planMessages, readCrewSetup, readFeedback, readPlan, CREW_SCHEMA, FEEDBACK_SCHEMA, PLAN_SCHEMA } from "../../src/core/tasks.mjs";
+import { crewSetupMessages, feedbackMessages, localisePrompt, planMessages, readCrewSetup, readFeedback, readPlan, CREW_SCHEMA, FEEDBACK_SCHEMA, PLAN_SCHEMA } from "../../src/core/tasks.mjs";
+// These are Lagos inputs: the prompts and readers get the Lagos city pack's locale.
+import { LAGOS_LOCAL } from "../../src/packs/lagos/index.mjs";
+const L = (/** @type {any} */ p) => localisePrompt(p, LAGOS_LOCAL);
 import { resolveDateWords, isDate } from "../../src/core/time.mjs";
 
 export const TODAY = "2026-10-21";
@@ -59,9 +62,9 @@ export const CASES = [
 
 /** The messages and schema for one case. */
 export function request(/** @type {PidginCase} */ c, /** @type {Record<string, any>} */ prompts) {
-  if (c.task === "parse-crew") return { messages: crewSetupMessages(prompts["parse-crew"], { sentence: c.input }), schema: CREW_SCHEMA };
-  if (c.task === "parse-feedback") return { messages: feedbackMessages(prompts["parse-feedback"], { text: c.input }), schema: FEEDBACK_SCHEMA };
-  return { messages: planMessages(prompts["parse-plan"], { text: c.input, today: TODAY }), schema: PLAN_SCHEMA };
+  if (c.task === "parse-crew") return { messages: crewSetupMessages(L(prompts["parse-crew"]), { sentence: c.input }), schema: CREW_SCHEMA };
+  if (c.task === "parse-feedback") return { messages: feedbackMessages(L(prompts["parse-feedback"]), { text: c.input }), schema: FEEDBACK_SCHEMA };
+  return { messages: planMessages(L(prompts["parse-plan"]), { text: c.input, today: TODAY }), schema: PLAN_SCHEMA };
 }
 
 const has = (/** @type {any} */ v, /** @type {string} */ want) => want.split("|").some((w) => String(v ?? "").toLowerCase().includes(w.toLowerCase()));
@@ -81,7 +84,7 @@ export function score(c, data) {
   };
   const e = c.expect;
   if (c.task === "parse-crew") {
-    const r = readCrewSetup(data, { sentence: c.input });
+    const r = readCrewSetup(data, { sentence: c.input }, LAGOS_LOCAL);
     const d = r.draft;
     check("every", d.rhythm?.every ?? null, (g) => g === e.every);
     check("day", d.rhythm?.day ?? null, (g) => g === e.day);
@@ -99,7 +102,7 @@ export function score(c, data) {
     check("time", r.time, (g) => g === e.time);
     return out;
   }
-  const r = readPlan(data, { text: c.input, today: TODAY, member: MEMBER });
+  const r = readPlan(data, { text: c.input, today: TODAY, member: MEMBER, tz: "Africa/Lagos", local: LAGOS_LOCAL });
   const d = r.draft;
   const raw = data && typeof data === "object" ? data : {};
   const date = d.start ? d.start.slice(0, 10) : resolveDateWords(raw.dateWords, TODAY) ?? (isDate(raw.date) ? raw.date : null);

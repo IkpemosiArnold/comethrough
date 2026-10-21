@@ -2,7 +2,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { addDays, daysBetween, isAmbiguousTime, isDate, localParts, parseInstant, resolveDateWords, resolveTimeWords, toIsoLocal, weekdayOf, zonedToMs, zoneOffsetMinutes } from "../src/core/time.mjs";
-import { crossesLagoon, haversineKm, islandSide, trafficBand, travelEstimate } from "../src/core/geo.mjs";
+// The Lagos geography and traffic model live in the Lagos city pack now; these tests pass it in.
+import { haversineKm, travelEstimate as coreEstimate } from "../src/core/geo.mjs";
+import { LAGOS_TRAVEL, LAGOS_TZ, crossesLagoon, islandSide, trafficBand } from "../src/packs/lagos/geo.mjs";
+/** @type {typeof coreEstimate} */
+const travelEstimate = (a, b, o = {}) => coreEstimate(a, b, { tz: LAGOS_TZ, model: LAGOS_TRAVEL, ...o });
 import { AREAS } from "./fixtures/lagos.mjs";
 
 test("Lagos is UTC+01:00 all year and round-trips", () => {
@@ -78,11 +82,11 @@ test("the lagoon heuristic puts each neighbourhood on the right side", () => {
 test("travel estimates: distance, rush hour and the bridge", () => {
   const km = haversineKm(AREAS.yaba, AREAS.lekki);
   assert.ok(km > 12 && km < 14, `Yaba to Lekki Phase 1 is about 13 km in a straight line, got ${km}`);
-  const friday6pm = zonedToMs("2026-10-23", "18:00");
-  const sunday3pm = zonedToMs("2026-10-25", "15:00");
+  const friday6pm = zonedToMs("2026-10-23", "18:00", LAGOS_TZ);
+  const sunday3pm = zonedToMs("2026-10-25", "15:00", LAGOS_TZ);
   assert.equal(trafficBand(friday6pm), "peak");
   assert.equal(trafficBand(sunday3pm), "weekend");
-  assert.equal(trafficBand(zonedToMs("2026-10-23", "23:00")), "night");
+  assert.equal(trafficBand(zonedToMs("2026-10-23", "23:00", LAGOS_TZ)), "night");
   const rush = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm });
   const calm = travelEstimate(AREAS.yaba, AREAS.lekki, { at: sunday3pm });
   assert.ok(rush.crossesLagoon);
@@ -94,7 +98,7 @@ test("travel estimates: distance, rush hour and the bridge", () => {
 });
 
 test("travel estimates on a road route: real distance, and a bridge only when the route takes one", () => {
-  const friday6pm = zonedToMs("2026-10-23", "18:00");
+  const friday6pm = zonedToMs("2026-10-23", "18:00", LAGOS_TZ);
   // OSRM's answer on 21 Oct 2026 for Yaba to Lekki Phase 1: 17.3 km, 15.6 min free flow, over Third Mainland Bridge
   const viaBridge = { km: 17.3, min: 15.6, bridges: ["Third Mainland Bridge", "Lekki - Ikoyi Bridge"] };
   const r = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: viaBridge });
@@ -111,13 +115,13 @@ test("travel estimates on a road route: real distance, and a bridge only when th
   const noCross = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: { km: 30, min: 40, bridges: ["Lekki - Ikoyi Bridge"] } });
   assert.equal(noCross.crossesLagoon, false);
   // OSRM's free-flow time is a floor: a fast road never beats it
-  assert.equal(travelEstimate(AREAS.yaba, AREAS.lekki, { at: zonedToMs("2026-10-23", "23:30"), route: { km: 1, min: 30, bridges: [] } }).minutes, 30);
+  assert.equal(travelEstimate(AREAS.yaba, AREAS.lekki, { at: zonedToMs("2026-10-23", "23:30", LAGOS_TZ), route: { km: 1, min: 30, bridges: [] } }).minutes, 30);
   // a table lookup has no bridge names: the sides of the lagoon decide, with no bridge named
   const table = travelEstimate(AREAS.yaba, AREAS.lekki, { at: friday6pm, route: { km: 17.3, min: 15.6 } });
   assert.ok(table.crossesLagoon);
   assert.equal(table.bridge, null);
   // Saturday afternoon is its own band
-  assert.equal(trafficBand(zonedToMs("2026-10-24", "15:00")), "saturday");
-  assert.equal(trafficBand(zonedToMs("2026-10-24", "10:00")), "weekend");
-  assert.equal(trafficBand(zonedToMs("2026-10-25", "15:00")), "weekend");
+  assert.equal(trafficBand(zonedToMs("2026-10-24", "15:00", LAGOS_TZ)), "saturday");
+  assert.equal(trafficBand(zonedToMs("2026-10-24", "10:00", LAGOS_TZ)), "weekend");
+  assert.equal(trafficBand(zonedToMs("2026-10-25", "15:00", LAGOS_TZ)), "weekend");
 });

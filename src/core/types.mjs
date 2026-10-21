@@ -2,7 +2,8 @@
 // Shared JSDoc types for Come Through. This file has no runtime code; import types with
 //   /** @typedef {import("./types.mjs").Plan} Plan */
 // The shapes match docs/SPEC.md ("Data model"). Times are ISO 8601 strings with an offset
-// (for Lagos, +01:00), so a stored plan reads the same in any timezone.
+// (for Lagos, +01:00; for Berlin in October, +02:00), so a stored plan reads the same in any
+// timezone.
 
 /**
  * @typedef {{ lat: number, lon: number }} LatLon
@@ -25,7 +26,9 @@
  * @property {Area[]} areas
  * @property {string} createdAt
  * @property {string} inviteToken
- * @property {string} [tz]
+ * @property {string} [tz]       the crew's IANA zone (the same as region.timezone)
+ * @property {{ center: LatLon|null, countryCode: string|null, city: string|null, timezone: string, tzSource: "open-meteo"|"browser"|"legacy"|"utc" }} [region]
+ *   where the crew is, derived from its areas when they are first geocoded; a crew without one is in Lagos (src/packs)
  */
 
 /**

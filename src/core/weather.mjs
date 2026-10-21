@@ -2,9 +2,9 @@
 // Weather windows from hourly forecasts (Open-Meteo's shape, requested in the plan's zone so
 // hour labels are local). Pure: the adapter fetches, this decides.
 //
-// An outdoor hour in Lagos is spoiled by rain first, then by heat (the apparent
-// temperature, which counts humidity, often passes 35 C at midday) and then by strong sun.
-// The best window is the stretch with the least of each, in that order of weight.
+// An outdoor hour is spoiled by rain first, then by heat (the apparent temperature, which
+// counts humidity: in Lagos it often passes 35 C at midday) or cold, and then by strong
+// sun. The best window is the stretch with the least of each, in that order of weight.
 
 import { DAY_NAMES, DEFAULT_TZ, addDays, localParts, minutesOfDay, hhmm, parseInstant, weekdayOf } from "./time.mjs";
 
@@ -22,6 +22,7 @@ import { DAY_NAMES, DEFAULT_TZ, addDays, localParts, minutesOfDay, hhmm, parseIn
 export const RAIN_OK = 40;
 export const FEELS_OK = 38;
 const COMFORT_C = 30; // above this, each degree costs
+const CHILLY_C = 10; // below this, each degree costs (never reached in Lagos, so its picks are unchanged)
 const UV_OK = 6;
 
 /**
@@ -46,7 +47,7 @@ export function hoursFromOpenMeteo(json) {
 /** How bad one hour is outdoors, from 0 (lovely) up. Unknown rain counts as a coin toss. */
 export function hourCost(h) {
   const rain = (h.rainProb ?? 50) / 100;
-  const heat = h.feelsC == null ? 0.2 : Math.min(1, Math.max(0, h.feelsC - COMFORT_C) / 8);
+  const heat = h.feelsC == null ? 0.2 : Math.min(1, Math.max(0, h.feelsC - COMFORT_C) / 8) + Math.min(1, Math.max(0, CHILLY_C - h.feelsC) / 10);
   const sun = h.uv == null ? 0 : Math.min(1, Math.max(0, h.uv - UV_OK) / 5);
   return rain + 0.5 * heat + 0.3 * sun;
 }
@@ -178,32 +179,34 @@ export function rainMovedIn(prev, next) {
 }
 
 /**
- * When people in Lagos actually meet up, by kind of plan. The sloth never plans outside
- * these hours, whatever the weather does. Assumptions, written down so they can be argued
- * with (docs/LOCAL-FACTS.md, "Social hours"):
- *   - weekend outdoor: 11:00 to 18:30. Late enough to be up and out, done before dark
- *     (sunset in Lagos ran from 18:25 to 19:06 in 2025, per Open-Meteo's archive).
- *   - weekday evening: 17:30 to 21:00, for indoor or covered plans after work.
- *   - a weekday outdoor plan gets only the light part of the evening, 17:30 to 18:30.
- *   - a weekend covered or indoor plan: 11:00 to 21:00.
+ * @typedef {{ weekendOutdoor: TimeWindow, weekendCovered: TimeWindow, weekdayOutdoor: TimeWindow, weekdayEvening: TimeWindow }} SocialHours
+ * @typedef {{ from: string, to: string }} TimeWindow
  */
-export const SOCIAL_HOURS = {
-  weekendOutdoor: { from: "11:00", to: "18:30" },
-  weekendCovered: { from: "11:00", to: "21:00" },
-  weekdayOutdoor: { from: "17:30", to: "18:30" },
+
+/**
+ * When people actually meet up, by kind of plan, for a city with no pack: weekends 11:00 to
+ * 19:00 and weekday evenings 17:30 to 21:00, local time. The sloth never plans outside these
+ * hours, whatever the weather does. A city pack can bring its own (Lagos ends outdoor
+ * weekends at 18:30, before dark; see src/packs/lagos).
+ * @type {SocialHours}
+ */
+export const GENERIC_SOCIAL_HOURS = Object.freeze({
+  weekendOutdoor: { from: "11:00", to: "19:00" },
+  weekendCovered: { from: "11:00", to: "19:00" },
+  weekdayOutdoor: { from: "17:30", to: "21:00" },
   weekdayEvening: { from: "17:30", to: "21:00" },
-};
+});
 
 export const isWeekend = (/** @type {string} */ date) => [0, 6].includes(weekdayOf(date));
 
 /**
  * The acceptable hours for a plan on a date.
  * @param {string} date  "YYYY-MM-DD"
- * @param {{ outdoor?: boolean }} [opts]
+ * @param {{ outdoor?: boolean, social?: SocialHours }} [opts]
  */
-export function socialWindow(date, { outdoor = true } = {}) {
-  if (isWeekend(date)) return outdoor ? SOCIAL_HOURS.weekendOutdoor : SOCIAL_HOURS.weekendCovered;
-  return outdoor ? SOCIAL_HOURS.weekdayOutdoor : SOCIAL_HOURS.weekdayEvening;
+export function socialWindow(date, { outdoor = true, social = GENERIC_SOCIAL_HOURS } = {}) {
+  if (isWeekend(date)) return outdoor ? social.weekendOutdoor : social.weekendCovered;
+  return outdoor ? social.weekdayOutdoor : social.weekdayEvening;
 }
 
 /**
@@ -211,7 +214,7 @@ export function socialWindow(date, { outdoor = true } = {}) {
  * (a crew that said "Saturday 8am"), the social hours win.
  * @param {string} date
  * @param {{ from: string, to: string }} want
- * @param {{ outdoor?: boolean }} [opts]
+ * @param {{ outdoor?: boolean, social?: SocialHours }} [opts]
  */
 export function clipToSocial(date, want, opts = {}) {
   const ok = socialWindow(date, opts);
@@ -230,7 +233,8 @@ export function clockWords(t) {
 
 /**
  * Where and when a ritual goes when it rains. Every window considered is inside the social
- * hours (SOCIAL_HOURS): the sloth never moves a Saturday hangout to 8 am. The crew's own
+ * hours (the city pack's, or GENERIC_SOCIAL_HOURS): the sloth never moves a Saturday
+ * hangout to 8 am. The crew's own
  * window (cut to those hours) comes first; when its best stretch is wet (not ok), the sloth
  * looks, in order, for:
  *   1. a dry stretch of at least two hours in the same day's social hours ("moved");
@@ -241,21 +245,22 @@ export function clockWords(t) {
  * Every note is built from the forecast numbers, never guessed.
  * @param {Hour[]} hours
  * @param {{ date: string, from: string, to: string, hours: number }} slot
+ * @param {SocialHours} [social]
  * @returns {null | { date: string, window: { from: string, to: string }, win: NonNullable<ReturnType<typeof bestWindow>>, rainPlan: null | RainPlan }}
  *   null when the forecast does not reach the date
  */
-export function ritualWindow(hours, { date, from, to, hours: span }) {
-  const mine = clipToSocial(date, { from, to });
+export function ritualWindow(hours, { date, from, to, hours: span }, social = GENERIC_SOCIAL_HOURS) {
+  const mine = clipToSocial(date, { from, to }, { social });
   const own = bestWindow(hours, { date, from: mine.from, to: mine.to, hours: span });
   if (!own) return null;
   if (own.ok) return { date, window: { from: own.from, to: own.to }, win: own, rainPlan: null };
   const inWindow = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(mine.from) && minutesOfDay(h.time) < minutesOfDay(mine.to));
   const wanted = { date, from: mine.from, to: mine.to, rainProb: max(inWindow.map((h) => h.rainProb)) ?? own.rainProb };
   const wet = `Rain is likely from ${clockWords(mine.from)} to ${clockWords(mine.to)} (up to ${wanted.rainProb ?? "?"}%)`;
-  const social = socialWindow(date);
+  const day = socialWindow(date, { social });
   const short = Math.min(span, 2);
-  const moved = bestWindow(hours, { date, from: social.from, to: social.to, hours: span });
-  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: social.from, to: social.to, hours: short });
+  const moved = bestWindow(hours, { date, from: day.from, to: day.to, hours: span });
+  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: day.from, to: day.to, hours: short });
   if (movedShort?.ok) {
     return {
       date, window: { from: movedShort.from, to: movedShort.to }, win: movedShort,
@@ -264,7 +269,7 @@ export function ritualWindow(hours, { date, from, to, hours: span }) {
   }
   const next = addDays(date, 1);
   const nextOk = isWeekend(next) === isWeekend(date);
-  const nextMine = clipToSocial(next, { from, to });
+  const nextMine = clipToSocial(next, { from, to }, { social });
   const nextWin = nextOk ? bestWindow(hours, { date: next, from: nextMine.from, to: nextMine.to, hours: span }) : null;
   if (nextWin?.ok) {
     return {
@@ -272,9 +277,9 @@ export function ritualWindow(hours, { date, from, to, hours: span }) {
       rainPlan: { kind: "next_day", wanted, note: `${wet} on ${DAY_NAMES[weekdayOf(date)]}, so the sloth moved it to ${DAY_NAMES[weekdayOf(next)]}, ${clockWords(nextWin.from)} to ${clockWords(nextWin.to)} (rain chance up to ${nextWin.rainProb}%). Forecasts change; the sloth checks again before then.` },
     };
   }
-  const daySocial = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(social.from) && minutesOfDay(h.time) < minutesOfDay(social.to));
+  const daySocial = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(day.from) && minutesOfDay(h.time) < minutesOfDay(day.to));
   const allWet = daySocial.length > 0 && daySocial.every((h) => (h.rainProb ?? 50) >= RAIN_OK);
-  const part = minutesOfDay(social.from) >= 17 * 60 ? "evening" : "afternoon";
+  const part = minutesOfDay(day.from) >= 17 * 60 ? "evening" : "afternoon";
   const peak = max(daySocial.map((h) => h.rainProb));
   const nextWords = nextWin ? `, and ${DAY_NAMES[weekdayOf(next)]} looks no better` : "";
   const head = allWet ? `Rain all ${part}` : `No dry two hours this ${part}`;
@@ -282,7 +287,7 @@ export function ritualWindow(hours, { date, from, to, hours: span }) {
     date, window: { from: own.from, to: own.to }, win: own,
     rainPlan: {
       kind: "skip", wanted,
-      note: `${head} on ${DAY_NAMES[weekdayOf(date)]} (up to ${peak ?? "?"}% between ${clockWords(social.from)} and ${clockWords(social.to)})${nextWords}. The sloth is skipping this one. If it clears up, anyone can still add a plan.`,
+      note: `${head} on ${DAY_NAMES[weekdayOf(date)]} (up to ${peak ?? "?"}% between ${clockWords(day.from)} and ${clockWords(day.to)})${nextWords}. The sloth is skipping this one. If it clears up, anyone can still add a plan.`,
     },
   };
 }

@@ -1,9 +1,16 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clusterRiders, podTrips, podsForPlan } from "../src/core/pods.mjs";
+// The Lagos traffic model (bands, the lagoon) and ride apps live in the Lagos city pack; these tests pass them in.
+import { clusterRiders as coreCluster, podTrips as coreTrips, podsForPlan as corePods } from "../src/core/pods.mjs";
+import { LAGOS_TRAVEL } from "../src/packs/lagos/geo.mjs";
 import { tripKey } from "../src/core/geo.mjs";
-import { RIDE_PROVIDERS, destinationText, rideLink, ridesForApi } from "../src/core/rides.mjs";
+import { destinationText, rideLink, ridesForApi as coreRides } from "../src/core/rides.mjs";
+import { RIDE_PROVIDERS } from "../src/packs/lagos/rides.mjs";
+const clusterRiders = (/** @type {any[]} */ rs, o = {}) => coreCluster(rs, { model: LAGOS_TRAVEL, ...o });
+const podTrips = (/** @type {any} */ p, /** @type {any[]} */ g, o = {}) => coreTrips(p, g, { model: LAGOS_TRAVEL, ...o });
+const podsForPlan = (/** @type {any} */ p, /** @type {any[]} */ g, o = {}) => corePods(p, g, { model: LAGOS_TRAVEL, ...o });
+const ridesForApi = () => coreRides(RIDE_PROVIDERS);
 import { parseInstant } from "../src/core/time.mjs";
 import { AREAS, PLACES } from "./fixtures/lagos.mjs";
 
@@ -97,7 +104,8 @@ test("ride apps: Bolt first, then inDrive; each sourced and dated; none claims a
 });
 
 test("ride times say what they assume, and a place with no pin uses where it roughly is", async () => {
-  const { estimateText } = await import("../src/core/pods.mjs");
+  const { estimateText: coreText } = await import("../src/core/pods.mjs");
+  const estimateText = (/** @type {any} */ e, o = {}) => coreText(e, { model: LAGOS_TRAVEL, ...o });
   const plan = { start: "2026-10-23T19:00:00+01:00", tz: "Africa/Lagos", place: { name: "Tolu's place", address: null, lat: null, lon: null } };
   const going = [{ id: "b", name: "Amaka", area: AREAS.lekki }];
   assert.equal(podsForPlan(plan, going).pods[0].travelMin, null, "no pin and no hint: no guess");

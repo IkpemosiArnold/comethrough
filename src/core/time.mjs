@@ -1,12 +1,14 @@
 // @ts-check
 // Wall-clock time in a named zone, without Node: Intl does the zone arithmetic, so this
-// works the same in the browser. Lagos (Africa/Lagos, WAT) is UTC+01:00 all year with no
-// daylight saving, but nothing here assumes that, so a crew in another city also works.
+// works the same in the browser, and daylight saving (Berlin, London, New York) is handled.
+// Every crew stores its own zone (crew.region.timezone and crew.tz); DEFAULT_TZ is only the
+// last resort for a value that has none, and it is UTC so that a missing zone is obvious
+// rather than quietly some city's.
 //
 // Conventions: a "date" is "YYYY-MM-DD" and a "time" is "HH:MM", both local to the zone;
 // an instant is milliseconds since the epoch or an ISO string with an offset.
 
-export const DEFAULT_TZ = "Africa/Lagos";
+export const DEFAULT_TZ = "UTC";
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
@@ -52,7 +54,7 @@ export function localParts(ms, tz = DEFAULT_TZ) {
   return { y, m, d, h, mi, s, weekday: WEEKDAYS.indexOf(p.weekday), date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
 }
 
-/** The zone's offset from UTC at an instant, in minutes (Lagos: 60). */
+/** The zone's offset from UTC at an instant, in minutes (Africa/Lagos: 60; Europe/Berlin: 60 or 120). */
 export function zoneOffsetMinutes(ms, tz = DEFAULT_TZ) {
   const p = localParts(ms, tz);
   const asUtc = Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s);
@@ -139,11 +141,14 @@ const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "
  * wrong. Returns "YYYY-MM-DD", or null when the words are not a date it understands.
  * A bare weekday means the next one on or after today ("friday" on a Friday is today);
  * "next friday" skips the coming one only when it is within the current week (Mon to Sun),
- * which is how people in Lagos use it.
+ * which is how people in Lagos use it (and, as far as we know, most English speakers).
+ * Numeric dates are day first ("23/10" is 23 October) unless monthFirst is set, as it is for
+ * a crew in the United States ("10/23").
  * @param {string|null|undefined} text
  * @param {string} today "YYYY-MM-DD"
+ * @param {{ monthFirst?: boolean }} [opts]
  */
-export function resolveDateWords(text, today) {
+export function resolveDateWords(text, today, { monthFirst = false } = {}) {
   if (!text) return null;
   const t = String(text).toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
   if (/^(today|tonight|this evening|this night|later today|later)$/.test(t)) return today;
@@ -177,9 +182,9 @@ export function resolveDateWords(text, today) {
   if (dm && MONTHS.includes(dm[2])) return withYear(pick(Number(dm[1]), MONTHS.indexOf(dm[2]) + 1), dm[3]);
   const md = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]{0,6} )?([a-z]{3})[a-z]* (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/);
   if (md && MONTHS.includes(md[1])) return withYear(pick(Number(md[2]), MONTHS.indexOf(md[1]) + 1), md[3]);
-  // Nigeria writes day first: 23/10 is 23 October
+  // day first in Nigeria and most of the world (23/10 is 23 October); month first in the US
   const num = t.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
-  if (num) return withYear(pick(Number(num[1]), Number(num[2])), num[3] && (num[3].length === 2 ? `20${num[3]}` : num[3]));
+  if (num) return withYear(monthFirst ? pick(Number(num[2]), Number(num[1])) : pick(Number(num[1]), Number(num[2])), num[3] && (num[3].length === 2 ? `20${num[3]}` : num[3]));
   const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso && isDate(t)) return t;
   return null;

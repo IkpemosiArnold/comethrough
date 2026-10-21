@@ -134,7 +134,7 @@ function flattenEvent(ev) {
 /** 15000 in NGN as "₦15,000"; 50 in USD as "USD 50"; 161.9 as "USD 161.90". */
 export function money(n, currency) {
   const whole = Number.isInteger(n);
-  const digits = n.toLocaleString("en-NG", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+  const digits = n.toLocaleString("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
   if (!currency) return digits;
   return currency === "NGN" ? `\u20a6${digits}` : `${currency} ${digits}`;
 }

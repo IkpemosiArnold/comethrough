@@ -1,14 +1,18 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applyEdit, canEdit, createPlan, isExpired, lowFields, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../src/core/plans.mjs";
-import { fallbackInvite, nextSlot, ritualDraft, ritualDue } from "../src/core/ritual.mjs";
+import { applyEdit, canEdit, createPlan, isExpired, lowFields, recentPlaces, setRsvp, upcoming, validateDraft as coreValidate, viewPlan } from "../src/core/plans.mjs";
+import { fallbackInvite, nextSlot, ritualDraft as coreRitualDraft, ritualDue } from "../src/core/ritual.mjs";
 import { zonedToMs } from "../src/core/time.mjs";
 import { CREW, MEMBERS, makePlan, makeRitual } from "./fixtures/plans.mjs";
 import { PLACES } from "./fixtures/lagos.mjs";
 
 const names = Object.fromEntries(MEMBERS.map((m) => [m.id, m.name]));
-const at = (/** @type {string} */ date, time = "10:00") => zonedToMs(date, time);
+// The crew is in Lagos: the core's default zone is UTC now, so these tests pass Lagos's zone in.
+const LAGOS_TZ = "Africa/Lagos";
+const at = (/** @type {string} */ date, time = "10:00") => zonedToMs(date, time, LAGOS_TZ);
+const validateDraft = (/** @type {any} */ d, o = {}) => coreValidate(d, { tz: LAGOS_TZ, ...o });
+const ritualDraft = (/** @type {any} */ input) => coreRitualDraft({ tz: LAGOS_TZ, ...input });
 
 // CREW: every other Saturday from Sat 10 Oct 2026 (so 24 Oct, 7 Nov, ...), 15:00 to 19:00
 test("rhythm slots follow the cycle from the anchor", () => {

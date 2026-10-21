@@ -12,6 +12,11 @@
 // Prompt files are plain markdown with <!-- system --> and <!-- user --> sections and
 // {{name}} slots (the format Selects uses). This module never reads files: the shell
 // loads the prompts and passes their text in, so the core stays browser-safe.
+//
+// Nothing here assumes a city. Where a prompt or a reader needs local knowledge (the city
+// and country, Pidgin hints, short names like "VI", the local currency, which way round
+// "10/11" goes) it comes in as a `Local` object from the crew's city pack (src/packs).
+// With no Local, the prompts name no place and the readers make no local guesses.
 
 import { cleanConfidence, lowFields } from "./plans.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
@@ -33,6 +38,57 @@ export function splitPrompt(md, name = "prompt") {
 /** Fill {{name}} slots. Values are inserted as they are; unknown slots are left empty. */
 export function fill(template, vars) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ""));
+}
+
+/**
+ * What a prompt and its reader may know about where the crew is. Every field is optional;
+ * the city pack builds it (src/packs). Prompt slots take the strings as they are, so each
+ * carries its own leading space ("" leaves the sentence as it would read anywhere).
+ * @typedef {object} Local
+ * @property {string} [inCity]          " in Lagos"
+ * @property {string} [inCityCountry]   " in Lagos, Nigeria"
+ * @property {string} [areaNoun]        "Lagos neighbourhoods"
+ * @property {string} [areaNounOne]     "a Lagos neighbourhood"
+ * @property {string} [areaExamples]    ' ("Yaba", "Lekki")'
+ * @property {string} [areaExample]     '("for Lekki", "Ikeja GRA")'
+ * @property {string} [priceExample]    '"N5,000"'
+ * @property {string} [localNotes]      language hints (Pidgin for Lagos, Nigeria and Ghana)
+ * @property {string} [crewNotes]       short names for the crew sentence (' "VI" is Victoria Island.')
+ * @property {Record<string, string>} [areaFull]     a short name as the map knows it: { vi: "Victoria Island" }
+ * @property {Record<string, string[]>} [areaShort]  the short names people write for an area
+ * @property {string[]} [cityWords]     words that name the city itself, never an area ("lagos")
+ * @property {string} [windowNote]      the note when a rhythm has no time
+ * @property {string|null} [currency]   the local currency code ("NGN"), null when unknown
+ * @property {string} [currencyName]    how notes name it ("naira")
+ * @property {(s: string) => string} [fixPrice]  repairs a model's misreading of the local currency sign
+ * @property {boolean} [monthFirst]     numeric dates are month first ("10/23"), as in the US
+ */
+
+/** The prompt slots a Local fills, and what they read as with no Local at all. */
+export const LOCALE_SLOTS = {
+  inCity: "",
+  inCityCountry: "",
+  areaNoun: "neighbourhoods or areas",
+  areaNounOne: "a neighbourhood or area",
+  areaExamples: "",
+  areaExample: '("in the old town", "near the market")',
+  priceExample: '"15 at the door"',
+  localNotes: "",
+  crewNotes: "",
+};
+
+/**
+ * A prompt with its place slots filled for a crew, leaving every other slot ({{today}},
+ * {{facts}}) for the task to fill.
+ * @param {Prompt} prompt
+ * @param {Local} [local]
+ * @returns {Prompt}
+ */
+export function localisePrompt(prompt, local = {}) {
+  /** @type {Record<string, any>} */
+  const vars = { ...LOCALE_SLOTS, ...Object.fromEntries(Object.entries(local).filter(([k, v]) => k in LOCALE_SLOTS && typeof v === "string")) };
+  const put = (/** @type {string} */ t) => t.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return { system: put(prompt.system), user: put(prompt.user) };
 }
 
 const S = (/** @type {string} */ description) => ({ type: ["string", "null"], description });
@@ -112,16 +168,6 @@ export function firstCap(s) {
   return s && !/\p{Lu}/u.test(s) ? s.replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : s;
 }
 
-/**
- * The naira sign as it should be. A model reading a flyer sometimes returns the sign's
- * look-alikes: on 21 Oct 2026 Gemma read "GATE ₦3,000" as "Gate \u20383,000" (U+2038, a caret).
- * A caret before a number becomes ₦; "N" and "NGN" before a number are left as written.
- * @param {string|null} s
- */
-export function nairaSign(s) {
-  return s ? s.replace(/[\u2038\u2041^\u02C6](\s?)(?=\d)/g, "\u20a6") : s;
-}
-
 /** An address with its repeated parts removed ("Ikeja, Lagos, LA 021189, Lagos, LA" keeps one "Lagos"). */
 export function tidyAddress(s) {
   if (!s) return s;
@@ -164,14 +210,21 @@ export function crewSetupMessages(prompt, { sentence }) {
 
 /** Time-of-day words to a window. */
 export const DAYPARTS = { morning: ["09:00", "12:00"], afternoon: ["13:00", "17:00"], evening: ["17:00", "21:00"], night: ["19:00", "23:00"], daytime: ["11:00", "17:00"], "after work": ["17:30", "21:00"], "after church": ["13:00", "17:00"] };
-/** The default window for a rhythm with no time: late afternoon, after the worst heat. */
+/** The default window for a rhythm with no time: late afternoon (in Lagos, after the worst heat). */
 export const DEFAULT_WINDOW = { from: "15:00", to: "19:00" };
+
+/** Words in an area name that never identify it on their own. */
+const AREA_FILLER = new Set(["phase", "estate", "road", "street", "area", "town", "the"]);
 
 /**
  * @param {any} data  the parsed answer (or null)
  * @param {{ sentence: string }} input
+ * @param {Local} [local]  the city pack's knowledge: short area names, the city's own name, the window note
  */
-export function readCrewSetup(data, { sentence }) {
+export function readCrewSetup(data, { sentence }, local = {}) {
+  const AREA_FULL = local.areaFull || {};
+  const AREA_SHORT = local.areaShort || {};
+  const cityWords = (local.cityWords || []).map((w) => norm(w));
   const d = data && typeof data === "object" ? data : {};
   const c = cleanConfidence(d.confidence);
   /** @type {string[]} */
@@ -197,7 +250,7 @@ export function readCrewSetup(data, { sentence }) {
     if (!from || !to || minutesOfDay(to) <= minutesOfDay(from)) {
       ({ from, to } = DEFAULT_WINDOW);
       filled.push("rhythm.window");
-      notes.push("No time was given, so the window is 3 pm to 7 pm, after the worst heat.");
+      notes.push(local.windowNote || "No time was given, so the window is 3 pm to 7 pm.");
     }
     rhythm = { every, day: dayIdx, window: { from, to } };
   } else if (every || d.day) {
@@ -208,7 +261,7 @@ export function readCrewSetup(data, { sentence }) {
   const words = ` ${norm(sentence)} `;
   const areas = (Array.isArray(d.areas) ? d.areas : []).map((/** @type {any} */ a) => text(a, 60)).filter(Boolean).filter((/** @type {string} */ a) => {
     const short = AREA_SHORT[norm(a)];
-    const ok = (short && short.some((x) => words.includes(` ${x} `))) || words.includes(` ${norm(a)} `) || norm(a).split(" ").some((w) => w.length >= 3 && !/^(lagos|phase|estate|road|street|area|town|the)$/.test(w) && words.includes(` ${w} `));
+    const ok = (short && short.some((x) => words.includes(` ${x} `))) || words.includes(` ${norm(a)} `) || norm(a).split(" ").some((w) => w.length >= 3 && !AREA_FILLER.has(w) && !cityWords.includes(w) && words.includes(` ${w} `));
     if (!ok) notes.push(`Left out "${a}": the sentence does not mention it.`);
     return ok;
   }).map((/** @type {string} */ a) => AREA_FULL[norm(a)] ?? a).slice(0, 6);
@@ -226,12 +279,6 @@ export function readCrewSetup(data, { sentence }) {
 
 /** Money words, in English and Pidgin, that mean the crew wants it cheap. */
 export const CHEAP_WORDS = /\b(cheap|broke|budget|low.?key|no (?:get|too get|get much) money|nothing too (?:expensive|costly)|no (?:cost|go cost) (?:plenty|much|too much)|not too expensive|small money|make e no cost|e no too cost)\b/i;
-
-/** Short names Lagosians write, as the place a map knows ("VI" is Victoria Island). */
-const AREA_FULL = /** @type {Record<string, string>} */ ({ vi: "Victoria Island", "v i": "Victoria Island" });
-
-/** Short names Lagosians write for areas: "VI" is Victoria Island. */
-const AREA_SHORT = /** @type {Record<string, string[]>} */ ({ "victoria island": ["vi"], "lekki phase 1": ["lekki"], "lekki phase i": ["lekki"], "ikeja gra": ["gra"], "ikoyi": ["ikoyi"] });
 
 /**
  * The rhythm words a sentence plainly says: "every other" (2w), "once a month" (4w),
@@ -293,9 +340,10 @@ export function planMessages(prompt, { text: t, url, pageMeta, image, today }) {
 /**
  * Turn the model's reading into a plan draft (the shape validateDraft takes).
  * @param {any} data
- * @param {{ text?: string|null, url?: string|null, pageMeta?: PageMeta|null, image?: any, today: string, tz?: string, member: { id: string, name: string } }} input
+ * @param {{ text?: string|null, url?: string|null, pageMeta?: PageMeta|null, image?: any, today: string, tz?: string, member: { id: string, name: string }, local?: Local }} input
+ *   local: the city pack's knowledge (the local currency, the date order, a price-sign repair)
  */
-export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFAULT_TZ, member }) {
+export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFAULT_TZ, member, local = {} }) {
   const d = data && typeof data === "object" ? data : {};
   const c = cleanConfidence(d.confidence);
   /** @type {string[]} */
@@ -313,7 +361,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   // when: code resolves the words; the model's own date is a fallback
   let date = null;
   let dateConf = 0;
-  const fromWords = resolveDateWords(d.dateWords, today);
+  const fromWords = resolveDateWords(d.dateWords, today, { monthFirst: !!local.monthFirst });
   if (fromWords) {
     date = fromWords;
     dateConf = c.date ?? 0.8;
@@ -364,7 +412,8 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   let titleConf = title ? c.title ?? 0.6 : 0;
   let venue = calmCaps(text(d.venueName, 120));
   let address = calmCaps(text(d.address, 200));
-  let priceText = nairaSign(calmCaps(text(d.priceText, 60)));
+  let priceText = calmCaps(text(d.priceText, 60));
+  if (priceText && local.fixPrice) priceText = local.fixPrice(priceText);
   let free = d.free === true || (priceText ? /\bfree\b/i.test(priceText) : false);
   let hostName = calmCaps(text(d.hostName, 60));
   let placeConf = ground(venue || address, venue || address ? c.place ?? 0.6 : 0, "place");
@@ -389,10 +438,11 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     if (ev.venue || ev.address) [venue, address, placeConf] = [text(ev.venue, 120) ?? venue, tidyAddress(text(ev.address, 200)) ?? address, 0.95];
     if (ev.price || ev.free) [priceText, free, priceConf] = [text(ev.price, 60) ?? (ev.free ? "Free" : priceText), ev.free === true, 0.9];
     // the organiser picks the currency; a Lagos event priced in dollars (or, once seen, in
-    // Norwegian kroner for naira tickets) is worth a second look
-    if (!ev.free && ev.currency && ev.currency !== "NGN") {
+    // Norwegian kroner for naira tickets) is worth a second look. With no known local
+    // currency there is nothing to compare, and nothing is assumed.
+    if (!ev.free && ev.currency && local.currency && ev.currency !== local.currency) {
       priceConf = 0.5;
-      notes.push(`The page lists the price in ${ev.currency}, not naira. Check what you will pay with the organiser.`);
+      notes.push(`The page lists the price in ${ev.currency}, not ${local.currencyName || `the local currency (${local.currency})`}. Check what you will pay with the organiser.`);
     }
     if (ev.status) notes.push(`The page marks this event as ${ev.status.replace(/^Event/, "").toLowerCase()}. Check with the organiser.`);
     if (ev.organizer && !hostName) hostName = text(ev.organizer, 60);

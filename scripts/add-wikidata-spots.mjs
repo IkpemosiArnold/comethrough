@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config, loadDotEnv } from "../src/config.mjs";
 import { userAgent } from "../src/adapters/http.mjs";
-import { inLagos } from "../src/core/geo.mjs";
+import { inLagos } from "../src/packs/lagos/geo.mjs";
 
 loadDotEnv();
 const cfg = config();

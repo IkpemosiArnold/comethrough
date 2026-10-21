@@ -7,7 +7,16 @@ import fs from "node:fs";
 import { test } from "node:test";
 import { money, parseHtmlMeta } from "../src/core/htmlmeta.mjs";
 import { isLockedLink, lockedMessage, lockedSite } from "../src/core/netguard.mjs";
-import { readPlan } from "../src/core/tasks.mjs";
+import { readPlan as coreReadPlan, readCrewSetup as coreReadCrewSetup } from "../src/core/tasks.mjs";
+import { LAGOS_LOCAL } from "../src/packs/lagos/index.mjs";
+// The crew in these tests is in Lagos: its zone, short names ("VI"), naira and Pidgin come
+// from the Lagos city pack now, so the readers get it passed in.
+const LAGOS_TZ = "Africa/Lagos";
+/** @type {typeof coreReadPlan} */
+const readPlan = (d, input) => coreReadPlan(d, { tz: LAGOS_TZ, local: LAGOS_LOCAL, ...input });
+/** @type {typeof coreReadCrewSetup} */
+const readCrewSetup = (d, input, local = LAGOS_LOCAL) => coreReadCrewSetup(d, input, local);
+
 
 const today = "2026-10-21";
 const member = { id: "m1", name: "Tolu" };

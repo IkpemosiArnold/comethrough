@@ -1,7 +1,13 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SOCIAL_HOURS, bestWindow, clipToSocial, clockWords, hourCost, hoursFromOpenMeteo, rainMovedIn, ritualWindow, socialWindow, weatherForPlan } from "../src/core/weather.mjs";
+import { bestWindow, clipToSocial as coreClip, clockWords, hourCost, hoursFromOpenMeteo, rainMovedIn, ritualWindow as coreRitual, socialWindow as coreSocial, weatherForPlan as coreForPlan } from "../src/core/weather.mjs";
+// Lagos's social hours live in the Lagos city pack; these tests pass them in.
+import { SOCIAL_HOURS } from "../src/packs/lagos/index.mjs";
+const ritualWindow = (/** @type {any[]} */ hours, /** @type {any} */ slot) => coreRitual(hours, slot, SOCIAL_HOURS);
+const socialWindow = (/** @type {string} */ date, o = {}) => coreSocial(date, { social: SOCIAL_HOURS, ...o });
+const weatherForPlan = (/** @type {any[]} */ h, /** @type {any} */ p, /** @type {number} */ n) => coreForPlan(h, { tz: "Africa/Lagos", ...p }, n);
+const clipToSocial = (/** @type {string} */ date, /** @type {any} */ want, o = {}) => coreClip(date, want, { social: SOCIAL_HOURS, ...o });
 
 /** A Lagos October Saturday: hot midday, a storm at 13:00 to 14:00, a cooler dry evening. */
 function forecast(date = "2026-10-24", overrides = {}) {

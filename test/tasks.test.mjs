@@ -7,8 +7,17 @@ import { PLACES, AREAS } from "./fixtures/lagos.mjs";
 import { scorePlaces } from "../src/core/places.mjs";
 import {
   CREW_SCHEMA, PLAN_SCHEMA, PROMPT_NAMES, crewSetupMessages, explainFallback, explainMessages, fill, groundedShare, inviteMessages, noDashes,
-  numbersGrounded, parseEventDate, planMessages, readCrewSetup, readExplain, readFeedback, readInvite, readPlan, splitPrompt,
+  numbersGrounded, parseEventDate as coreParseEventDate, planMessages, readCrewSetup as coreReadCrewSetup, readExplain, readFeedback, readInvite, readPlan as coreReadPlan, splitPrompt,
 } from "../src/core/tasks.mjs";
+import { LAGOS_LOCAL } from "../src/packs/lagos/index.mjs";
+// The crew in these tests is in Lagos: its zone, short names ("VI"), naira and Pidgin come
+// from the Lagos city pack now, so the readers get it passed in.
+const LAGOS_TZ = "Africa/Lagos";
+/** @type {typeof coreReadPlan} */
+const readPlan = (d, input) => coreReadPlan(d, { tz: LAGOS_TZ, local: LAGOS_LOCAL, ...input });
+/** @type {typeof coreReadCrewSetup} */
+const readCrewSetup = (d, input, local = LAGOS_LOCAL) => coreReadCrewSetup(d, input, local);
+const parseEventDate = (/** @type {any} */ x, tz = LAGOS_TZ) => coreParseEventDate(x, tz);
 
 const prompt = (/** @type {string} */ n) => splitPrompt(fs.readFileSync(new URL(`../src/core/prompts/${n}.md`, import.meta.url), "utf8"), n);
 const today = "2026-10-21"; // a Wednesday

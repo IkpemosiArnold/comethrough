@@ -76,11 +76,14 @@ export function config(env = process.env) {
       provider: /** @type {"nominatim"|"photon"} */ (env.GEOCODER === "nominatim" ? "nominatim" : "photon"),
       nominatimUrl: env.NOMINATIM_URL || "https://nominatim.openstreetmap.org",
       photonUrl: env.PHOTON_URL || "https://photon.komoot.io",
-      countryCodes: env.GEOCODE_COUNTRY || "ng",
+      // empty by default: each crew's city pack says which country to keep to (Lagos: NG)
+      countryCodes: env.GEOCODE_COUNTRY || "",
     },
     /** comma-separated; each is tried in turn when the one before is at capacity or slow */
     overpassUrls: list(env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.private.coffee/api/interpreter"),
     openMeteoUrl: env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast",
+    /** parks and beaches near crews in cities with no pack (Wikidata Query Service); WIKIDATA_URL=off to skip */
+    wikidataUrl: env.WIKIDATA_URL === "off" ? "" : env.WIKIDATA_URL || "https://query.wikidata.org/sparql",
     /** road routes for travel times; the public OSRM demo by default (light, non-commercial use, one request a second); OSRM_URL=off for the straight-line estimate */
     osrmUrl: env.OSRM_URL === "off" ? "" : env.OSRM_URL || "https://router.project-osrm.org",
     /** sent in User-Agent to OpenStreetMap services, as their usage policies ask */

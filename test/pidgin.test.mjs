@@ -5,7 +5,16 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
-import { CHEAP_WORDS, everyIn, readCrewSetup, readPlan } from "../src/core/tasks.mjs";
+import { CHEAP_WORDS, everyIn, readCrewSetup as coreReadCrewSetup, readPlan as coreReadPlan } from "../src/core/tasks.mjs";
+import { LAGOS_LOCAL } from "../src/packs/lagos/index.mjs";
+// The crew in these tests is in Lagos: its zone, short names ("VI"), naira and Pidgin come
+// from the Lagos city pack now, so the readers get it passed in.
+const LAGOS_TZ = "Africa/Lagos";
+/** @type {typeof coreReadPlan} */
+const readPlan = (d, input) => coreReadPlan(d, { tz: LAGOS_TZ, local: LAGOS_LOCAL, ...input });
+/** @type {typeof coreReadCrewSetup} */
+const readCrewSetup = (d, input, local = LAGOS_LOCAL) => coreReadCrewSetup(d, input, local);
+
 import { CASES, MEMBER, TODAY, score } from "./fixtures/pidgin.mjs";
 
 const recorded = JSON.parse(fs.readFileSync(new URL("./fixtures/pidgin-answers.json", import.meta.url), "utf8"));
@@ -56,7 +65,7 @@ test("what to bring must be in the message; one clear clock time is read by code
 });
 
 test("a naira sign read as a caret is put back", async () => {
-  const { nairaSign } = await import("../src/core/tasks.mjs");
+  const { nairaSign } = await import("../src/packs/lagos/index.mjs");
   assert.equal(nairaSign("Gate \u20383,000"), "Gate \u20a63,000");
   assert.equal(nairaSign("^5,000 at the door"), "\u20a65,000 at the door");
   assert.equal(nairaSign("N5,000"), "N5,000");

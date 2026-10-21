@@ -8,15 +8,19 @@
 // - There is no METHOD property, so by RFC 5545 3.8.7.2 DTSTAMP is when the event was last
 //   revised: the plan's updatedAt. An unchanged plan reads byte for byte the same on every
 //   fetch, which keeps calendar apps from churning.
-// - Lagos times are written with TZID=Africa/Lagos and a VTIMEZONE (WAT, UTC+01:00, no
-//   daylight saving); other zones are written in UTC with a Z.
+// - A zone with one offset all year (Lagos, UTC+01:00; Nairobi, +03:00; Bengaluru's
+//   Asia/Kolkata, +05:30) is written with TZID and a VTIMEZONE of one STANDARD observance,
+//   checked over the year around the events. A zone with daylight saving (Berlin, London,
+//   New York) is written in UTC with a Z: RFC 5545 allows it, every calendar shows it in
+//   the phone's own zone, and it avoids hand-writing the zone's transition rules, which is
+//   where calendar files usually go wrong. The instant is the same either way.
 // - TEXT values are escaped (backslash, semicolon, comma, newline) and every line is
 //   folded at 75 octets of UTF-8 without splitting a character; lines end in CRLF.
 // - REFRESH-INTERVAL (RFC 7986) and X-PUBLISHED-TTL ask for hourly refreshes. They are
 //   hints: Google refreshes subscribed feeds every 6 to 24 hours whatever we say, which is
 //   why push and the one-event file exist.
 
-import { DEFAULT_TZ, localParts, parseInstant, MINUTE } from "./time.mjs";
+import { DAY, DEFAULT_TZ, localParts, parseInstant, MINUTE, zoneOffsetMinutes } from "./time.mjs";
 
 /** @typedef {import("./types.mjs").Plan} Plan */
 
@@ -70,22 +74,37 @@ function localStamp(ms, tz) {
   return `${p.date.replace(/-/g, "")}T${p.time.replace(":", "")}${String(p.s).padStart(2, "0")}`;
 }
 
-const LAGOS_VTIMEZONE = [
-  "BEGIN:VTIMEZONE",
-  "TZID:Africa/Lagos",
-  "X-LIC-LOCATION:Africa/Lagos",
-  "BEGIN:STANDARD",
-  "TZOFFSETFROM:+0100",
-  "TZOFFSETTO:+0100",
-  "TZNAME:WAT",
-  "DTSTART:19700101T000000",
-  "END:STANDARD",
-  "END:VTIMEZONE",
-];
+/**
+ * True when the zone keeps one UTC offset over the year from `ms` (no daylight saving).
+ * @param {string} tz
+ * @param {number} ms
+ */
+export function isFixedZone(tz, ms) {
+  if (tz === "UTC" || tz === "Etc/UTC") return false;
+  const base = zoneOffsetMinutes(ms, tz);
+  for (let i = 1; i <= 12; i++) if (zoneOffsetMinutes(ms + i * 30.5 * DAY, tz) !== base) return false;
+  return true;
+}
 
-/** A date-time property: TZID form for Lagos, UTC otherwise. */
+/** "+0100", "+0530", "-0300" */
+const offsetText = (/** @type {number} */ m) => `${m < 0 ? "-" : "+"}${String(Math.floor(Math.abs(m) / 60)).padStart(2, "0")}${String(Math.abs(m) % 60).padStart(2, "0")}`;
+
+/**
+ * The VTIMEZONE for a fixed-offset zone: one STANDARD observance from 1970. `name` is the
+ * zone's short name when a city pack knows it ("WAT" for Lagos); without one, TZNAME is left
+ * out (it is optional).
+ * @param {string} tz
+ * @param {number} ms
+ * @param {string} [name]
+ */
+export function vtimezone(tz, ms, name) {
+  const off = offsetText(zoneOffsetMinutes(ms, tz));
+  return ["BEGIN:VTIMEZONE", `TZID:${tz}`, `X-LIC-LOCATION:${tz}`, "BEGIN:STANDARD", `TZOFFSETFROM:${off}`, `TZOFFSETTO:${off}`, ...(name ? [`TZNAME:${name}`] : []), "DTSTART:19700101T000000", "END:STANDARD", "END:VTIMEZONE"];
+}
+
+/** A date-time property: TZID form for a fixed-offset zone, UTC otherwise. */
 function dt(name, ms, tz) {
-  return tz === "Africa/Lagos" ? `${name};TZID=Africa/Lagos:${localStamp(ms, tz)}` : `${name}:${utcStamp(ms)}`;
+  return Number.isFinite(ms) && isFixedZone(tz, ms) ? `${name};TZID=${tz}:${localStamp(ms, tz)}` : `${name}:${utcStamp(ms)}`;
 }
 
 /**
@@ -156,10 +175,24 @@ export function eventLines(plan, { memberId = null, uidDomain, extras = {} }) {
   return lines;
 }
 
-/** Wrap event lines in a VCALENDAR and serialise with folding and CRLF. */
-function calendar(head, events, tzs) {
+/**
+ * Wrap event lines in a VCALENDAR and serialise with folding and CRLF. A VTIMEZONE is added
+ * for every zone an event used in TZID form.
+ * @param {string[]} head
+ * @param {string[][]} events
+ * @param {Record<string, string>} [zoneNames]  short zone names a city pack knows ({ "Africa/Lagos": "WAT" })
+ */
+function calendar(head, events, zoneNames = {}) {
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Come Through//comethrough//EN", "CALSCALE:GREGORIAN", ...head];
-  if (tzs.has("Africa/Lagos")) lines.push(...LAGOS_VTIMEZONE);
+  /** @type {Map<string, number>} */
+  const used = new Map();
+  for (const e of events) {
+    for (const l of e) {
+      const m = /^DTSTART;TZID=([^:]+):(\d{8}T\d{6})$/.exec(l);
+      if (m && !used.has(m[1])) used.set(m[1], Date.UTC(Number(m[2].slice(0, 4)), Number(m[2].slice(4, 6)) - 1, Number(m[2].slice(6, 8)), 12));
+    }
+  }
+  for (const [tz, ms] of used) lines.push(...vtimezone(tz, ms, zoneNames[tz]));
   for (const e of events) lines.push(...e);
   lines.push("END:VCALENDAR");
   return lines.map(foldLine).join(CRLF) + CRLF;
@@ -175,8 +208,9 @@ function calendar(head, events, tzs) {
  * @param {number} input.now
  * @param {string} input.uidDomain
  * @param {(plan: Plan) => EventExtras} [input.extras]
+ * @param {Record<string, string>} [input.zoneNames]  short zone names from the city pack
  */
-export function calendarFeed({ crew, member, plans, now, uidDomain, extras = () => ({}) }) {
+export function calendarFeed({ crew, member, plans, now, uidDomain, extras = () => ({}), zoneNames = {} }) {
   const live = plans
     // a ritual the sloth skipped for rain was never on anyone's calendar
     .filter((p) => !(parseInstant(p.expiresAt) <= now) && p.rainPlan?.kind !== "skip")
@@ -190,16 +224,16 @@ export function calendarFeed({ crew, member, plans, now, uidDomain, extras = () 
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
   ];
-  return calendar(head, live.map((p) => eventLines(p, { memberId: member.id, uidDomain, extras: extras(p) })), new Set(live.map((p) => p.tz || DEFAULT_TZ)));
+  return calendar(head, live.map((p) => eventLines(p, { memberId: member.id, uidDomain, extras: extras(p) })), zoneNames);
 }
 
 /**
  * A one-event calendar file for "add to my calendar".
  * @param {Plan} plan
- * @param {{ memberId?: string|null, uidDomain: string, extras?: EventExtras }} ctx
+ * @param {{ memberId?: string|null, uidDomain: string, extras?: EventExtras, zoneNames?: Record<string, string> }} ctx
  */
 export function singleEvent(plan, ctx) {
-  return calendar([], [eventLines(plan, ctx)], new Set([plan.tz || DEFAULT_TZ]));
+  return calendar([], [eventLines(plan, ctx)], ctx.zoneNames);
 }
 
 /** A safe file name for the download ("Wine and monopoly.ics"). */

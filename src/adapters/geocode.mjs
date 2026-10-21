@@ -5,28 +5,38 @@
 // area type-ahead (/api/areas). Nominatim forbids autocomplete and allows at most one
 // request a second with an identifying User-Agent, so it is used only for single lookups
 // when GEOCODER=nominatim. Both are throttled and cached (30 days; places do not move).
+//
+// Where to look comes with each call, from the crew's city pack (src/packs): a point to bias
+// toward, a country to keep to, and whether to add the city to a bare name. Lagos keeps what
+// it always did (bias to Lagos, Nigeria only, ", Lagos" added). Anywhere else, results are
+// biased to the crew's centre and no city is added, except to retry a name that found
+// nothing within 50 km of the crew ("Westlands" alone could be anywhere).
 
 import { cached, fetchJson, throttle, userAgent } from "./http.mjs";
 
 /** @typedef {import("./http.mjs").Cache} Cache */
-/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string }} GeoResult */
+/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string, country?: string, city?: string }} GeoResult */
+/** @typedef {import("../packs/index.mjs").GeocodeContext} GeocodeContext */
 /**
  * @typedef {object} Geocoder
- * @property {(q: string, opts?: { limit?: number, areas?: boolean }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
- * @property {(q: string) => Promise<GeoResult|null>} lookup      a venue or an address
- * @property {(q: string) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
+ * @property {(q: string, opts?: { limit?: number, areas?: boolean, near?: { lat: number, lon: number }|null, country?: string|null, viewbox?: string }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
+ * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookup      a venue or an address
+ * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
  */
 
-/** Lagos: where results are biased. */
-export const LAGOS_BIAS = { lat: 6.52, lon: 3.38 };
+/** Beyond this distance from the crew's centre, a hit is not trusted and the city is added. */
+export const NEAR_KM = 50;
 const TTL = 30 * 24 * 3600_000;
 const OSM_TYPES = { N: "node", W: "way", R: "relation", node: "node", way: "way", relation: "relation" };
 
 const norm = (/** @type {string} */ q) => q.toLowerCase().replace(/\s+/g, " ").trim();
 const uniq = (/** @type {string[]} */ xs) => xs.filter((x, i) => x && xs.indexOf(x) === i);
 
-/** Photon's GeoJSON features to results. Pure; exported for tests. */
-export function readPhoton(json, { countryCode = "NG" } = {}) {
+/** The city a Photon feature is in (or is): the city, else the place itself when it is a city or town. */
+const photonCity = (/** @type {any} */ p) => p.city || (["city", "town"].includes(p.type) || ["city", "town"].includes(p.osm_value) ? p.name : null) || p.county || null;
+
+/** Photon's GeoJSON features to results, kept to one country when one is given. Pure; exported for tests. */
+export function readPhoton(json, { countryCode = "" } = {}) {
   return (json?.features || [])
     .filter((/** @type {any} */ f) => !countryCode || String(f.properties?.countrycode || "").toUpperCase() === countryCode.toUpperCase())
     .map((/** @type {any} */ f) => {
@@ -40,6 +50,8 @@ export function readPhoton(json, { countryCode = "NG" } = {}) {
         lon,
         ...(p.osm_type && p.osm_id ? { osm: { type: OSM_TYPES[/** @type {keyof typeof OSM_TYPES} */ (p.osm_type)] || p.osm_type, id: p.osm_id } } : {}),
         ...(p.osm_key ? { cls: p.osm_key } : {}),
+        ...(p.countrycode ? { country: String(p.countrycode).toUpperCase() } : {}),
+        ...(photonCity(p) ? { city: photonCity(p) } : {}),
       };
     })
     .filter((/** @type {any} */ r) => r.label && Number.isFinite(r.lat) && Number.isFinite(r.lon));
@@ -60,55 +72,95 @@ export function readNominatim(json) {
   }).filter((r) => r.label && Number.isFinite(r.lat) && Number.isFinite(r.lon));
 }
 
+const R_KM = 6371.0088;
+const kmBetween = (/** @type {{ lat: number, lon: number }} */ a, /** @type {{ lat: number, lon: number }} */ b) => {
+  const r = (/** @type {number} */ d) => (d * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lon - a.lon) / 2) ** 2;
+  return 2 * R_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
 /**
- * @param {{ provider: "photon"|"nominatim", photonUrl: string, nominatimUrl: string, countryCodes: string, contact: string, cache: Cache, fetchImpl?: typeof fetch, bias?: { lat: number, lon: number } }} cfg
+ * @param {{ provider: "photon"|"nominatim", photonUrl: string, nominatimUrl: string, countryCodes?: string, contact: string, cache: Cache, fetchImpl?: typeof fetch }} cfg
+ *   countryCodes: kept for GEOCODE_COUNTRY; a call's own context wins
  * @returns {Geocoder}
  */
-export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes, contact, cache, fetchImpl, bias = LAGOS_BIAS }) {
+export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes = "", contact, cache, fetchImpl }) {
   const headers = { "user-agent": userAgent(contact), accept: "application/json" };
   const photonGate = throttle(250);
   const nominatimGate = throttle(1100); // "an absolute maximum of 1 request per second"
-  const country = countryCodes.split(",")[0] || "";
+  const envCountry = countryCodes.split(",")[0] || "";
 
-  const photon = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas) =>
+  const photon = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas, /** @type {{ lat: number, lon: number }|null} */ near, /** @type {string} */ country) =>
     photonGate(async () => {
       const u = new URL("/api/", photonUrl);
       u.searchParams.set("q", q);
       // places only: suburbs, neighbourhoods, towns (the smoke test's "Yaba, Lagos" otherwise found a college first)
       if (areas) u.searchParams.set("osm_tag", "place");
       u.searchParams.set("limit", String(Math.min(10, limit * 2)));
-      u.searchParams.set("lat", String(bias.lat));
-      u.searchParams.set("lon", String(bias.lon));
+      if (near) {
+        u.searchParams.set("lat", String(near.lat));
+        u.searchParams.set("lon", String(near.lon));
+      }
       u.searchParams.set("lang", "en");
       return readPhoton(await fetchJson(u.href, { headers, timeoutMs: 8000, retries: 1, fetchImpl }), { countryCode: country }).slice(0, limit);
     });
 
-  const nominatim = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas) =>
+  const nominatim = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas, /** @type {string} */ country, /** @type {string|undefined} */ viewbox) =>
     nominatimGate(async () => {
       const u = new URL("/search", nominatimUrl);
       u.searchParams.set("q", q);
       u.searchParams.set("format", "jsonv2");
       u.searchParams.set("limit", String(limit));
-      if (countryCodes) u.searchParams.set("countrycodes", countryCodes);
-      u.searchParams.set("viewbox", "2.70,6.75,4.40,6.35"); // prefer Lagos, without excluding elsewhere
+      if (country) u.searchParams.set("countrycodes", country.toLowerCase());
+      if (viewbox) u.searchParams.set("viewbox", viewbox); // prefer the city, without excluding elsewhere
       const rs = readNominatim(await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl }));
       return areas ? rs.filter((r) => r.cls === "place" || r.cls === "boundary") : rs;
     });
 
-  const search = async (/** @type {string} */ q, { limit = 5, areas = false } = {}) => {
+  /** @type {Geocoder["search"]} */
+  const search = async (q, { limit = 5, areas = false, near = null, country = null, viewbox = undefined } = {}) => {
     const query = norm(String(q || "")).slice(0, 120);
     if (query.length < 2) return [];
-    return cached(cache, `geo:${provider}:${areas ? "area" : "any"}:${limit}:${query}`, TTL, () => (provider === "nominatim" ? nominatim(query, limit, areas) : photon(query, limit, areas)));
+    const cc = country ?? envCountry;
+    const where = `${near ? `${near.lat.toFixed(2)},${near.lon.toFixed(2)}` : "-"}:${cc || "-"}`;
+    return cached(cache, `geo:${provider}:${areas ? "area" : "any"}:${limit}:${where}:${query}`, TTL, () => (provider === "nominatim" ? nominatim(query, limit, areas, cc, viewbox) : photon(query, limit, areas, near, cc)));
   };
-  // a bare name reads better with the city ("Yaba" -> "Yaba, Lagos")
-  const withCity = (/** @type {string} */ q) => (/lagos/i.test(q) ? q : `${q}, Lagos`);
+
+  /**
+   * One lookup in the crew's context. Lagos adds ", Lagos" to a bare name, as it always did;
+   * elsewhere the bare name is tried near the crew first, and the city is added only when
+   * that finds nothing within NEAR_KM of the crew.
+   * @param {string} q
+   * @param {Partial<GeocodeContext>} ctx
+   * @param {boolean} areas
+   */
+  async function one(q, ctx, areas) {
+    const near = ctx.near ?? null;
+    const country = ctx.country ?? null;
+    const find = async (/** @type {string} */ text) => {
+      const opts = { limit: 1, near, country, viewbox: ctx.viewbox };
+      const hit = (await search(text, { ...opts, areas }))[0] ?? null;
+      return hit ?? (areas ? (await search(text, opts))[0] ?? null : null);
+    };
+    if (ctx.appendCity) {
+      const city = ctx.appendCity;
+      return find(q.toLowerCase().includes(city.toLowerCase()) ? q : `${q}, ${city}`);
+    }
+    const hit = await find(q);
+    if (!near) return hit; // no centre yet (a crew's first areas): the best hit anywhere
+    const close = (/** @type {GeoResult|null} */ h) => !!h && kmBetween(near, h) <= NEAR_KM;
+    if (close(hit)) return hit;
+    const city = ctx.cityFallback;
+    if (city && !q.toLowerCase().includes(city.toLowerCase())) {
+      const again = await find(`${q}, ${city}`);
+      if (close(again)) return again;
+    }
+    return null; // only far-away matches: better "not found" than a pin in another city
+  }
+
   return {
     search,
-    async lookup(q) {
-      return (await search(withCity(q), { limit: 1 }))[0] ?? null;
-    },
-    async lookupArea(q) {
-      return (await search(withCity(q), { limit: 1, areas: true }))[0] ?? (await search(withCity(q), { limit: 1 }))[0] ?? null;
-    },
+    lookup: (q, ctx = {}) => one(q, ctx, false),
+    lookupArea: (q, ctx = {}) => one(q, ctx, true),
   };
 }

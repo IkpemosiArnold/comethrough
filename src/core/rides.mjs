@@ -1,85 +1,30 @@
 // @ts-check
-// Ride apps that work in Lagos, and what a web app can honestly do with each.
+// Getting there: ride app buttons, a universal "Get directions" link, and the text to paste
+// into any app's "Where to?" box. Nothing here names a ride provider: a city pack brings its
+// own list, each provider checked against a dated source (src/packs/lagos/rides.mjs and
+// docs/LOCAL-FACTS.md). A city with no verified list gets directions and "Copy address"
+// only, because a button for an app that does not run there is worse than no button.
 //
-// Every entry is checked against a dated source (docs/LOCAL-FACTS.md, "Rides"). Uber is not
-// here: it wound down in Nigeria effective 2 Sep 2026 (TechCabal, 2 Sep 2026).
-//
-// A capability is claimed only when it is documented. On 21 Oct 2026 none of these apps
-// documented a link that opens it with the drop-off filled in:
-//   - Bolt: bolt.eu's apple-app-site-association has webcredentials and no applinks; its
-//     assetlinks.json delegates all URLs to ee.mtakso.client, but no path takes a destination,
-//     and there is no developer documentation for one.
-//   - inDrive: indrive.com's apple-app-site-association claims only /app/, /app/super_services,
-//     /app/oauth-callback, /app/wallet/* and /app/bdu/*. None takes a destination.
-//   - LagRide: lagride.ng serves no app link manifests at all.
-// So the honest action is: copy the address, then open the app's store page (which shows
-// "Open" when the app is installed) or its web page. When a provider documents a drop-off
-// link, add a `dropoff` template here with its source and a test.
+// The directions links follow each platform's own documentation (checked 21 Oct 2026):
+//   - Android: a geo: URI, "geo:0,0?q=lat,lng(label)", which opens whatever maps app the
+//     phone has (developer.android.com/guide/components/intents-common#Maps);
+//   - iPhone: Apple's unified Maps URL, "https://maps.apple.com/directions?destination=...&mode=driving"
+//     (developer.apple.com/documentation/mapkit/unified-map-urls; iOS 18.4 and later open it
+//     in Maps, earlier ones in Apple Maps on the web);
+//   - anything else: Google's Maps URL, "https://www.google.com/maps/dir/?api=1&destination=...",
+//     which opens the Google Maps app when installed and the browser otherwise
+//     (developers.google.com/maps/documentation/urls/get-started).
 
 /**
  * @typedef {object} RideProvider
  * @property {string} id
  * @property {string} name
  * @property {string} blurb        a few plain words for the UI, from the sources, or ""
- * @property {{ android: string, ios: string, web: string }} links  store pages and the Lagos web page
+ * @property {{ android: string, ios: string, web: string }} links  store pages and the provider's web page for the city
  * @property {null} dropoff        a URL template that fills the destination; null until documented
  * @property {{ url: string, says: string }[]} sources
  * @property {string} checkedAt    "YYYY-MM-DD"
  */
-
-/** @type {RideProvider[]} In the order the UI shows them: Bolt first, then inDrive. */
-export const RIDE_PROVIDERS = [
-  {
-    id: "bolt",
-    name: "Bolt",
-    blurb: "",
-    links: {
-      android: "https://play.google.com/store/apps/details?id=ee.mtakso.client",
-      ios: "https://apps.apple.com/ng/app/bolt-request-a-ride/id675033630",
-      web: "https://bolt.eu/en-ng/cities/lagos/",
-    },
-    dropoff: null,
-    sources: [
-      { url: "https://techcabal.com/2026/09/02/uber-exits-nigeria/", says: "Uber's exit leaves the market concentrated around its biggest rivals, Bolt and inDrive (2 Sep 2026)" },
-      { url: "https://techcabal.com/2026/09/03/with-uber-gone-bolt-says-nigeria-remains-an-important-market/", says: "Bolt says Nigeria remains an important market (3 Sep 2026)" },
-      { url: "https://bolt.eu/en-ng/cities/lagos/", says: "Bolt's own Lagos page, HTTP 200" },
-    ],
-    checkedAt: "2026-10-21",
-  },
-  {
-    id: "indrive",
-    name: "inDrive",
-    blurb: "You name the fare.",
-    links: {
-      android: "https://play.google.com/store/apps/details?id=sinet.startup.inDriver",
-      ios: "https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801",
-      web: "https://indrive.com/en-ng/",
-    },
-    dropoff: null,
-    sources: [
-      { url: "https://techcabal.com/2026/09/02/uber-exits-nigeria/", says: "Bolt and inDrive are the biggest rivals left (2 Sep 2026)" },
-      { url: "https://www.legit.ng/business-economy/technology/1728679-uber-leaves-nigeria-bolt-indrive-local-rivals-face-ride-hailing-battle/", says: "Bolt, inDrive and local rivals after Uber (3 Sep 2026)" },
-      { url: "https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801", says: "App Store name: inDrive, rides at your price" },
-    ],
-    checkedAt: "2026-10-21",
-  },
-  {
-    id: "lagride",
-    name: "LagRide",
-    blurb: "Backed by Lagos State.",
-    links: {
-      android: "https://play.google.com/store/apps/details?id=com.lagos.emobility.client",
-      ios: "https://apps.apple.com/ng/app/lagride/id6738812036",
-      web: "https://www.lagride.ng/",
-    },
-    dropoff: null,
-    sources: [
-      { url: "https://www.legit.ng/business-economy/technology/1728679-uber-leaves-nigeria-bolt-indrive-local-rivals-face-ride-hailing-battle/", says: "the Lagos State-backed ride-hailing platform (3 Sep 2026)" },
-      { url: "https://thecondia.com/uber-alternatives-nigeria-ride-hailing-apps/", says: "LagRide, Lagos only (11 Sep 2026)" },
-    ],
-    checkedAt: "2026-10-21",
-  },
-];
 
 /**
  * The text to paste into any ride app's "Where to?" box: the place's name and address, with
@@ -97,9 +42,9 @@ export function destinationText(place) {
 }
 
 /**
- * Where a ride button goes for a provider on a platform. No provider has a documented
- * drop-off link, so this is the store page on a phone (it says "Open" when the app is
- * installed) and the Lagos web page elsewhere.
+ * Where a ride button goes for a provider on a platform. No provider we have checked has a
+ * documented drop-off link, so this is the store page on a phone (it says "Open" when the
+ * app is installed) and the provider's web page for the city elsewhere.
  * @param {RideProvider} p
  * @param {"android"|"ios"|"other"} platform
  */
@@ -107,5 +52,32 @@ export function rideLink(p, platform) {
   return platform === "android" ? p.links.android : platform === "ios" ? p.links.ios : p.links.web;
 }
 
-/** The providers as the API sends them (no source lists; those are in this file and LOCAL-FACTS.md). */
-export const ridesForApi = () => RIDE_PROVIDERS.map((p) => ({ id: p.id, name: p.name, blurb: p.blurb, links: p.links, dropoff: false }));
+/**
+ * The providers as the API sends them (no source lists; those stay in the pack and
+ * LOCAL-FACTS.md).
+ * @param {RideProvider[]} [providers]  the city pack's verified list; none by default
+ */
+export const ridesForApi = (providers = []) => providers.map((p) => ({ id: p.id, name: p.name, blurb: p.blurb, links: p.links, dropoff: false }));
+
+/**
+ * "Get directions" for a place, on each platform: a geo: URI on Android, Apple Maps on an
+ * iPhone, Google Maps elsewhere. The destination is the pin when there is one, else the
+ * name and address as text, else null (a host's home with no address has nowhere to go).
+ * @param {{ name?: string|null, address?: string|null, lat?: number|null, lon?: number|null, private?: boolean }} place
+ * @returns {{ android: string, ios: string, web: string }|null}
+ */
+export function directionsLinks(place) {
+  if (!place) return null;
+  const pinned = Number.isFinite(place.lat) && Number.isFinite(place.lon);
+  const text = place.private && !place.address ? null : destinationText({ name: place.name, address: place.address });
+  if (!pinned && !text) return null;
+  const at = pinned ? `${/** @type {number} */ (place.lat).toFixed(6)},${/** @type {number} */ (place.lon).toFixed(6)}` : null;
+  const dest = at ?? /** @type {string} */ (text);
+  const label = (place.name || "").replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
+  const enc = encodeURIComponent;
+  return {
+    android: at ? `geo:0,0?q=${enc(at)}${label ? enc(`(${label})`) : ""}` : `geo:0,0?q=${enc(dest)}`,
+    ios: `https://maps.apple.com/directions?destination=${enc(dest)}&mode=driving`,
+    web: `https://www.google.com/maps/dir/?api=1&destination=${enc(dest)}&travelmode=driving`,
+  };
+}

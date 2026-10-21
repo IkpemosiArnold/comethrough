@@ -10,16 +10,18 @@
 /** @typedef {import("./geocode.mjs").Geocoder} Geocoder */
 /** @typedef {import("./push.mjs").PushPort} PushPort */
 
-/** A few Lagos areas (coordinates from OpenStreetMap, rounded). */
+/** A few Lagos areas, and a few Berlin ones for a crew elsewhere (coordinates from OpenStreetMap, rounded). */
 export const OFFLINE_AREAS = [
-  { label: "Yaba", detail: "Lagos Mainland, Lagos", lat: 6.5095, lon: 3.3711 },
-  { label: "Lekki Phase 1", detail: "Eti-Osa, Lagos", lat: 6.4474, lon: 3.4723 },
-  { label: "Ikeja", detail: "Ikeja, Lagos", lat: 6.6018, lon: 3.3515 },
-  { label: "Surulere", detail: "Surulere, Lagos", lat: 6.5, lon: 3.35 },
-  { label: "Ikoyi", detail: "Eti-Osa, Lagos", lat: 6.452, lon: 3.435 },
-  { label: "Victoria Island", detail: "Eti-Osa, Lagos", lat: 6.4281, lon: 3.4219 },
-  { label: "Ajah", detail: "Eti-Osa, Lagos", lat: 6.4672, lon: 3.57 },
-  { label: "Gbagada", detail: "Kosofe, Lagos", lat: 6.5536, lon: 3.3885 },
+  { label: "Yaba", detail: "Lagos Mainland, Lagos", lat: 6.5095, lon: 3.3711, country: "NG", city: "Lagos" },
+  { label: "Lekki Phase 1", detail: "Eti-Osa, Lagos", lat: 6.4474, lon: 3.4723, country: "NG", city: "Lagos" },
+  { label: "Ikeja", detail: "Ikeja, Lagos", lat: 6.6018, lon: 3.3515, country: "NG", city: "Lagos" },
+  { label: "Surulere", detail: "Surulere, Lagos", lat: 6.5, lon: 3.35, country: "NG", city: "Lagos" },
+  { label: "Ikoyi", detail: "Eti-Osa, Lagos", lat: 6.452, lon: 3.435, country: "NG", city: "Lagos" },
+  { label: "Victoria Island", detail: "Eti-Osa, Lagos", lat: 6.4281, lon: 3.4219, country: "NG", city: "Lagos" },
+  { label: "Ajah", detail: "Eti-Osa, Lagos", lat: 6.4672, lon: 3.57, country: "NG", city: "Lagos" },
+  { label: "Gbagada", detail: "Kosofe, Lagos", lat: 6.5536, lon: 3.3885, country: "NG", city: "Lagos" },
+  { label: "Kreuzberg", detail: "Friedrichshain-Kreuzberg, Berlin", lat: 52.4986, lon: 13.4033, country: "DE", city: "Berlin" },
+  { label: "Neukölln", detail: "Berlin", lat: 52.4811, lon: 13.4353, country: "DE", city: "Berlin" },
 ];
 
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -90,15 +92,35 @@ export function fakeAi({ answers = OFFLINE_ANSWERS, model = "offline-stand-in" }
   };
 }
 
-/** @param {{ areas?: typeof OFFLINE_AREAS }} [opts] @returns {Geocoder} */
+/**
+ * A geocoder over a fixed list. It honours the context's country, and a city name added to
+ * the query (", Lagos") is ignored, as Photon would.
+ * @param {{ areas?: typeof OFFLINE_AREAS }} [opts]
+ * @returns {Geocoder & { calls: any[] }}
+ */
 export function fakeGeocoder({ areas = OFFLINE_AREAS } = {}) {
-  const search = async (/** @type {string} */ q, { limit = 5 } = {}) => {
-    const t = String(q).toLowerCase().replace(/,?\s*lagos.*$/, "").trim();
+  /** @type {any[]} */
+  const calls = [];
+  /** @type {Geocoder["search"]} */
+  const search = async (q, { limit = 5, country = null } = {}) => {
+    const t = String(q).toLowerCase().replace(/,\s*[^,]+$/, "").trim();
     if (t.length < 2) return [];
-    return areas.filter((a) => a.label.toLowerCase().startsWith(t) || a.label.toLowerCase().includes(t)).slice(0, limit);
+    return areas.filter((a) => (!country || a.country === country.toUpperCase()) && (a.label.toLowerCase().startsWith(t) || a.label.toLowerCase().includes(t))).slice(0, limit);
   };
-  const lookup = async (/** @type {string} */ q) => (await search(q, { limit: 1 }))[0] ?? null;
-  return { search, lookup, lookupArea: lookup };
+  /** @type {Geocoder["lookup"]} */
+  const lookup = async (q, ctx = {}) => {
+    calls.push({ q, ctx });
+    return (await search(q, { limit: 1, country: ctx.country ?? null }))[0] ?? null;
+  };
+  return { calls, search, lookup, lookupArea: lookup };
+}
+
+/** @param {any[]} [spots] Wikidata candidates to return */
+export function fakeWikidata(spots = []) {
+  return { calls: /** @type {any[]} */ ([]), async spotsNear(at, radiusKm) {
+    this.calls.push({ at, radiusKm });
+    return spots;
+  } };
 }
 
 /** @param {any[]} [candidates] */
@@ -115,6 +137,12 @@ export function fakeOverpass(candidates = []) {
  */
 export function fakeWeather({ rain = (_d, h) => (h >= 12 && h <= 14 ? 60 : 10) } = {}) {
   return {
+    /** Lagos for points in Lagos, Berlin for points in Berlin, else null (unknown). */
+    async timezoneAt(/** @type {{lat:number,lon:number}} */ at) {
+      if (at.lat > 6.3 && at.lat < 6.8 && at.lon > 2.6 && at.lon < 4.5) return "Africa/Lagos";
+      if (at.lat > 52.3 && at.lat < 52.7 && at.lon > 13 && at.lon < 13.8) return "Europe/Berlin";
+      return null;
+    },
     /** @param {{lat:number,lon:number}} _at */
     async hourly(_at, { days = 7 } = {}) {
       const hours = [];

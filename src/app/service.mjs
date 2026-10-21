@@ -6,20 +6,28 @@
 //
 // Outside services fail; the app should not. Gemma being busy gives an empty draft to fill
 // by hand, a failed geocode leaves a place without a pin, Overpass at capacity falls back to
-// the curated spots, and the ritual still goes out with a plain invite written by code.
+// the curated spots (or Wikidata's), and the ritual still goes out with a plain invite
+// written by code.
+//
+// Where a crew is decides how the app behaves there: each crew has a region (its centre,
+// country, city and zone, from its own areas), and the region picks a city pack
+// (src/packs): Lagos, with everything sourced in docs/LOCAL-FACTS.md, or the default pack,
+// which makes no local claims. This file passes the pack's parts into the core.
 
 import { centroid, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
+import { NEAR_KM } from "../adapters/geocode.mjs";
+import { cleanRegion, hintRegion, packFor, packView, regionOf } from "../packs/index.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
 import { podTrips, podsForPlan } from "../core/pods.mjs";
-import { ridesForApi } from "../core/rides.mjs";
+import { directionsLinks, ridesForApi } from "../core/rides.mjs";
 import { fallbackInvite, ritualDraft, ritualDue } from "../core/ritual.mjs";
 import {
-  CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, planMessages,
+  CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
-import { DAY, DAY_NAMES, DEFAULT_TZ, hhmm, isTime, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
+import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
 import { lockedMessage, lockedSite } from "../core/netguard.mjs";
@@ -29,6 +37,8 @@ import { endpointId, safeEqual, slugify } from "./ids.mjs";
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
 /** @typedef {import("../core/types.mjs").Plan} Plan */
+/** @typedef {import("../packs/index.mjs").Region} Region */
+/** @typedef {import("../packs/index.mjs").CityPack} CityPack */
 
 /** A flyer thumbnail is kept only when it is this small (the browser sends a ~400 px copy). */
 export const FLYER_MAX_BYTES = 200 * 1024;
@@ -44,19 +54,75 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {import("../adapters/gemini.mjs").AiPort} deps.ai
  * @param {import("../adapters/geocode.mjs").Geocoder} deps.geocoder
  * @param {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<any[]> }} deps.places
- * @param {{ hourly(at: { lat: number, lon: number }, opts?: { tz?: string, days?: number }): Promise<any[]> }} deps.weather
+ * @param {{ hourly(at: { lat: number, lon: number }, opts?: { tz?: string, days?: number }): Promise<any[]>, timezoneAt?: (at: { lat: number, lon: number }) => Promise<string|null> }} deps.weather
+ * @param {{ spotsNear(at: { lat: number, lon: number }, radiusKm: number): Promise<any[]> }|null} [deps.wikidata]  parks and beaches for crews with no curated spots
  * @param {{ fetchPage(url: string): Promise<{ meta: any, image: any, note: string|null }> }} deps.pages
  * @param {import("../adapters/push.mjs").PushPort} deps.push
  * @param {{ route(from: { lat: number, lon: number }, to: { lat: number, lon: number }): Promise<any>, table(sources: { lat: number, lon: number }[], destinations: { lat: number, lon: number }[]): Promise<{ km: (number|null)[][], min: (number|null)[][] }|null> }|null} [deps.routes]
  *   road routes (OSRM); null or failing means the straight-line estimate, which says so
- * @param {any[]} deps.spots           curated outdoor spots (data/lagos-spots.json)
+ * @param {any[]} deps.spots           the Lagos pack's curated spots (data/lagos-spots.json), used only for crews whose pack has curated spots
  * @param {Record<string, import("../core/tasks.mjs").Prompt>} deps.prompts
  * @param {import("./ids.mjs").Ids} deps.ids
  * @param {() => number} deps.now
  * @param {{ publicUrl: string, webUrl: string, uidDomain: string }} deps.cfg
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
  */
-export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null }) {
+export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null }) {
+  // ------------------------------------------------------------ where a crew is
+
+  /** A crew's region, its city pack, and what the prompts may know about it. */
+  function placeOf(/** @type {{ region?: any, tz?: string }} */ crew) {
+    const region = regionOf(crew);
+    const pack = packFor(region);
+    return { region, pack, local: pack.local(region), geo: pack.geocode(region), curated: pack.curated ? spots : [] };
+  }
+
+  /** A prompt with the crew's place filled in. */
+  const promptFor = (/** @type {string} */ name, /** @type {import("../core/tasks.mjs").Local} */ local) => localisePrompt(prompts[name], local);
+
+  /** The IANA zone of a point (Open-Meteo), or null. */
+  async function zoneAt(/** @type {{ lat: number, lon: number }} */ at) {
+    if (!weather.timezoneAt) return null;
+    try {
+      const tz = await weather.timezoneAt(at);
+      return tz && isValidZone(tz) ? tz : null;
+    } catch (e) {
+      log("timezone_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+      return null;
+    }
+  }
+
+  /**
+   * A region from geocoded areas: the centre of the areas, the country and city most of
+   * them are in (Photon), and the zone at the centre (Open-Meteo; the visitor's own zone
+   * when that fails). Null when no area is on the map.
+   * @param {{ lat: number|null, lon: number|null, country?: string, city?: string }[]} located
+   * @param {Region} base  what is known already (the hint, or the crew's region)
+   * @returns {Promise<Region|null>}
+   */
+  async function regionFrom(located, base) {
+    const pts = located.filter(isLatLon);
+    const center = centroid(/** @type {any[]} */ (pts));
+    if (!center) return null;
+    const mode = (/** @type {(string|undefined)[]} */ xs) => {
+      /** @type {Map<string, number>} */
+      const n = new Map();
+      for (const x of xs) if (x) n.set(x, (n.get(x) || 0) + 1);
+      return [...n.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    };
+    const countryCode = mode(pts.map((p) => p.country)) ?? base.countryCode;
+    const city = mode(pts.map((p) => p.city)) ?? base.city;
+    const tz = await zoneAt(center);
+    const round = (/** @type {number} */ x) => Math.round(x * 1e4) / 1e4;
+    return {
+      center: { lat: round(center.lat), lon: round(center.lon) },
+      countryCode: countryCode ? countryCode.toUpperCase() : null,
+      city,
+      timezone: tz ?? base.timezone,
+      tzSource: tz ? "open-meteo" : base.tzSource === "legacy" ? "legacy" : base.tzSource === "utc" ? "utc" : "browser",
+    };
+  }
+
   // ------------------------------------------------------------ links
 
   const links = {
@@ -124,8 +190,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   const crewView = (/** @type {Crew} */ c) => ({
     id: c.id, slug: c.slug, name: c.name, vibe: c.vibe, vibeTags: c.vibeTags || [], budget: c.budget || "any",
-    rhythm: c.rhythm, areas: (c.areas || []).map((a) => ({ label: a.label })), tz: c.tz || DEFAULT_TZ, inviteToken: c.inviteToken, createdAt: c.createdAt,
+    rhythm: c.rhythm, areas: (c.areas || []).map((a) => ({ label: a.label })), tz: c.tz || regionOf(c).timezone, inviteToken: c.inviteToken, createdAt: c.createdAt,
+    ...regionFields(c),
   });
+  /** The crew's region and pack, as the web app sees them (for times, examples and the ride card). */
+  function regionFields(/** @type {Crew} */ c) {
+    const { region, pack } = placeOf(c);
+    return { region: { center: region.center, countryCode: region.countryCode, city: region.city, timezone: region.timezone }, pack: packView(pack, region) };
+  }
   const memberView = (/** @type {Member} */ m) => ({ id: m.id, name: m.name, area: { label: m.area?.label ?? null } });
 
   function planView(/** @type {Plan} */ plan, /** @type {Crew} */ crew, /** @type {Member[]} */ members, /** @type {"member"|"guest"} */ role, /** @type {Member|null} */ me) {
@@ -138,25 +210,32 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       flyerUrl: links.flyer,
     });
     // what it costs to get in, only from a source; a flyer's own price speaks for itself
-    const entry = plan.price ? null : entryFor(plan.place, spots, { ritual: plan.kind === "ritual" });
+    const entry = plan.price ? null : entryFor(plan.place, placeOf(crew).curated, { ritual: plan.kind === "ritual" });
     return entry ? { ...view, place: { ...view.place, entry } } : view;
   }
 
   // ------------------------------------------------------------ places and areas
 
-  /** Geocode an area: a label ("Yaba") or a picked { label, lat, lon }. */
-  async function resolveArea(area) {
+  /**
+   * Geocode an area: a label ("Yaba") or a picked { label, lat, lon }, in the crew's context
+   * (src/packs: Lagos adds ", Lagos"; elsewhere results are biased to the crew's centre).
+   * The hit's country and city come back too, for the crew's region.
+   * @param {any} area
+   * @param {Partial<import("../packs/index.mjs").GeocodeContext>} [ctx]
+   * @returns {Promise<{ area: { label: string, lat: number|null, lon: number|null }|null, note: string|null, country?: string, city?: string }>}
+   */
+  async function resolveArea(area, ctx = {}) {
     if (area && typeof area === "object") {
       const label = clip(area.label, 60);
       if (!label) return { area: null, note: null };
-      if (isLatLon(area)) return { area: { label, lat: Number(area.lat), lon: Number(area.lon) }, note: null };
-      return resolveArea(label);
+      if (isLatLon(area)) return { area: { label, lat: Number(area.lat), lon: Number(area.lon) }, note: null, country: typeof area.country === "string" ? area.country : undefined, city: typeof area.city === "string" ? area.city : undefined };
+      return resolveArea(label, ctx);
     }
     const label = clip(area, 60);
     if (!label) return { area: null, note: null };
     try {
-      const hit = await geocoder.lookupArea(label);
-      if (hit) return { area: { label, lat: hit.lat, lon: hit.lon }, note: null };
+      const hit = await geocoder.lookupArea(label, ctx);
+      if (hit) return { area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city };
     } catch (e) {
       log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
     }
@@ -164,32 +243,34 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /** A curated spot with this name ("FREEDOM PARK" on a flyer is Freedom Park), or null. */
-  function knownSpot(name) {
+  function knownSpot(name, /** @type {any[]} */ curated) {
     const n = normName(name);
     if (n.length < 4) return null;
-    return spots.find((s) => [s.name, ...(s.aliases || [])].some((x) => normName(x) === n || normName(x).replace(/ (park|beach|garden)$/, "") === n)) ?? null;
+    return curated.find((s) => [s.name, ...(s.aliases || [])].some((x) => normName(x) === n || normName(x).replace(/ (park|beach|garden)$/, "") === n)) ?? null;
   }
 
   /**
    * Put a plan's place on the map when it has a name or an address but no pin. When the
    * exact place is not on the map, the neighbourhood named in its address ("..., Surulere")
    * is kept as `near`: good enough for ride times and the weather, never as the drop-off.
+   * @param {any} place
+   * @param {ReturnType<typeof placeOf>} where  the crew's pack and geocoding context
    */
-  async function pinPlace(place) {
+  async function pinPlace(place, where) {
     if (!place || isLatLon(place) || !(place.address || place.name) || (/'s place$/.test(place.name || "") && !place.address)) return { place, note: null };
     const { near: _old, ...bare } = place;
-    const spot = !place.private && knownSpot(place.name);
+    const spot = !place.private && knownSpot(place.name, where.curated);
     if (spot) {
       const outdoor = place.outdoor || OUTDOOR_KINDS.includes(spot.kind);
       return { place: { ...bare, name: spot.name, lat: spot.lat, lon: spot.lon, outdoor, ...(spot.osm ? { osm: spot.osm } : {}) }, note: `Pinned at ${spot.name}${outdoor && !place.outdoor ? ", an outdoor spot, so the weather is watched" : ""}.` };
     }
     try {
-      const hit = await geocoder.lookup(place.address || place.name);
+      const hit = await geocoder.lookup(place.address || place.name, where.geo);
       if (hit) return { place: { ...bare, lat: hit.lat, lon: hit.lon }, note: `Pinned on the map at ${hit.label}${hit.detail ? `, ${hit.detail}` : ""}. Check it.` };
     } catch {}
-    for (const label of neighbourhoodsIn(place.address)) {
+    for (const label of neighbourhoodsIn(place.address, where.pack.addressNoise(where.region))) {
       try {
-        const hit = await geocoder.lookupArea(label);
+        const hit = await geocoder.lookupArea(label, where.geo);
         if (hit) return { place: { ...bare, near: { label, lat: hit.lat, lon: hit.lon } }, note: `Could not find the exact address on the map, so ride times and the weather are guessed from ${label}. Riders will paste the address into their ride app.` };
       } catch {}
     }
@@ -198,26 +279,69 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   // ------------------------------------------------------------ crews
 
-  /** Step 1: Gemma reads the setup sentence; areas are geocoded; nothing is saved. */
-  async function draftCrew({ sentence }) {
+  /**
+   * Step 1: Gemma reads the setup sentence; areas are geocoded; nothing is saved.
+   * `hint.tz` is the visitor's own zone (the browser's): with none, or a Lagos zone, the
+   * crew starts out in Lagos as every crew did; any other zone starts it anywhere, and its
+   * areas decide where. The first area found anywhere fixes the centre, and the rest are
+   * looked up near it, so "Westlands" after "Kilimani" is the one in Nairobi.
+   */
+  async function draftCrew({ sentence, hint = null }) {
     const s = clip(sentence, LIMITS.sentence);
     if (!s || s.length < 3) throw invalid([{ field: "sentence", message: "Describe the crew in a sentence." }]);
-    const g = await gemma("parse-crew", crewSetupMessages(prompts["parse-crew"], { sentence: s }), CREW_SCHEMA);
-    const r = readCrewSetup(g.data, { sentence: s });
+    const start = hintRegion(hint);
+    const first = placeOf({ region: start });
+    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s }), CREW_SCHEMA);
+    const r = readCrewSetup(g.data, { sentence: s }, first.local);
     const notes = [...r.notes];
     if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
-    const areas = [];
-    for (const label of r.draft.areaLabels) {
-      const { area, note } = await resolveArea(label);
-      if (area) areas.push(area);
-      if (note) notes.push(note);
-    }
+    const located = await locateAreas(r.draft.areaLabels, start, hint == null, notes);
+    const region = (await regionFrom(located.found, start)) ?? start;
     const { areaLabels, ...rest } = r.draft;
-    return { draft: { ...rest, areas }, confidence: r.confidence, low: r.low, notes, ai: !g.error };
+    const { pack } = placeOf({ region });
+    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), confidence: r.confidence, low: r.low, notes, ai: !g.error };
   }
 
-  /** Step 2: create the crew from the confirmed draft; the organiser may join at once. */
-  async function createCrew({ confirm, organiser }) {
+  /**
+   * Geocode a new crew's area names. In Lagos (the start region is Lagos's), each is looked
+   * up as it always was; when that finds nothing and the visitor gave no zone, it is tried
+   * anywhere, so an old client starting a Berlin crew still works. Elsewhere, the first name
+   * is looked up anywhere and the rest near the first one found.
+   * @param {string[]} labels
+   * @param {Region} start
+   * @param {boolean} noHint
+   * @param {string[]} notes
+   */
+  async function locateAreas(labels, start, noHint, notes) {
+    const startPack = packFor(start);
+    /** @type {{ label: string, lat: number|null, lon: number|null }[]} */
+    const areas = [];
+    /** @type {{ lat: number, lon: number, country?: string, city?: string }[]} */
+    const found = [];
+    for (const label of labels) {
+      /** @type {Awaited<ReturnType<typeof resolveArea>>|null} */
+      let got = null;
+      if (startPack.id !== "default") {
+        got = await resolveArea(label, startPack.geocode(start));
+        if (!isLatLon(got.area) && noHint) got = await resolveArea(label, {});
+      } else {
+        const anchor = found[0];
+        got = await resolveArea(label, anchor ? { near: anchor, country: anchor.country ?? null, cityFallback: anchor.city ?? null } : {});
+      }
+      if (got.area) areas.push(got.area);
+      if (got.note) notes.push(got.note);
+      if (got.area && isLatLon(got.area)) found.push({ lat: /** @type {number} */ (got.area.lat), lon: /** @type {number} */ (got.area.lon), country: got.country, city: got.city });
+    }
+    return { areas, found };
+  }
+
+  /**
+   * Step 2: create the crew from the confirmed draft; the organiser may join at once. The
+   * crew's region is the draft's (the confirm screen sends it back), its centre moved to
+   * the confirmed areas; with no region at all (an old client), the visitor's zone decides,
+   * and with no zone either, Lagos, as before.
+   */
+  async function createCrew({ confirm, organiser, hint = null }) {
     const c = confirm && typeof confirm === "object" ? confirm : {};
     /** @type {{ field: string, message: string }[]} */
     const errors = [];
@@ -227,7 +351,13 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const areas = (Array.isArray(c.areas) ? c.areas : []).slice(0, LIMITS.areas).map((/** @type {any} */ a) => ({ label: clip(a?.label, 60), lat: isLatLon(a) ? Number(a.lat) : null, lon: isLatLon(a) ? Number(a.lon) : null })).filter((/** @type {any} */ a) => a.label);
     if (errors.length) throw invalid(errors);
     const t = now();
-    const tz = DEFAULT_TZ;
+    const given = cleanRegion(c.region);
+    const base = given ?? hintRegion(hint);
+    const located = areas.filter(isLatLon).map((/** @type {any} */ a) => ({ lat: a.lat, lon: a.lon }));
+    const moved = located.length && (!base.center || haversineKm(base.center, /** @type {any} */ (centroid(located))) > 1);
+    /** @type {Region} */
+    const region = moved && (given || base.tzSource !== "legacy") ? (await regionFrom(located, base)) ?? base : base;
+    const tz = region.timezone;
     /** @type {Crew} */
     const crew = {
       id: ids.id("c"),
@@ -239,11 +369,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       rhythm: rhythm ? { ...rhythm, anchor: localParts(t, tz).date } : null,
       areas: /** @type {any} */ (areas),
       tz,
+      region,
       createdAt: new Date(t).toISOString(),
       inviteToken: ids.token(),
     };
     await store.put("crews", crew);
-    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm });
+    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource });
     const out = { crew: crewView(crew), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken };
     if (organiser && typeof organiser === "object" && clip(organiser.name, LIMITS.memberName)) {
       const joined = await addMember(crew, organiser);
@@ -285,7 +416,18 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (!name) throw invalid([{ field: "name", message: "What should the crew call you?" }]);
     const count = (await store.find("members", { crewId: crew.id })).length;
     if (count >= LIMITS.membersPerCrew) throw new AppError(409, "crew_full", "This crew is full.");
-    const { area, note } = await resolveArea(body?.area);
+    const where = placeOf(crew);
+    const { area, note, country, city } = await resolveArea(body?.area, where.geo);
+    // a crew whose region has no centre yet (no area was found at setup) takes it from its
+    // first member on the map
+    if (area && isLatLon(area) && !where.region.center && crew.region) {
+      const region = await regionFrom([{ lat: /** @type {number} */ (area.lat), lon: /** @type {number} */ (area.lon), country, city }], where.region);
+      if (region) {
+        crew.region = region;
+        crew.tz = region.timezone;
+        await store.put("crews", crew);
+      }
+    }
     /** @type {Member} */
     const member = { id: ids.id("m"), crewId: crew.id, name, area: /** @type {any} */ (area), token: ids.token(), calToken: ids.token(), joinedAt: new Date(now()).toISOString() };
     await store.put("members", member);
@@ -299,14 +441,30 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return addMember(crew, body);
   }
 
-  /** Area type-ahead. */
-  async function searchAreas({ q }) {
+  /**
+   * Area type-ahead, biased to where the crew is: `near` and `country` from the crew's region
+   * (the join screen and the crew's own screens send them), else the visitor's zone: no zone,
+   * or a Lagos one, searches Lagos as before; any other zone searches anywhere.
+   * @param {{ q: any, near?: { lat: number, lon: number }|null, country?: string|null, tz?: string|null }} input
+   */
+  async function searchAreas({ q, near = null, country = null, tz = null }) {
     const query = clip(q, 80);
     if (!query || query.length < 2) return { results: [] };
+    const cc = typeof country === "string" && /^[a-z]{2}$/i.test(country) ? country.toUpperCase() : null;
+    /** @type {{ near: { lat: number, lon: number }|null, country: string|null }} */
+    let where;
+    if (isLatLon(near)) where = { near: { lat: Number(/** @type {any} */ (near).lat), lon: Number(/** @type {any} */ (near).lon) }, country: cc };
+    else {
+      const start = hintRegion(tz ? { tz } : null);
+      const ctx = packFor(start).geocode(start);
+      where = { near: ctx.near, country: ctx.country ?? cc };
+    }
     try {
-      let rs = await geocoder.search(query, { limit: 5, areas: true });
-      if (!rs.length) rs = await geocoder.search(query, { limit: 5 });
-      return { results: rs.map((r) => ({ label: r.label, detail: r.detail, lat: r.lat, lon: r.lon })) };
+      let rs = await geocoder.search(query, { limit: 5, areas: true, ...where });
+      if (!rs.length) rs = await geocoder.search(query, { limit: 5, ...where });
+      // near a crew, a far-away namesake is not the neighbourhood anyone means
+      if (isLatLon(near)) rs = rs.filter((r) => haversineKm(/** @type {any} */ (where.near), r) <= NEAR_KM * 2);
+      return { results: rs.map((r) => ({ label: r.label, detail: r.detail, lat: r.lat, lon: r.lon, ...(r.country ? { country: r.country } : {}), ...(r.city ? { city: r.city } : {}) })) };
     } catch {
       return { results: [] };
     }
@@ -346,13 +504,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         notes.push(`${/** @type {any} */ (e).message || "That link could not be read."} Used the rest.`);
       }
     }
-    const tz = crew.tz || DEFAULT_TZ;
+    const where = placeOf(crew);
+    const tz = crew.tz || where.region.timezone;
     const today = localParts(now(), tz).date;
     const input = { text: t, url: link, pageMeta, image: img, today, tz };
-    const g = await gemma("parse-plan", planMessages(prompts["parse-plan"], input), PLAN_SCHEMA);
+    const g = await gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA);
     if (g.error) notes.unshift(pageMeta?.event ? `${g.error} Used the page's own event details.` : `${g.error} Fill this in yourself.`);
-    const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name } });
-    const pinned = await pinPlace(r.draft.place);
+    const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name }, local: where.local });
+    const pinned = await pinPlace(r.draft.place, where);
     if (pinned.note) notes.push(pinned.note);
     /** @type {Record<string, any>} */
     const source = { ...r.draft.source };
@@ -374,12 +533,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (role !== "member" || !member) throw new AppError(403, "members_only", "Join the crew first, then add plans.");
     const raw = body?.plan;
     if (raw?.kind === "ritual") throw invalid([{ field: "kind", message: "Ritual plans are made by Come Through." }]);
-    const v = validateDraft(raw, { tz: crew.tz || DEFAULT_TZ });
+    const v = validateDraft(raw, { tz: crew.tz || regionOf(crew).timezone });
     if (!v.ok) throw invalid(v.errors);
     if (parseInstant(v.draft.end) < now()) throw invalid([{ field: "start", message: "That plan has already happened." }]);
     const members = await membersOf(crew.id);
     const draft = { ...v.draft, host: v.draft.host && members.some((m) => m.id === v.draft.host) ? v.draft.host : null };
-    draft.place = (await pinPlace(draft.place)).place;
+    draft.place = (await pinPlace(draft.place, placeOf(crew))).place;
     if (draft.source.flyerId) {
       const flyer = await store.get("flyers", draft.source.flyerId);
       if (flyer && flyer.crewId === crew.id) delete draft.source.imageUrl;
@@ -417,7 +576,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       if (!r.ok) throw invalid(r.errors);
       next = r.plan;
       changed = r.changed;
-      if (changed.includes("place")) next = { ...next, place: (await pinPlace(next.place)).place };
+      if (changed.includes("place")) next = { ...next, place: (await pinPlace(next.place, placeOf(crew))).place };
       if (changed.includes("start") || changed.includes("place")) next = await withWeather({ ...next, weather: null });
     }
     if ("rsvp" in b) {
@@ -425,7 +584,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       next = setRsvp(next, member.id, b.rsvp, now());
     }
     if (next === plan) return { plan: planView(plan, crew, members, "member", member) };
-    const podsBefore = podKeys(plan, members);
+    const podsBefore = podKeys(plan, members, crew);
     await store.put("plans", next);
     const audience = Object.keys(next.rsvps).filter((m) => m !== member.id);
     if (changed.includes("status") && next.status === "cancelled") {
@@ -452,32 +611,33 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /** Pod membership only (no routes needed): who rides with whom. */
-  const podGroups = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { near: nearOf(plan, members) });
+  const podGroups = (/** @type {Plan} */ plan, /** @type {Member[]} */ members, /** @type {Crew} */ crew) => podsForPlan(plan, riders(plan, members), { near: nearOf(plan, members), model: placeOf(crew).pack.travel });
 
-  /** Pods with road routes for each pickup (OSRM, cached), falling back to the straight line. */
-  async function computePods(/** @type {Plan} */ plan, /** @type {Member[]} */ members) {
+  /** Pods with road routes for each pickup (OSRM, cached), falling back to the straight line; the crew's pack sets the traffic model. */
+  async function computePods(/** @type {Plan} */ plan, /** @type {Member[]} */ members, /** @type {Crew} */ crew) {
     const going = riders(plan, members);
     const near = nearOf(plan, members);
+    const model = placeOf(crew).pack.travel;
     /** @type {Map<string, any>} */
     const found = new Map();
     if (routes) {
-      for (const t of podTrips(plan, going, { near })) {
+      for (const t of podTrips(plan, going, { near, model })) {
         const r = await routes.route(t.from, t.to).catch(() => null);
         if (r) found.set(tripKey(t.from, t.to), r);
       }
     }
-    return podsForPlan(plan, going, { near, route: (a, b) => found.get(tripKey(a, b)) ?? null });
+    return podsForPlan(plan, going, { near, model, route: (a, b) => found.get(tripKey(a, b)) ?? null });
   }
 
   /** Pod memberships as keys, to tell when a new pod of two or more has formed. */
-  function podKeys(plan, members) {
+  function podKeys(plan, members, crew) {
     if (!isLatLon(plan.place) && !nearOf(plan, members)) return new Set();
-    return new Set(podGroups(plan, members).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
+    return new Set(podGroups(plan, members, crew).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
   }
 
   async function notifyNewPods(plan, crew, members, before) {
     if ((!isLatLon(plan.place) && !nearOf(plan, members)) || plan.status === "cancelled") return;
-    for (const pod of (await computePods(plan, members)).pods) {
+    for (const pod of (await computePods(plan, members, crew)).pods) {
       const key = pod.memberIds.join(",");
       if (pod.memberIds.length < 2 || before.has(key)) continue;
       await notify(pod.memberIds, { title: `Ride pod for ${plan.title}`, body: pod.shareText, url: links.plan(crew, plan.id), tag: `${plan.id}-pod` }, `${plan.id}:pod:${key}`);
@@ -506,14 +666,16 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function getPods({ id, token }) {
     const { crew, plan } = await planFor(id, token);
     const members = await membersOf(crew.id);
-    // the ride apps that work in Lagos, Bolt first; none takes a drop-off from a link
-    return { ...(await computePods(plan, members)), rides: ridesForApi() };
+    // the ride apps the crew's pack has verified (in Lagos: Bolt, inDrive, LagRide; none
+    // takes a drop-off from a link); elsewhere none, and "Get directions" instead
+    const { pack } = placeOf(crew);
+    return { ...(await computePods(plan, members, crew)), rides: ridesForApi(pack.rides), directions: directionsLinks(plan.place) };
   }
 
   /** The member's pod line and leave-by for a plan, for the calendar. */
-  async function podExtras(plan, members, memberId) {
+  async function podExtras(plan, members, memberId, crew) {
     if (plan.rsvps?.[memberId] !== "going" || (!isLatLon(plan.place) && !nearOf(plan, members))) return {};
-    const pod = (await computePods(plan, members)).pods.find((p) => p.memberIds.includes(memberId));
+    const pod = (await computePods(plan, members, crew)).pods.find((p) => p.memberIds.includes(memberId));
     return pod?.leaveBy ? { leaveBy: pod.leaveBy, podText: pod.shareText } : {};
   }
 
@@ -522,7 +684,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { member, crew, plan } = await planFor(id, token);
     const members = await membersOf(crew.id);
     const names = namesOf(members);
-    const ics = singleEvent(plan, { memberId: member.id, uidDomain: cfg.uidDomain, extras: { url: links.plan(crew, plan.id), going: goingIds(plan).map((i) => names[i]).filter(Boolean), ...(await podExtras(plan, members, member.id)) } });
+    const ics = singleEvent(plan, { memberId: member.id, uidDomain: cfg.uidDomain, zoneNames: placeOf(crew).pack.zoneNames, extras: { url: links.plan(crew, plan.id), going: goingIds(plan).map((i) => names[i]).filter(Boolean), ...(await podExtras(plan, members, member.id, crew)) } });
     return { ics, filename: icsFileName(plan.title) };
   }
 
@@ -537,9 +699,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const plans = await plansOf(crew.id);
     /** @type {Map<string, any>} */
     const pods = new Map();
-    for (const p of plans) pods.set(p.id, await podExtras(p, members, member.id));
+    for (const p of plans) pods.set(p.id, await podExtras(p, members, member.id, crew));
     return calendarFeed({
-      crew, member, plans, now: now(), uidDomain: cfg.uidDomain,
+      crew, member, plans, now: now(), uidDomain: cfg.uidDomain, zoneNames: placeOf(crew).pack.zoneNames,
       extras: (p) => ({ url: links.plan(crew, p.id), going: goingIds(p).map((i) => names[i]).filter(Boolean), ...pods.get(p.id) }),
     });
   }
@@ -621,8 +783,21 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return [...fromMembers, ...extra];
   }
 
-  /** Candidate places near a point: live Overpass results merged with the curated spots. */
-  async function candidatesNear(center) {
+  /**
+   * Candidate places near a point: live Overpass results merged with the pack's curated
+   * spots (Lagos), or with Wikidata's parks and beaches near the crew (anywhere else).
+   * Overpass and Wikidata are asked at the same time, so the heartbeat stays inside its
+   * 100 s.
+   * @param {{ lat: number, lon: number }} center
+   * @param {CityPack} [pack]
+   */
+  async function candidatesNear(center, pack = placeOf({}).pack) {
+    const fromWikidata = pack.wikidataSpots && wikidata
+      ? wikidata.spotsNear(center, SEARCH_RADII_M[0] / 1000).catch((e) => {
+        log("wikidata_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+        return /** @type {any[]} */ ([]);
+      })
+      : Promise.resolve(/** @type {any[]} */ ([]));
     /** @type {any[]} */
     let live = [];
     for (const r of SEARCH_RADII_M) {
@@ -638,11 +813,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       if (live.length >= 3) break;
     }
     // outdoor spots, plus any spot a source says has a roof (offered only when it rains)
-    const curated = spots
+    const curated = (pack.curated ? spots : [])
       .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
       .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, ...(s.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(s.entry ? { entry: s.entry } : {}) }));
     const out = [...live];
-    for (const c of curated) {
+    for (const c of [...curated, ...(await fromWikidata)]) {
       const dup = out.some((o) => placeKey(o) === placeKey(c) || (haversineKm(o, c) < 0.3 && o.name.toLowerCase() === c.name.toLowerCase()));
       if (!dup) out.push(c);
     }
@@ -658,9 +833,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const points = crewPoints(crew, members);
     const center = centroid(points.map((p) => p.area));
     if (!center) return { made: false, reason: "no_location" };
-    const candidates = await candidatesNear(center);
+    const { pack, local } = placeOf(crew);
+    const candidates = await candidatesNear(center, pack);
     if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
-    const tz = crew.tz || DEFAULT_TZ;
+    const tz = crew.tz || regionOf(crew).timezone;
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
     let hours = null;
     try {
@@ -669,10 +845,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
     // stretch that day or the next, else a covered place, else the sloth skips this one
     // (core/weather.mjs, ritualWindow)
-    const rw = hours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }) : null;
+    const rw = hours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }, pack.social) : null;
     let win = rw?.win ?? null;
     let date = rw?.date ?? due.date;
-    let window = rw ? rw.window : clipToSocial(due.date, { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) });
+    let window = rw ? rw.window : clipToSocial(due.date, { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) }, { social: pack.social });
     /** @type {import("../core/weather.mjs").RainPlan|null} */
     let rainPlan = rw?.rainPlan ?? null;
     const open = candidates.filter((c) => c.covered !== true);
@@ -681,7 +857,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       const covered = candidates.filter((c) => c.covered === true);
       if (covered.length) {
         pool = covered;
-        window = clipToSocial(due.date, due.window, { outdoor: false });
+        window = clipToSocial(due.date, due.window, { outdoor: false, social: pack.social });
         window = { from: window.from, to: hhmm(Math.min(minutesOfDay(window.to), minutesOfDay(window.from) + span * 60)) };
         date = due.date;
         win = null;
@@ -701,7 +877,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         if (km != null && min != null) roads.set(tripKey(p.area, c), { km, min });
       }));
     }
-    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null });
+    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null, model: pack.travel });
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
     if (rainPlan?.kind === "skip" && !outdoor) rainPlan = { ...rainPlan, kind: "covered", note: coveredNote(rainPlan, pick.name, window) };
@@ -714,11 +890,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       // nothing to explain or invite to: the note says why, and no Gemma call is spent
       invite = /** @type {string} */ (rainPlan?.note);
     } else {
-      const ex = await gemma("explain-pick", explainMessages(prompts["explain-pick"], scored.explanation), EXPLAIN_SCHEMA);
+      const ex = await gemma("explain-pick", explainMessages(promptFor("explain-pick", local), scored.explanation), EXPLAIN_SCHEMA);
       why = readExplain(ex.data, scored.explanation).why;
       const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
       const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
-      const inv = await gemma("write-invite", inviteMessages(prompts["write-invite"], facts), INVITE_SCHEMA);
+      const inv = await gemma("write-invite", inviteMessages(promptFor("write-invite", local), facts), INVITE_SCHEMA);
       invite = readInvite(inv.data, facts, fallback).invite;
     }
 
@@ -827,9 +1003,14 @@ function weatherSpot(place) {
   return null;
 }
 
-/** Neighbourhood names in an address, last first ("14 Adeyemo Close, Surulere" gives "Surulere"), skipping the city, state, country and postcodes. */
-export function neighbourhoodsIn(address) {
-  return String(address || "").split(",").slice(1).map((x) => x.trim()).filter((x) => x && !/\d/.test(x) && !/^(lagos( state)?|nigeria|la|ng)$/i.test(x)).reverse().slice(0, 2);
+/**
+ * Neighbourhood names in an address, last first ("14 Adeyemo Close, Surulere" gives
+ * "Surulere"), skipping postcodes and the parts that name the city, state or country.
+ * @param {string|null|undefined} address
+ * @param {RegExp} [noise]  the parts to skip: the crew's pack says which (pack.addressNoise)
+ */
+export function neighbourhoodsIn(address, noise = /^$/) {
+  return String(address || "").split(",").slice(1).map((x) => x.trim()).filter((x) => x && !/\d/.test(x) && !noise.test(x)).reverse().slice(0, 2);
 }
 
 const normName = (/** @type {any} */ s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();

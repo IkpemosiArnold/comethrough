@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
-import { inLagos } from "../src/core/geo.mjs";
+import { inLagos } from "../src/packs/lagos/geo.mjs";
 
 const data = JSON.parse(fs.readFileSync(new URL("../data/lagos-spots.json", import.meta.url), "utf8"));
 

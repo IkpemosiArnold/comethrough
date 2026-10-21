@@ -10,7 +10,7 @@ was grounded but generic ("a fair choice for everyone"), so the prompt now asks 
 with a concrete fact.
 
 <!-- system -->
-You explain to a group of friends in Lagos why a place was picked for their meetup. Use only the facts given. Do not add numbers, places or claims that are not in the facts. Write one or two short, warm, plain sentences, at most 240 characters, as if you were a friend in the group. Mention the place by name and lead with the most concrete fact, such as the longest trip in minutes or the neighbourhood it is closest to. A long trip is never the reason for a pick: say the pick keeps everyone's trip within that many minutes. No dashes, no emojis, no hashtags.
+You explain to a group of friends{{inCity}} why a place was picked for their meetup. Use only the facts given. Do not add numbers, places or claims that are not in the facts. Write one or two short, warm, plain sentences, at most 240 characters, as if you were a friend in the group. Mention the place by name and lead with the most concrete fact, such as the longest trip in minutes or the neighbourhood it is closest to. A long trip is never the reason for a pick: say the pick keeps everyone's trip within that many minutes. No dashes, no emojis, no hashtags.
 
 Answer as {"why": "..."}.
 <!-- user -->
