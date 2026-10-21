@@ -144,6 +144,9 @@ export function tripsTo(points, to, { at, tz, model = FREE_FLOW }) {
   return { maxMin: list[0].minutes, trips: list };
 }
 
+/** The slot's days in the order a place or the usual should try them: Saturday and Sunday before a Friday evening. */
+export const preferredDays = (/** @type {Slot} */ slot) => (slot.when === "weekend" ? [...slot.days.filter((d) => isWeekend(d.date)), ...slot.days.filter((d) => !isWeekend(d.date))] : slot.days);
+
 const near = (/** @type {{ lat: number, lon: number }} */ center, /** @type {any} */ p, /** @type {number} */ km) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon) && haversineKm(center, p) <= km;
 
 /**
@@ -235,7 +238,7 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
   /** @type {{ date: string, time: TimeWindow, weather: any }|null} */
   let dry = null;
   let wet = false;
-  for (const d of slot.days) {
+  for (const d of preferredDays(slot)) {
     if (!d.outdoor) continue;
     const span = Math.min(3, Math.floor((minutesOfDay(d.outdoor.to) - minutesOfDay(d.outdoor.from)) / 60));
     const b = windowWeather(hours, d.date, d.outdoor, Math.max(1, span));
@@ -255,7 +258,7 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
     }
     wet = true;
   }
-  const coveredDay = slot.days.find((d) => d.covered);
+  const coveredDay = preferredDays(slot).find((d) => d.covered);
   const coveredTime = coveredDay?.covered
     ? (() => {
       const from = isWeekend(coveredDay.date) && slot.when === "weekend" ? later(coveredDay.covered.from, "16:00") : coveredDay.covered.from;
@@ -333,7 +336,7 @@ export function usualCandidates(plans, { slot, center, points, hours, now, model
     // the first slot day with fitting hours (and, outdoors, not wet)
     let day = null;
     let b = null;
-    for (const d of slot.days) {
+    for (const d of preferredDays(slot)) {
       const dw = outdoor ? d.outdoor : d.covered;
       if (!dw) continue;
       const ww = outdoor ? windowWeather(hours, d.date, dw, span) : null;

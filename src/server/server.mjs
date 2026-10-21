@@ -286,7 +286,7 @@ async function main() {
   const cfg = config();
   const deps = await buildDeps(cfg);
   const service = createService({ ...deps, cfg });
-  const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, prompts: deps.prompts, now: deps.now, log: jsonLog });
+  const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, spots: deps.spots, prompts: deps.prompts, now: deps.now, log: jsonLog });
   const server = createApi({ service, cfg, log: jsonLog, ideas });
   // a local model on a laptop can take minutes; the request must outlive it
   server.requestTimeout = cfg.llm === "ollama" && !cfg.offline ? Math.max(60_000, cfg.ollama.timeoutMs + 15_000) : 60_000;

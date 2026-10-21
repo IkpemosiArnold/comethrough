@@ -37,8 +37,15 @@ const FACTS_TTL_MS = 14 * 24 * 3_600_000;
 /** Reading a whole weekly guide is a long answer (about 1,500 tokens): two minutes. */
 export const EVENTS_TIMEOUT_MS = 120_000;
 const INDEX_TTL_MS = 30 * 24 * 3_600_000;
-/** How long a request waits for the places pipeline before going on without it. */
+/** How long a request waits for the places pipeline before going on with the curated spots. */
 export const PLACES_BUDGET_MS = 15_000;
+/** How long a request waits for a guide being read (it goes on in the background). */
+export const REFRESH_BUDGET_MS = 25_000;
+/** A card made while a guide was still being read is kept only this long. */
+const PARTIAL_TTL_MS = 10 * 60_000;
+/** Venue lookups per post stop after this long (the rest keep no map position). */
+const GEOCODE_BUDGET_MS = 20_000;
+const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
 
 /**
  * @param {object} deps
@@ -52,13 +59,18 @@ export const PLACES_BUDGET_MS = 15_000;
  * @param {Record<string, import("../core/tasks.mjs").Prompt>} deps.prompts
  * @param {() => number} deps.now
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
+ * @param {any[]} [deps.spots]  the curated spots (the Lagos pack's), used when the places pipeline is slow
  * @param {number} [deps.placesBudgetMs]
+ * @param {number} [deps.refreshBudgetMs]
  */
-export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candidatesNear, prompts, now, log = () => {}, placesBudgetMs = PLACES_BUDGET_MS }) {
+export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candidatesNear, prompts, now, log = () => {}, spots = [], placesBudgetMs = PLACES_BUDGET_MS, refreshBudgetMs = REFRESH_BUDGET_MS }) {
   /** @type {Map<string, Promise<any>>} */
   const inflight = new Map();
   /** @type {Map<string, Promise<void>>} */
   const refreshing = new Map();
+
+  /** Resolves with undefined after ms (never keeps the process up). */
+  const wait = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms).unref?.());
 
   const once = (/** @type {Map<string, Promise<any>>} */ m, /** @type {string} */ key, /** @type {() => Promise<any>} */ fn) => {
     let p = m.get(key);
@@ -125,7 +137,12 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       }
       const { events, dropped } = readEvents(data, { source, item, text, links });
       // where each venue is, for the distance cap and the trips (cached by the geocoder)
-      for (const e of events) e.at = await locate(e, where);
+      // only events still to come are looked up, within a time budget
+      const until = Date.now() + GEOCODE_BUDGET_MS;
+      for (const e of events) {
+        if (Date.now() > until) break;
+        if (e.dates.some((d) => d >= today)) e.at = await locate(e, where);
+      }
       await cache.set(`feedfacts:${item.link}`, { events, readAt: new Date(now()).toISOString() }, FACTS_TTL_MS);
       log("feed_read", { feed: source.id, post: item.link, events: events.length, dropped: dropped.length, ms: now() - t0 });
       if (!index.posts.some((p) => p.link === item.link)) index.posts.unshift({ link: item.link, published: item.published });
@@ -178,8 +195,8 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     if (hit) return { ...hit, cached: true };
     return once(inflight, key, async () => {
       onMiss();
-      const card = await makeCard(crew, w);
-      await cache.set(key, card, IDEAS_TTL_MS);
+      const card = /** @type {any} */ (await makeCard(crew, w));
+      await cache.set(key, card, card.partial ? PARTIAL_TTL_MS : IDEAS_TTL_MS);
       return { ...card, cached: false };
     });
   }
@@ -212,9 +229,17 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       hours = await weather.hourly(center, { tz, days: 7 });
     } catch {}
     const placesP = candidatesNear(center, pack).catch(() => /** @type {any[]} */ ([]));
-    const places = await Promise.race([placesP, new Promise((r) => setTimeout(() => r(null), placesBudgetMs).unref?.())]);
-    if (places === null) notes.push("The map was slow, so fewer places were checked.");
-    await refresh;
+    let places = await Promise.race([placesP, wait(placesBudgetMs)]);
+    if (places === undefined) {
+      // the map is slow (it keeps going, and fills its cache for next time): the curated spots meanwhile
+      places = (pack.curated ? spots : [])
+        .filter((x) => (OUTDOOR_KINDS.includes(x.kind) || x.covered === true) && haversineKm(center, x) <= 15)
+        .map((x) => ({ name: x.name, lat: x.lat, lon: x.lon, osm: x.osm || undefined, ...(x.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(x.entry ? { entry: x.entry } : {}) }));
+      notes.push("The map was slow, so fewer places were checked.");
+    }
+    const read = await Promise.race([refresh.then(() => true), wait(refreshBudgetMs)]);
+    const partial = read !== true;
+    if (partial) notes.push("Still reading this week's guides. Ask again in a few minutes for their events.");
     const events = (await Promise.all(guides.map(eventsFrom))).flat();
 
     const ctx = { slot, center, points, hours, model: pack.travel };
@@ -224,7 +249,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     if (pl.wet) notes.push("Rain is forecast for the open-air hours, so outdoor places are left out.");
     const cands = pool({ events: ev, places: pl.candidates, usual: us }, slot.today);
     const sources = guides.map((g) => ({ name: g.name, url: g.home }));
-    if (!cands.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, "Nothing fits this time. Try the other slot, or add a plan yourself."] };
+    if (!cands.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, "Nothing fits this time. Try the other slot, or add a plan yourself."], ...(partial ? { partial: true } : {}) };
 
     const crewFacts = { vibe: crew.vibe ?? null, likes: crew.vibeTags ?? [], budget: crew.budget ?? "any", when };
     let data = null;
@@ -241,7 +266,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const ideas = ranked.picks.map((p) => ideaView(p, { today: slot.today, tz }));
     if (ideas.length < 3) notes.push(`Only ${ideas.length === 1 ? "one idea fits" : `${ideas.length} ideas fit`} this time.`);
     log("ideas", { crew: crew.id, when, events: ev.length, places: pl.candidates.length, usual: us.length, by: ranked.by });
-    return { ...base, ideas, by: ranked.by, sources, notes };
+    return { ...base, ideas, by: ranked.by, sources, notes, ...(partial ? { partial: true } : {}) };
   }
 
   /** The heartbeat's part: refresh every guide for packs that have them (at most daily each). */

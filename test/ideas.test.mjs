@@ -336,3 +336,19 @@ test("HTTP: GET /api/crews/:slug/ideas?when= answers the card; a bad slot is a 4
     }
   }
 });
+
+test("a slow map and a guide still being read: the curated spots stand in, and the card says it is partial (kept ten minutes, not three hours)", async () => {
+  const { store, cache, ai } = await setup({ rank: { picks: [] } });
+  const never = new Promise(() => {});
+  const slowFeeds = { async pull() { await new Promise((r) => setTimeout(r, 300)); return { items: null, reason: "error", checkedAt: null }; } };
+  const spots = [{ name: "Freedom Park", kind: "park", lat: PLACES.freedom.lat, lon: PLACES.freedom.lon }, { name: "Covered Hall", kind: "venue", covered: true, lat: 6.45, lon: 3.42 }];
+  const ideas = createIdeas({
+    store, cache, ai, feeds: /** @type {any} */ (slowFeeds), weather: fakeWeather({ rain: () => 10 }), geocoder: { lookup: async () => null, lookupArea: async () => null },
+    candidatesNear: () => /** @type {any} */ (never), spots, prompts: loadPrompts(), now: () => NOW, placesBudgetMs: 30, refreshBudgetMs: 30,
+  });
+  const card = await ideas.getIdeas({ slug: "uni-guys", token: "tok_tolu", when: "weekend" });
+  assert.ok(card.ideas.some((/** @type {any} */ i) => i.title === "Freedom Park"), "a curated spot");
+  assert.ok(card.notes.includes("The map was slow, so fewer places were checked."));
+  assert.ok(card.notes.some((/** @type {string} */ n) => /Still reading this week's guides/.test(n)));
+  assert.equal(card.partial, true);
+});
