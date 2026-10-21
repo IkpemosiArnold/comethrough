@@ -15,8 +15,14 @@ async function boot() {
   // Demo mode: open a crew link and you're already a member, unless ?guest=1
   if (MOCK) {
     const m = location.pathname.match(/^\/c\/([^/]+)/);
+    if (q.has('data')) {
+      // Dev-only datasets for break-ui: demo, worst, empty
+      const { sessionSet } = await import('./lib/store.js');
+      sessionSet('ct.data', q.get('data'));
+      (await import('./lib/mock.js'))._reset();
+    }
     if (q.has('reset')) (await import('./lib/mock.js'))._reset();
-    if (m && !q.has('guest') && !getCrew(m[1])?.memberId) (await import('./lib/mock.js'))._seedMember(m[1]);
+    if (m && !q.has('guest') && (!getCrew(m[1])?.memberId || q.has('data'))) (await import('./lib/mock.js'))._seedMember(m[1]);
   }
   installLinkInterceptor();
   render(<App />, document.getElementById('app'));

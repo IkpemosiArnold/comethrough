@@ -135,8 +135,8 @@ export function PlanPage({ params, query }) {
           <div class="grow">
             <p class="strong">{w.summary}</p>
             <p class="small">{w.rainProb}% chance of rain. Worth a plan B.</p>
+            <a class="btn secondary small-btn rain-btn" href={plan.headsUp?.whatsappUrl || whatsappUrl(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}. ${planUrl}`)} target="_blank" rel="noopener" data-external><WhatsAppIcon size={18} /> Warn the crew</a>
           </div>
-          <a class="btn ghost small-btn" href={plan.headsUp?.whatsappUrl || whatsappUrl(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}. ${planUrl}`)} target="_blank" rel="noopener" data-external>Warn the crew</a>
         </div>
       )}
 
@@ -156,7 +156,7 @@ export function PlanPage({ params, query }) {
           <Icon name="pin" size={20} />
           <div>
             <p>{plan.place.name}{plan.place.address ? `, ${plan.place.address}` : ''}</p>
-            {plan.place.hidden && <p class="small muted">The address shows once you join the crew.</p>}
+            {plan.place.hidden && !meId && <p class="small muted">The address shows once you join the crew.</p>}
           </div>
         </div>
       )}

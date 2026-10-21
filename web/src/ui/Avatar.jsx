@@ -1,4 +1,4 @@
-import { avatarTone, initials, firstName } from '../lib/format.js';
+import { avatarTone, initials, firstInitial, firstName } from '../lib/format.js';
 
 export function Avatar({ member, size = '', ring, style, class: cls = '' }) {
   const name = member?.name || '?';
@@ -9,7 +9,7 @@ export function Avatar({ member, size = '', ring, style, class: cls = '' }) {
       title={name}
       aria-hidden="true"
     >
-      {size === 'lg' || size === 'xl' ? initials(name) : initials(name).slice(0, 1)}
+      {size === 'lg' || size === 'xl' ? initials(name) : firstInitial(name)}
     </span>
   );
 }

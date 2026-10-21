@@ -1,5 +1,6 @@
 import { useLocation, match } from './lib/router.js';
 import { Toaster } from './ui/toast.jsx';
+import { DataToggle } from './ui/DataToggle.jsx';
 import { Sloth } from './ui/Sloth.jsx';
 import { Start } from './screens/Start.jsx';
 import { CrewGate } from './screens/CrewGate.jsx';
@@ -40,6 +41,7 @@ export function App() {
         <View key={path} params={params} query={query} />
       </main>
       <Toaster />
+      <DataToggle />
     </div>
   );
 }

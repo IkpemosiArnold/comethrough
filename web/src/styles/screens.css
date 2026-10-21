@@ -300,13 +300,14 @@ a.ritual:active { transform: scale(0.98); }
 .ritual-when { margin-top: var(--s-2); color: var(--on-canopy-2); }
 .ritual-who { margin-top: var(--s-4); gap: var(--s-3); }
 .ritual-count { font-weight: 650; font-size: var(--t-sm); }
+.ritual .faces .more { color: var(--on-canopy-2); }
 .ellipsis i { font-style: normal; animation: dot 1.8s ease-in-out infinite; }
 .ellipsis i:nth-child(2) { animation-delay: 0.3s; }
 .ellipsis i:nth-child(3) { animation-delay: 0.6s; }
 
 .coming { margin-top: var(--s-2); }
 .plan-list { display: grid; gap: var(--s-3); }
-.plan-item { display: grid; grid-template-columns: 48px 1fr; gap: var(--s-2); }
+.plan-item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s-2); }
 .plan-item.first-of-day:not(:first-child) { margin-top: var(--s-3); }
 .date-rail { display: grid; justify-items: center; align-content: start; padding-top: 10px; }
 .rail-wd { font-size: var(--t-xs); font-weight: 700; color: var(--ink-2); line-height: 1.2; }
@@ -343,8 +344,8 @@ a.ritual:active { transform: scale(0.98); }
   overflow-wrap: anywhere;
 }
 .plan-meta { margin-top: 2px; color: var(--ink-2); font-size: var(--t-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.plan-foot { margin-top: var(--s-3); gap: var(--s-2); min-height: 32px; }
-.going-count { font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.plan-foot { margin-top: var(--s-3); gap: var(--s-2); min-height: 32px; flex-wrap: wrap; }
+.going-count { font-size: var(--t-sm); font-weight: 600; color: var(--ink-2); }
 
 /* A found plan wears its flyer like a poster pasted on a Lagos wall */
 .flyer-thumb {
@@ -395,7 +396,7 @@ a.ritual:active { transform: scale(0.98); }
   color: var(--ink);
 }
 .rain-warn > svg { color: var(--zobo); flex: none; margin-top: 2px; }
-.rain-warn .btn { flex: none; margin: -6px -8px -6px 0; }
+.rain-btn { margin-top: var(--s-3); }
 
 .place { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: var(--s-3) var(--s-2); margin-bottom: var(--s-4); }
 .place .map { grid-column: 1 / -1; }
@@ -659,7 +660,7 @@ a.ritual:active { transform: scale(0.98); }
 
 .desk-aside { display: none; }
 @media (min-width: 960px) {
-  .app { grid-template-columns: minmax(360px, 42vw) 1fr; }
+  .app { grid-template-columns: minmax(360px, 42vw) minmax(0, 1fr); }
   .desk-aside {
     display: block;
     position: sticky;
@@ -724,3 +725,12 @@ a.ritual:active { transform: scale(0.98); }
 .draft-notes li { position: relative; padding-left: 20px; font-size: var(--t-sm); color: var(--ink-2); }
 .draft-notes li::before { content: ''; position: absolute; left: 2px; top: 0.45em; width: 11px; height: 11px; border-radius: 3px; background: var(--danfo); transform: rotate(-8deg); }
 .empty .btn { justify-self: start; margin-top: var(--s-2); }
+
+/* Dev-only data toggle (break-ui). Plain chrome, not part of the design. */
+.data-toggle {
+  position: fixed; top: calc(var(--safe-t) + 6px); left: 50%; transform: translateX(-50%); z-index: 100;
+  display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #d4d4d4;
+  font: 600 12px/1 system-ui, sans-serif;
+}
+.data-toggle button { border: 0; background: transparent; color: #333; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+.data-toggle button[aria-pressed='true'] { background: #fff; color: #000; }

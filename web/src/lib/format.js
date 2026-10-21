@@ -72,16 +72,32 @@ export function avatarTone(key = '') {
   return { '--av-bg': `var(--av-${n})`, '--av-ink': `var(--av-${n}-ink)` };
 }
 
+// Split into user-perceived characters, so "Ọ́" or an emoji stays whole.
+const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('en', { granularity: 'grapheme' }) : null;
+function graphemes(s) {
+  return seg ? Array.from(seg.segment(s), (x) => x.segment) : Array.from(s);
+}
+// Words that start with a letter or a digit. "🎧 DJ Spinall" gives ["DJ", "Spinall"].
+function words(name) {
+  const all = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const real = all.filter((w) => /^[\p{L}\p{N}]/u.test(w));
+  return real.length ? real : all;
+}
+
 export function initials(name = '') {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '?';
-  const first = Array.from(parts[0])[0] || '?';
-  const second = parts.length > 1 ? Array.from(parts[parts.length - 1])[0] : '';
-  return (first + (second || '')).toUpperCase();
+  const w = words(name);
+  if (!w.length) return '?';
+  const first = graphemes(w[0])[0] || '?';
+  const last = w.length > 1 ? graphemes(w[w.length - 1])[0] : '';
+  return (first + last).toUpperCase();
 }
 
 export function firstName(name = '') {
-  return name.trim().split(/\s+/)[0] || name;
+  return words(name)[0] || String(name || '').trim() || '?';
+}
+
+export function firstInitial(name = '') {
+  return graphemes(initials(name))[0] || '?';
 }
 
 // "Tobi", "Tobi and Ada", "Tobi, Ada and 3 others"

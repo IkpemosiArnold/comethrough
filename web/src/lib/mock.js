@@ -95,10 +95,48 @@ function seed() {
   return { crew, members, plans, me: null };
 }
 
+// Worst realistic data, for break-ui (?mock=1&data=worst). Every value is something a real
+// Lagos crew could produce: long Yoruba and Hausa names with diacritics, a one-letter name,
+// emoji, long flyer titles, a hidden home address, a crowd of 23 on the branch.
+function seedWorst() {
+  const db = seed();
+  db.crew.name = 'Unilag Mass Comm Class of 2019 Reunion Committee 🌴';
+  db.crew.vibe = 'Owambe energy on a Tuesday budget, small chops compulsory, nobody is driving to Ajah after 9pm abeg';
+  db.crew.areas = [area('Lekki Phase 1'), area('Ojodu Berger'), area('Festac Town'), area('Ikorodu')];
+  const names = [
+    ['m0', 'Oluwadamilọlá Adébáyọ̀-Ọláolúwa', 'Ojodu Berger'], ['m1', 'Jo', 'Yaba'], ['m2', 'Abdulrahman Muhammad-Bello', 'Surulere'],
+    ['m3', 'Chukwuemekachukwu', 'Lekki Phase 1'], ['m4', '🎧 DJ Spinall-not-that-one', 'Ikeja GRA'], ['m5', 'Ọmọ́tọ́ṣọ́', 'Akoka'],
+    ['m6', 'Ngozi', 'Ajah'], ['m7', 'Ẹniọlá', 'Gbagada'], ['m8', 'Zainab', 'Lekki Phase 1'],
+  ];
+  for (let i = 9; i < 41; i++) names.push(['m' + i, ['Tolu', 'Kelechi', 'Bisi', 'Musa', 'Ifeoma', 'Segun', 'Halima', 'Uche'][i % 8] + ' ' + String.fromCharCode(65 + (i % 26)) + '.', ['Yaba', 'Ikeja', 'Ajah', 'Surulere'][i % 4]]);
+  db.members = names.map(([id, name, a]) => ({ id, name, area: { label: a }, joinedAt: lagosDate(-30, 12) }));
+  const many = Object.fromEntries(names.slice(0, 23).map(([id]) => [id, 'going']));
+  ['m30', 'm31', 'm32', 'm33', 'm34', 'm35'].forEach((id) => { many[id] = 'maybe'; });
+  const [suya, mono, ritual, groove] = db.plans;
+  suya.title = 'Afrobeats Brunch and Day Party: Detty December Warm-Up Edition (Rooftop, Strictly by RSVP, Dress Code All White)';
+  suya.place = { ...suya.place, name: 'The Rooftop at Landmark Beach Resort, Water Corporation Drive, Oniru' };
+  suya.price = { text: 'Early bird ₦15,000, regular ₦25,000, table for 6 ₦450,000 with a bottle of Hennessy', free: false };
+  suya.rsvps = { m1: 'going' };
+  mono.rsvps = {};
+  mono.place = { name: "Ọmọ́tọ́ṣọ́'s place", address: null, lat: null, lon: null, outdoor: false, private: true, hidden: true };
+  mono.host = 'm5';
+  mono.bring = ['Your own Monopoly money because last time somebody ate the ₦500 notes', 'Ice', 'A speaker that actually charges', 'Chin chin'];
+  mono.end = null;
+  ritual.rsvps = many;
+  ritual.place = { ...ritual.place, name: 'Johnson Jakande Tinubu Park (JJT Park), Alausa Secretariat' };
+  ritual.why = ritual.why + ' It also has proper toilets, which matters with 23 people, and the gate closes at 7.';
+  groove.rsvps = { m4: 'going', m7: 'maybe' };
+  groove.weather = { checkedAt: lagosDate(0, 8), summary: 'Heavy thunderstorms likely from 5pm, with strong winds near the lagoon and flooding on low roads', rainProb: 90, tempC: 26, ok: false };
+  db.plans.push({ ...suya, id: 'p-same-day', title: 'Ok', kind: 'quick', place: { name: null, address: null, lat: null, lon: null, outdoor: false, private: false }, rsvps: {}, price: null, start: suya.start, weather: null });
+  return db;
+}
+
 function load() {
   const raw = sessionGet('ct.mockdb');
   if (raw) { try { return JSON.parse(raw); } catch { /* reseed */ } }
-  const db = seed();
+  const data = sessionGet('ct.data');
+  const db = data === 'worst' ? seedWorst() : seed();
+  if (data === 'empty') { db.plans = []; db.members = db.members.slice(0, 1); }
   sessionSet('ct.mockdb', JSON.stringify(db));
   return db;
 }

@@ -114,7 +114,7 @@ export function Branch({ going, meId, swingId, onSwung }) {
                 <div class="hanger-swing" style={swingId === m.id ? { opacity: 0 } : undefined}>
                   <span class="arms" aria-hidden="true" />
                   <Avatar member={m} size="lg" ring={isMe ? 'var(--danfo)' : undefined} />
-                  <span class={`hanger-name${isMe ? ' me' : ''}`}>{isMe ? 'You' : firstName(m.name)}</span>
+                  <span class={`hanger-name${isMe ? ' me' : ''}`} title={m.name}>{isMe ? 'You' : firstName(m.name)}</span>
                 </div>
               </li>
             );
