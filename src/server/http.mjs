@@ -6,6 +6,8 @@
 // MIT), server-proxy/server.mjs, including its measured finding that on Render behind
 // Cloudflare the real client is the 3rd X-Forwarded-For entry from the right.
 
+import zlib from "node:zlib";
+
 /** @typedef {import("node:http").IncomingMessage} Req */
 /** @typedef {import("node:http").ServerResponse} Res */
 
@@ -194,8 +196,34 @@ export function sendJson(res, status, body, headers = {}) {
     return;
   }
   const text = JSON.stringify(body);
-  res.writeHead(status, { ...BASE_HEADERS, "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "content-length": String(Buffer.byteLength(text)), ...headers });
-  res.end(text);
+  // a crew's page with its plans is several KB; on mobile data that is worth compressing
+  const enc = Buffer.byteLength(text) > 1024 ? pickEncoding(res.req?.headers?.["accept-encoding"]) : null;
+  const out = enc ? compress(Buffer.from(text), enc, { fast: true }) : Buffer.from(text);
+  res.writeHead(status, { ...BASE_HEADERS, "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "content-length": String(out.length), ...(enc ? { "content-encoding": enc, vary: "Accept-Encoding" } : {}), ...headers });
+  res.end(out);
+}
+
+/**
+ * The best compression the client accepts: Brotli, then gzip, else none.
+ * @param {string|string[]|undefined} accept  the Accept-Encoding header
+ * @returns {"br"|"gzip"|null}
+ */
+export function pickEncoding(accept) {
+  const list = String(accept || "").toLowerCase().split(",").map((x) => x.trim());
+  const ok = (/** @type {string} */ name) => list.some((x) => x === name || (x.startsWith(`${name};`) && !/q=0(\.0+)?$/.test(x)));
+  return ok("br") ? "br" : ok("gzip") ? "gzip" : null;
+}
+
+/**
+ * Compress a body. Static files get the strongest setting once (they are cached); API
+ * answers get a fast one.
+ * @param {Buffer} buf
+ * @param {"br"|"gzip"} enc
+ * @param {{ fast?: boolean }} [opts]
+ */
+export function compress(buf, enc, { fast = false } = {}) {
+  if (enc === "br") return zlib.brotliCompressSync(buf, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: fast ? 5 : 11, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: buf.length } });
+  return zlib.gzipSync(buf, { level: fast ? 6 : 9 });
 }
 
 /** The token from Authorization: Bearer, or ?t=. */

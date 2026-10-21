@@ -42,6 +42,8 @@ let webDir = "";
 before(async () => {
   webDir = await fs.mkdtemp(path.join(os.tmpdir(), "ct-web-"));
   await fs.writeFile(path.join(webDir, "index.html"), "<!doctype html><title>Come Through</title>");
+  await fs.mkdir(path.join(webDir, "assets"), { recursive: true });
+  await fs.writeFile(path.join(webDir, "assets", "index-AbCdEf12.js"), `export const app = ${JSON.stringify("come through ".repeat(400))};\n`);
   const cfg = { ...config({ PUBLIC_URL: "https://api.comethrough.test", WEB_URL: "https://comethrough.test", WEB_ORIGIN: "https://comethrough.test", TICK_SECRET: "s3cret-tick", STATIC_DIR: webDir }), imageMaxBytes: 4096 };
   const service = createService({
     store, ai, push, weather, now,
@@ -319,6 +321,32 @@ test("the web app is served for app routes; a missing asset is a 404", async () 
   assert.match(page.text, /<title>Come Through<\/title>/);
   assert.equal((await call("GET", "/assets/missing.js")).status, 404);
   assert.equal((await call("GET", "/../../etc/passwd")).status, 200, "a traversal attempt gets the app, not the file");
+});
+
+test("on mobile data: the app's files and big API answers are compressed when the phone accepts it", async () => {
+  const http = await import("node:http");
+  const zlib = await import("node:zlib");
+  const get = (/** @type {string} */ p, /** @type {string} */ enc, /** @type {Record<string,string>} */ extra = {}) => new Promise((resolve, reject) => {
+    http.get(base + p, { headers: { "accept-encoding": enc, ...extra } }, (res) => {
+      /** @type {Buffer[]} */
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => resolve({ headers: res.headers, body: Buffer.concat(chunks) }));
+    }).on("error", reject);
+  });
+  const raw = /** @type {any} */ (await get("/assets/index-AbCdEf12.js", "identity"));
+  const br = /** @type {any} */ (await get("/assets/index-AbCdEf12.js", "gzip, deflate, br"));
+  assert.equal(br.headers["content-encoding"], "br");
+  assert.equal(br.headers.vary, "Accept-Encoding");
+  assert.ok(br.body.length < raw.body.length / 5, `${br.body.length} vs ${raw.body.length}`);
+  assert.equal(zlib.brotliDecompressSync(br.body).toString(), raw.body.toString());
+  const gz = /** @type {any} */ (await get("/assets/index-AbCdEf12.js", "gzip"));
+  assert.equal(gz.headers["content-encoding"], "gzip");
+  assert.equal(zlib.gunzipSync(gz.body).toString(), raw.body.toString());
+  assert.equal(raw.headers["content-encoding"], undefined);
+  const crew = /** @type {any} */ (await get(`/api/crews/${S.slug}`, "br", { authorization: `Bearer ${S.kene}` }));
+  assert.equal(crew.headers["content-encoding"], "br");
+  assert.ok(JSON.parse(zlib.brotliDecompressSync(crew.body).toString()).crew);
 });
 
 test("Gemma's limits: per IP per minute", async () => {

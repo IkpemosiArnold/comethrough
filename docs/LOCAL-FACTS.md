@@ -215,6 +215,38 @@ the app already handles both by saying Gemma is busy and letting the person fill
 Calls used: 48 that reached the API (under the 60 budget), plus 11 that failed before
 leaving the machine.
 
+## Data cost
+
+Most of the crew is on prepaid mobile data, so every kilobyte is the person's money.
+
+**Flyer uploads** (`web/src/lib/image.js`). The phone shrinks the picture before it is sent:
+at most 1600 px on the long edge, WebP at quality 0.8 where the browser can write WebP
+(Chrome, Opera, Firefox), JPEG otherwise (Safari), then quality 0.7 and 0.6, then 1280 and
+1024 px, until it is under 400 KB. An already small JPEG, PNG or WebP is sent as it is. The
+reading screen says what is being sent: "Sending 372 KB, shrunk from 10.6 MB to save your
+data."
+
+Checked in headless Chrome on 21 Oct 2026:
+
+| Picture | Before | Sent |
+|---|---|---|
+| A 4032 x 3024 phone-sized photo filled with noise (the worst case for compression) | 11.1 MB JPEG | 381 KB WebP, in 1.9 s |
+| The test flyer (`test/fixtures/flyer-mango-yard.png`) | 559 KB PNG | 63 KB WebP |
+| The same flyer as an iPhone HEIC (made with macOS `sips`) | 84 KB HEIC | Not opened: Chrome cannot decode HEIC, so the person sees "This browser can't open iPhone HEIC photos. Take a screenshot of the flyer and add that instead." |
+
+Safari can decode HEIC, so on an iPhone the photo is converted in the browser. That path was
+not tested on a real iPhone here (DEPLOY.md, phone checklist).
+
+**First load.** The Node server sent the app uncompressed: 159 KB for the page, the
+JavaScript, the CSS and the font. It now sends Brotli (or gzip) to any browser that asks,
+compressing each file once and keeping the result: **about 56 KB** on the wire for a first
+visit (31 KB of JavaScript, 8 KB of CSS, a 16 KB font that is already compressed, the page).
+API answers over 1 KB are compressed too. The demo data (`?mock=1`) is a separate file that
+real visitors never load. Later visits come from the service worker's cache.
+
+The map on a plan page is six OpenStreetMap tiles, about 15 to 30 KB each, loaded lazily
+only on that page.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

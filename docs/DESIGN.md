@@ -107,7 +107,7 @@ With reduced motion turned on, your face fades in and nothing swings, slides or 
 
 The flyer path is the other moment people should enjoy:
 
-1. **Add a flyer.** It is the biggest tile, in danfo yellow. Photos are resized to 1600 px JPEG on the phone before upload, so a 4 MB photo becomes about 300 KB on mobile data.
+1. **Add a flyer.** It is the biggest tile, in danfo yellow. Photos are shrunk on the phone before upload (1600 px on the long edge, WebP or JPEG at 0.8, stepped down until under 400 KB), and the reading screen says how much is being sent ("Sending 372 KB, shrunk from 10.6 MB to save your data"). An iPhone HEIC photo the browser cannot open gets a plain request for a screenshot.
 2. **Reading.** The flyer is pinned slightly tilted while a highlighter band sweeps down it (linear, 1.6 s loop). The sloth opens one eye, and the status reads "Gemma is finding the date", then the place, then the price.
 3. **The draft.** Fields settle in with a 45 ms stagger. Then the highlighter strokes across the labels of the fields Gemma was unsure about (the server's `low` list), and those inputs get a yellow border. Gemma's notes, such as "The flyer says Sat 31st with no month", sit above the form with yellow marker bullets.
 4. **Posting** makes you the first person on the branch.
@@ -151,7 +151,7 @@ The copy follows the core of Arnold's copywriting manual. It names the person's 
 - Tap targets are 44 px or larger, and the main actions are 56 px.
 - The tap highlight is removed, `touch-action: manipulation` is set, and button text cannot be selected by a long press.
 - The PWA has a manifest, maskable icons, a share target for links, text and images (Android), shortcuts, and a hand-written service worker. The service worker caches the app shell for offline use, stashes shared flyers, and shows push notifications.
-- Preact was chosen over React to save about 40 KB on cheap phones. The whole app is 32 KB of JavaScript and 9 KB of CSS gzipped, plus a 16 KB font, and the mock layer loads only with `?mock=1`.
+- Preact was chosen over React to save about 40 KB on cheap phones. The first load is about 56 KB over the wire (Brotli from the server: 31 KB of JavaScript, 8 KB of CSS, a 16 KB font, the page), and the mock layer loads only with `?mock=1`.
 - The map is six OpenStreetMap tiles placed with CSS, with attribution and no map library.
 
 ## Critique: how this avoids the generic defaults

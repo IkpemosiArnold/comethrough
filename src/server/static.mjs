@@ -7,7 +7,10 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { BASE_HEADERS } from "./http.mjs";
+import { BASE_HEADERS, compress, pickEncoding } from "./http.mjs";
+
+/** Text files worth compressing; images and fonts are compressed already. */
+const COMPRESSIBLE = [".html", ".js", ".mjs", ".css", ".json", ".webmanifest", ".svg", ".txt", ".ics", ".map"];
 
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
@@ -24,6 +27,9 @@ const TYPES = {
 export function staticHandler(dir) {
   if (!fs.existsSync(path.join(dir, "index.html"))) return null;
   const root = path.resolve(dir);
+  /** compressed copies, made once per file version: the app's first load on mobile data is about a third of its raw size */
+  /** @type {Map<string, Buffer>} */
+  const packed = new Map();
   return async (req, res, pathname) => {
     if (req.method !== "GET" && req.method !== "HEAD") return false;
     let rel;
@@ -50,18 +56,31 @@ export function staticHandler(dir) {
     const ext = path.extname(file).toLowerCase();
     const name = path.basename(file);
     const immutable = /[.-][A-Za-z0-9_-]{8,}\.(js|css|woff2|png|svg|jpg|webp)$/.test(name) && file.includes(`${path.sep}assets${path.sep}`);
+    const enc = COMPRESSIBLE.includes(ext) && st.size > 512 ? pickEncoding(req.headers["accept-encoding"]) : null;
+    let body = null;
+    if (enc) {
+      const key = `${file}:${st.mtimeMs}:${st.size}:${enc}`;
+      body = packed.get(key) ?? null;
+      if (!body) {
+        body = compress(await fsp.readFile(file), enc);
+        packed.set(key, body);
+      }
+    }
     res.writeHead(200, {
       ...BASE_HEADERS,
       "content-type": TYPES[/** @type {keyof typeof TYPES} */ (ext)] || "application/octet-stream",
-      "content-length": String(st.size),
+      "content-length": String(body ? body.length : st.size),
       "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+      ...(COMPRESSIBLE.includes(ext) ? { vary: "Accept-Encoding" } : {}),
+      ...(enc ? { "content-encoding": enc } : {}),
       ...(name === "sw.js" ? { "service-worker-allowed": "/" } : {}),
     });
     if (req.method === "HEAD") {
       res.end();
       return true;
     }
-    fs.createReadStream(file).pipe(res);
+    if (body) res.end(body);
+    else fs.createReadStream(file).pipe(res);
     return true;
   };
 }

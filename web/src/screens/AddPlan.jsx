@@ -13,6 +13,7 @@ import { MicButton } from '../ui/MicButton.jsx';
 import { AreaInput } from '../ui/AreaInput.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
+import { prepareFlyer, formatBytes } from '../lib/image.js';
 
 const UNSURE = 0.6;
 const URL_RE = /https?:\/\/[^\s]+/i;
@@ -40,7 +41,7 @@ function fromParts(date, time) {
 // limit) is kept as the plan's thumbnail. The big copy is only read by Gemma, never stored.
 async function thumbOf(file) {
   try {
-    if (!file.type.startsWith('image/') || typeof createImageBitmap === 'undefined') return null;
+    if (typeof createImageBitmap === 'undefined') return null;
     const bmp = await createImageBitmap(file);
     const scale = Math.min(1, 480 / bmp.width);
     const canvas = document.createElement('canvas');
@@ -51,23 +52,6 @@ async function thumbOf(file) {
     return blob && blob.size < 190e3 ? new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) : null;
   } catch {
     return null;
-  }
-}
-
-// Phone photos are often 3 to 5 MB. Shrink to 1600px JPEG before it goes over mobile data.
-async function shrink(file) {
-  try {
-    if (!file.type.startsWith('image/') || file.size < 600e3 || typeof createImageBitmap === 'undefined') return file;
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bmp.width * scale);
-    canvas.height = Math.round(bmp.height * scale);
-    canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.82));
-    return blob ? new File([blob], 'flyer.jpg', { type: 'image/jpeg' }) : file;
-  } catch {
-    return file;
   }
 }
 
@@ -82,6 +66,7 @@ export function AddPlan({ params, query }) {
   const [error, setError] = useState(null);
   const [locked, setLocked] = useState(false);
   const [status, setStatus] = useState(0);
+  const [sending, setSending] = useState(null); // { bytes, originalBytes } of the flyer upload
   const fileRef = useRef(null);
   const lastRead = useRef(null);
   const speech = useSpeech(setText);
@@ -120,7 +105,17 @@ export function AddPlan({ params, query }) {
 
   async function takeImage(file, withText = '') {
     if (!file) return;
-    const [small, thumb] = await Promise.all([shrink(file), thumbOf(file)]);
+    let ready;
+    try {
+      ready = await prepareFlyer(file);
+    } catch (e) {
+      setError(e.message || "Couldn't open that picture. Take a screenshot of the flyer instead.");
+      setStep('compose');
+      return;
+    }
+    const small = ready.file;
+    const thumb = await thumbOf(small);
+    setSending({ bytes: ready.bytes, originalBytes: ready.originalBytes });
     setImage(small);
     setLocked(false);
     setPreview(URL.createObjectURL(small));
@@ -211,6 +206,11 @@ export function AddPlan({ params, query }) {
           <div class="reading-status" role="status" aria-live="polite">
             <Sloth size={64} mood="reading" branch={false} />
             <p><b>Gemma</b> is {list[status % list.length]}<Dots /></p>
+            {image && sending && (
+              <p class="fine upload-size">
+                Sending {formatBytes(sending.bytes)}{sending.originalBytes > sending.bytes * 1.2 ? `, shrunk from ${formatBytes(sending.originalBytes)} to save your data` : ''}.
+              </p>
+            )}
           </div>
         </div>
       </div>
