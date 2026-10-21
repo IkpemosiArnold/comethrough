@@ -128,7 +128,8 @@ export function PlanPage({ params, query }) {
     const value = ask;
     setAsk(null);
     toast(`You're in, ${first}.`);
-    answer(value, m.id);
+    // members see a home's address, so read the plan again once the answer is saved
+    answer(value, m.id).then(() => api.getPlan(slug, id).then((p) => setPlan((cur) => ({ ...p, rsvps: cur?.rsvps || p.rsvps }))).catch(() => {}));
   }
   const needsArea = my === 'going' && pods !== null && !myArea && (unplaced.some((u) => u.id === meId) || !(pods || []).some((p) => p.memberIds.includes(meId)));
   const myPod = pods && pods.find((p) => p.memberIds.includes(meId));
@@ -207,7 +208,7 @@ export function PlanPage({ params, query }) {
           <Icon name="pin" size={20} />
           <div>
             <p>{plan.place.name}{plan.place.address ? `, ${plan.place.address}` : ''}</p>
-            {plan.place.hidden && !meId && <p class="small muted">The address shows once you join the crew.</p>}
+            {plan.place.hidden && !meId && <p class="small muted">The address shows once you tap I'm going.</p>}
             {plan.place.near && <p class="small muted">Not on the map yet, so ride times and weather are guessed from {plan.place.near.label}.</p>}
           </div>
         </div>

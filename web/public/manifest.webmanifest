@@ -1,7 +1,7 @@
 {
   "name": "Come Through",
   "short_name": "Come Through",
-  "description": "The group chat does the asking. You just come through.",
+  "description": "The lazy way to link up. You send one sentence, your crew taps once.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
