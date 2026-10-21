@@ -19,8 +19,9 @@ import {
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
 import { DAY, DAY_NAMES, DEFAULT_TZ, hhmm, isTime, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
-import { bestWindow, rainMovedIn, weatherForPlan } from "../core/weather.mjs";
+import { rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
+import { isLockedLink } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 
@@ -162,19 +163,30 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return spots.find((s) => normName(s.name) === n || normName(s.name).replace(/ (park|beach|garden)$/, "") === n) ?? null;
   }
 
-  /** Put a plan's place on the map when it has a name or an address but no pin. */
+  /**
+   * Put a plan's place on the map when it has a name or an address but no pin. When the
+   * exact place is not on the map, the neighbourhood named in its address ("..., Surulere")
+   * is kept as `near`: good enough for ride times and the weather, never for a ride link.
+   */
   async function pinPlace(place) {
     if (!place || isLatLon(place) || !(place.address || place.name) || (/'s place$/.test(place.name || "") && !place.address)) return { place, note: null };
+    const { near: _old, ...bare } = place;
     const spot = !place.private && knownSpot(place.name);
     if (spot) {
       const outdoor = place.outdoor || ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"].includes(spot.kind);
-      return { place: { ...place, name: spot.name, lat: spot.lat, lon: spot.lon, outdoor, ...(spot.osm ? { osm: spot.osm } : {}) }, note: `Pinned at ${spot.name}${outdoor && !place.outdoor ? ", an outdoor spot, so the weather is watched" : ""}.` };
+      return { place: { ...bare, name: spot.name, lat: spot.lat, lon: spot.lon, outdoor, ...(spot.osm ? { osm: spot.osm } : {}) }, note: `Pinned at ${spot.name}${outdoor && !place.outdoor ? ", an outdoor spot, so the weather is watched" : ""}.` };
     }
     try {
       const hit = await geocoder.lookup(place.address || place.name);
-      if (hit) return { place: { ...place, lat: hit.lat, lon: hit.lon }, note: `Pinned on the map at ${hit.label}${hit.detail ? `, ${hit.detail}` : ""}. Check it.` };
+      if (hit) return { place: { ...bare, lat: hit.lat, lon: hit.lon }, note: `Pinned on the map at ${hit.label}${hit.detail ? `, ${hit.detail}` : ""}. Check it.` };
     } catch {}
-    return { place, note: "Could not pin the place on the map, so ride links will need the address." };
+    for (const label of neighbourhoodsIn(place.address)) {
+      try {
+        const hit = await geocoder.lookupArea(label);
+        if (hit) return { place: { ...bare, near: { label, lat: hit.lat, lon: hit.lon } }, note: `Could not find the exact address on the map, so ride times and the weather are guessed from ${label}. Ride links will need the address.` };
+      } catch {}
+    }
+    return { place: bare, note: "Could not pin the place on the map, so ride links will need the address." };
   }
 
   // ------------------------------------------------------------ crews
@@ -306,6 +318,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const t = clip(text, LIMITS.planText);
     const link = clip(url, LIMITS.url) || firstUrl(t);
     if (!t && !link && !image) throw invalid([{ field: "text", message: "Paste a link, type a sentence or add a flyer." }]);
+    // Instagram and Facebook give servers an empty page: with nothing else to read, ask for
+    // the flyer picture instead of spending a Gemma call on a bare link
+    if (link && isLockedLink(link) && !image && !(t && t.replace(/https?:\/\/\S+/gi, "").trim().length >= 8)) {
+      throw new AppError(422, "link_locked", "Instagram keeps that one locked. Share the flyer picture instead: a screenshot works.");
+    }
     /** @type {string[]} */
     const notes = [];
     let pageMeta = null;
@@ -328,7 +345,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (g.error) notes.unshift(pageMeta?.event ? `${g.error} Used the page's own event details.` : `${g.error} Fill this in yourself.`);
     const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name } });
     const pinned = await pinPlace(r.draft.place);
-    if (pinned.note && pinned.place !== r.draft.place) notes.push(pinned.note);
+    if (pinned.note) notes.push(pinned.note);
     /** @type {Record<string, any>} */
     const source = { ...r.draft.source };
     const small = thumb ?? (image && image.data.length <= FLYER_MAX_BYTES ? image : null);
@@ -415,16 +432,26 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   const riders = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) =>
     members.filter((m) => plan.rsvps?.[m.id] === "going" && m.id !== plan.host).map((m) => ({ id: m.id, name: m.name, area: isLatLon(m.area) ? m.area : null }));
 
-  const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { uberStyle: cfg.uberLinkStyle });
+  /** Where a plan with no pin roughly is: a host's home is in the host's neighbourhood. */
+  function nearOf(/** @type {Plan} */ plan, /** @type {Member[]} */ members) {
+    if (isLatLon(plan.place)) return null;
+    const near = /** @type {any} */ (plan.place)?.near;
+    if (isLatLon(near)) return { label: near.label, lat: near.lat, lon: near.lon };
+    if (!plan.host) return null;
+    const host = members.find((m) => m.id === plan.host);
+    return host && isLatLon(host.area) ? { label: /** @type {string} */ (host.area.label), lat: /** @type {number} */ (host.area.lat), lon: /** @type {number} */ (host.area.lon) } : null;
+  }
+
+  const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { uberStyle: cfg.uberLinkStyle, near: nearOf(plan, members) });
 
   /** Pod memberships as keys, to tell when a new pod of two or more has formed. */
   function podKeys(plan, members) {
-    if (!isLatLon(plan.place)) return new Set();
+    if (!isLatLon(plan.place) && !nearOf(plan, members)) return new Set();
     return new Set(computePods(plan, members).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
   }
 
   async function notifyNewPods(plan, crew, members, before) {
-    if (!isLatLon(plan.place) || plan.status === "cancelled") return;
+    if ((!isLatLon(plan.place) && !nearOf(plan, members)) || plan.status === "cancelled") return;
     for (const pod of computePods(plan, members).pods) {
       const key = pod.memberIds.join(",");
       if (pod.memberIds.length < 2 || before.has(key)) continue;
@@ -459,7 +486,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /** The member's pod line and leave-by for a plan, for the calendar. */
   function podExtras(plan, members, memberId) {
-    if (plan.rsvps?.[memberId] !== "going" || !isLatLon(plan.place)) return {};
+    if (plan.rsvps?.[memberId] !== "going" || (!isLatLon(plan.place) && !nearOf(plan, members))) return {};
     const pod = computePods(plan, members).pods.find((p) => p.memberIds.includes(memberId));
     return pod?.leaveBy ? { leaveBy: pod.leaveBy, podText: pod.shareText } : {};
   }
@@ -537,11 +564,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /** Attach the forecast to an outdoor plan within the forecast range. Never fails. */
   async function withWeather(plan) {
-    if (!plan.place?.outdoor || !isLatLon(plan.place)) return plan;
+    const at = weatherSpot(plan.place);
+    if (!plan.place?.outdoor || !at) return plan;
     const start = parseInstant(plan.start);
     if (start - now() > 6 * DAY || start < now()) return plan;
     try {
-      const hours = await weather.hourly({ lat: /** @type {number} */ (plan.place.lat), lon: /** @type {number} */ (plan.place.lon) }, { tz: plan.tz });
+      const hours = await weather.hourly(at, { tz: plan.tz });
       const w = weatherForPlan(hours, plan, now());
       return w ? { ...plan, weather: w } : plan;
     } catch {
@@ -572,8 +600,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       try {
         live = await places.greenNear(center, r);
       } catch (e) {
+        // Overpass is down or at capacity: a wider search would only wait again, and the
+        // heartbeat has to answer within 100 s. The curated spots carry this one.
         log("overpass_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
         live = [];
+        break;
       }
       if (live.length >= 3) break;
     }
@@ -605,18 +636,23 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     try {
       hours = await weather.hourly(center, { tz, days: 7 });
     } catch {}
-    const win = hours ? bestWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }) : null;
-    const window = win ? { from: win.from, to: win.to } : { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) };
-    const at = zonedToMs(due.date, window.from, tz);
+    // the crew's window when it is dry; when it is wet, a dry stretch that day or the next,
+    // or an honest "no dry stretch" (core/weather.mjs, ritualWindow)
+    const rw = hours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }) : null;
+    const win = rw?.win ?? null;
+    const date = rw?.date ?? due.date;
+    const window = rw ? rw.window : { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) };
+    const rainPlan = rw?.rainPlan ?? null;
+    const at = zonedToMs(date, window.from, tz);
     const scored = scorePlaces({ members: points, candidates, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: true, recent: recentPlaces(plans, now()), now: now() });
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
 
     const ex = await gemma("explain-pick", explainMessages(prompts["explain-pick"], scored.explanation), EXPLAIN_SCHEMA);
     const why = readExplain(ex.data, scored.explanation).why;
-    const draft = ritualDraft({ date: due.date, window, place: { ...pick, address: pick.address }, tz });
-    const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(due.date)], date: due.date, window, place: pick.name, weather: win?.reason.text ?? null, why, vibe: crew.vibe };
-    const fallback = fallbackInvite({ title: draft.title, window, weatherText: win?.reason.text ?? null });
+    const draft = ritualDraft({ date, window, place: { ...pick, address: pick.address }, tz });
+    const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, window, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
+    const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
     const inv = await gemma("write-invite", inviteMessages(prompts["write-invite"], facts), INVITE_SCHEMA);
     const invite = readInvite(inv.data, facts, fallback).invite;
 
@@ -627,10 +663,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       const w = weatherForPlan(hours, plan, now());
       if (w) plan = { ...plan, weather: w };
     }
+    if (rainPlan) plan = { ...plan, rainPlan };
     // the last check before writing: another heartbeat may have made it meanwhile
     if (await store.get("plans", plan.id)) return { made: false, reason: "exists" };
     await store.put("plans", plan);
-    log("ritual_made", { crew: crew.id, plan: plan.id, place: placeKey(pick), candidates: candidates.length, weather: !!hours });
+    log("ritual_made", { crew: crew.id, plan: plan.id, place: placeKey(pick), candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
     await notify(members.map((m) => m.id), { title: plan.title, body: invite.slice(0, 180), url: links.plan(crew, plan.id), tag: plan.id }, `${plan.id}:new`);
     return { made: true, plan };
   }
@@ -663,7 +700,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         // because a forecast further out changes too often to be worth a buzz
         for (const p of live) {
           const start = parseInstant(p.start);
-          if (!p.place?.outdoor || !isLatLon(p.place) || p.status === "cancelled" || start < t || start - t > 6 * DAY) continue;
+          if (!p.place?.outdoor || !weatherSpot(p.place) || p.status === "cancelled" || start < t || start - t > 6 * DAY) continue;
           const fresh = await withWeather({ ...p, weather: null });
           if (!fresh.weather) continue;
           out.weatherChecked++;
@@ -714,6 +751,18 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const h = p.h % 12 || 12;
     return `${day} at ${h}${p.mi ? `:${String(p.mi).padStart(2, "0")}` : ""}${p.h < 12 ? "am" : "pm"}`;
   }
+}
+
+/** Where to read the weather for a place: its pin, or the neighbourhood it is near. */
+function weatherSpot(place) {
+  if (isLatLon(place)) return { lat: Number(place.lat), lon: Number(place.lon) };
+  if (isLatLon(place?.near)) return { lat: Number(place.near.lat), lon: Number(place.near.lon) };
+  return null;
+}
+
+/** Neighbourhood names in an address, last first ("14 Adeyemo Close, Surulere" gives "Surulere"), skipping the city, state, country and postcodes. */
+export function neighbourhoodsIn(address) {
+  return String(address || "").split(",").slice(1).map((x) => x.trim()).filter((x) => x && !/\d/.test(x) && !/^(lagos( state)?|nigeria|la|ng)$/i.test(x)).reverse().slice(0, 2);
 }
 
 const normName = (/** @type {any} */ s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
