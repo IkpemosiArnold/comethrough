@@ -7,13 +7,15 @@ import { navigate } from '../lib/router.js';
 import { useSpeech } from '../lib/speech.js';
 import { isIOS, isAndroid, isStandalone } from '../lib/platform.js';
 import { prefersReducedMotion } from '../lib/spring.js';
-import { TopBar, Dots } from '../ui/misc.jsx';
+import { TopBar, Dots, KindSticker } from '../ui/misc.jsx';
 import { Icon } from '../ui/icons.jsx';
 import { MicButton } from '../ui/MicButton.jsx';
 import { AreaInput } from '../ui/AreaInput.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
 import { prepareFlyer, formatBytes } from '../lib/image.js';
+import { Privacy } from '../ui/Privacy.jsx';
+import { dayLabel, timeRange } from '../lib/format.js';
 import { fromLocalParts, toLocalParts } from '../lib/format.js';
 import { packUi } from '../lib/place.js';
 
@@ -23,8 +25,8 @@ const URL_RE = /https?:\/\/[^\s]+/i;
 // outright (the server says link_locked too; docs/LOCAL-FACTS.md)
 const IG_RE = /(^|\/\/|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net|tix\.africa)\//i;
 const lockedWords = (url) => (/tix\.africa/i.test(url || '')
-  ? 'Tix.africa does not let other apps read its event pages. Share a screenshot of the event page or the flyer instead.'
-  : `${/threads/i.test(url || '') ? 'Threads' : /facebook|fb\./i.test(url || '') ? 'Facebook' : 'Instagram'} keeps that one locked. Share the flyer picture instead: a screenshot works.`);
+  ? "Tix.africa doesn't let apps read its pages. Add a screenshot of the event or the flyer instead."
+  : `${/threads/i.test(url || '') ? 'Threads' : /facebook|fb\./i.test(url || '') ? 'Facebook' : 'Instagram'} doesn't let apps read posts. Add a screenshot of the flyer instead.`);
 const STATUS_IMAGE = ['reading the flyer', 'finding the date', 'finding the place', 'checking the price'];
 const STATUS_TEXT = ['reading it', 'working out the day', 'finding the place'];
 
@@ -234,7 +236,7 @@ export function AddPlan({ params, query }) {
     <div class="column add-plan screen-enter">
       <TopBar backTo={`/c/${slug}`} title="Add a plan" />
       <h1 class="display display-lg">What's the plan?</h1>
-      <p class="muted add-lede">A flyer, a link or one sentence. Gemma fills in the details and you check them.</p>
+      <p class="muted add-lede">A flyer, a link or one sentence. Gemma fills in the details.</p>
 
       <div class="tiles">
         {pasteFirst ? <>{pasteTile}{flyerTile}</> : <>{flyerTile}{pasteTile}</>}
@@ -258,26 +260,17 @@ export function AddPlan({ params, query }) {
         {isInstagram && (
           <div class="ig-note" role="note">
             <p>{lockedWords(url)}</p>
-            <button type="button" class="btn secondary" onClick={() => fileRef.current && fileRef.current.click()}><Icon name="image" size={20} /> Choose the flyer</button>
+            <button type="button" class="btn secondary" onClick={() => fileRef.current && fileRef.current.click()}><Icon name="image" size={20} /> Add the screenshot</button>
           </div>
         )}
         {speech.error && <p class="error-text">{speech.error}</p>}
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={!text.trim() || (isInstagram && !text.replace(URL_RE, '').trim())}>Read it</button>
-        <PrivacyNote mic={speech.supported} />
+        <Privacy what="what you add here" mic={speech.supported} />
       </form>
 
       {showShareTip && <ShareTip />}
     </div>
-  );
-}
-
-// Exactly what goes to Google when a plan is read, and what does not.
-export function PrivacyNote({ mic = false }) {
-  return (
-    <p class="fine">
-      To read it, we send what you add here (your sentence, the flyer picture, or the text of the link's page) to Gemma, Google's open model, through Google's free API. Google may use it to improve its products. Your crew list and locations stay with Come Through.{mic ? " The mic uses your phone's own voice typing, which may send the audio to Google or Apple." : ''}
-    </p>
   );
 }
 
@@ -289,7 +282,7 @@ function ShareTip() {
       <Icon name="share" size={22} />
       <div class="grow">
         <p class="strong">Share flyers straight here</p>
-        <p class="small muted">Install Come Through and it shows up when you tap Share in WhatsApp, Instagram or your gallery.</p>
+        <p class="small muted">Install Come Through and it appears when you tap Share in WhatsApp or your gallery.</p>
       </div>
       {prompt && <button class="btn secondary" onClick={() => installPrompt.fire()}>Install</button>}
     </aside>
@@ -301,7 +294,7 @@ function Unsure({ conf, low, children, order = 0 }) {
   return (
     <div class={`draft-field${unsure ? ' unsure' : ''}`} style={{ '--i': order }}>
       {children}
-      {unsure && <p class="unsure-note">Gemma wasn't sure. Check this one.</p>}
+      {unsure && <p class="unsure-note">Gemma guessed this.</p>}
     </div>
   );
 }
@@ -324,6 +317,9 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
     setNewItem('');
   }
   const ok = draft.title?.trim() && draft.start;
+  const unsure = draft.ai === false || ['title', 'start', 'end', 'place', 'price'].some((f) => isLow(f));
+  const from = preview || draft.source?.image ? 'the flyer' : draft.source?.url ? 'the link' : 'your sentence';
+  const [details, setDetails] = useState(unsure);
 
   return (
     <div class={`column screen-enter draft has-bar${animate.current ? ' draft-intro' : ''}`}>
@@ -333,14 +329,19 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
         <div>
           {draft.ai === false ? (
             <>
-              <h1 class="display display-lg">Over to you</h1>
-              <p class="muted">Gemma is busy, so fill in the details, or give it another go.</p>
-              <button type="button" class="btn secondary retry-btn" onClick={onRetry}>Try Gemma again</button>
+              <h1 class="display display-lg">Gemma is busy right now</h1>
+              <p class="muted">Fill in the details yourself, or try again in a minute.</p>
+              <button type="button" class="btn secondary retry-btn" onClick={onRetry}>Try again</button>
+            </>
+          ) : unsure ? (
+            <>
+              <h1 class="display display-lg">Check the marked bits</h1>
+              <p class="muted">Gemma guessed them. The rest came from {from}.</p>
             </>
           ) : (
             <>
-              <h1 class="display display-lg">Here's what Gemma got</h1>
-              <p class="muted">The highlighted bits are guesses. Fix anything that's off.</p>
+              <h1 class="display display-lg">Here's the plan</h1>
+              <p class="muted">Gemma read it from {from}. Change anything before you post.</p>
             </>
           )}
         </div>
@@ -352,7 +353,22 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
         </ul>
       )}
 
-      <div class="surface stack draft-card" style={{ '--stack': 'var(--s-5)' }}>
+      {draft.ai !== false && (
+        <div class={`draft-preview plan-row kind-${draft.kind}`}>
+          <div class="plan-main">
+            <div class="row plan-tags"><KindSticker kind={draft.kind} /></div>
+            <p class="plan-title">{draft.title || 'No title yet'}</p>
+            <p class="plan-meta">{draft.start ? `${dayLabel(draft.start)}, ${timeRange(draft.start, draft.end)}` : 'No date yet'}{draft.place?.name ? ` at ${draft.place.name}` : ''}</p>
+            {draft.price?.text && <p class="plan-meta">{draft.price.text}</p>}
+          </div>
+        </div>
+      )}
+
+      <button type="button" class="details-toggle" aria-expanded={details} onClick={() => setDetails(!details)}>
+        <Icon name="edit" size={18} /> {details ? 'Hide the details' : 'Change the details'}
+      </button>
+
+      {details && <div class="surface stack draft-card" style={{ '--stack': 'var(--s-5)' }}>
         <Unsure order={0}>
           <fieldset class="field">
             <legend class="label">What kind of plan</legend>
@@ -406,12 +422,12 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
             <div class="toggles">
               <label class="toggle">
                 <input type="checkbox" checked={!!draft.place.outdoor} onChange={(ev) => setPlace({ outdoor: ev.currentTarget.checked })} />
-                <span>It's outside. Watch the weather.</span>
+                <span>It's outside, so watch the weather</span>
               </label>
               {draft.kind === 'hosted' && (
                 <label class="toggle">
                   <input type="checkbox" checked={!!draft.place.private} onChange={(ev) => setPlace({ private: ev.currentTarget.checked })} />
-                  <span>It's someone's home. Only the crew sees the address.</span>
+                  <span>It's someone's home, so only the crew sees the address</span>
                 </label>
               )}
             </div>
@@ -448,14 +464,14 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
             </div>
           </Unsure>
         )}
-      </div>
+      </div>}
 
       {error && <p class="error-text" role="alert">{error}</p>}
 
       <div class="bottom-bar">
         <div>
           <button class="btn primary block big" onClick={onPost} disabled={busy || !ok}>
-            {busy ? <>Posting <Dots /></> : 'Post it to the crew'}
+            {busy ? <>Posting <Dots /></> : 'Post it'}
           </button>
         </div>
       </div>
