@@ -285,3 +285,16 @@ test("an outdoor ritual ends with the light: London's last Sunday of October, an
   assert.deepEqual(after?.window, before?.window);
   assert.deepEqual(after?.window, { from: "15:00", to: "18:00" });
 });
+
+test("Open-Meteo's one-offset labels are put right across a clock change; Lagos is untouched", async () => {
+  const { hoursFromOpenMeteo } = await import("../src/core/weather.mjs");
+  // the London response for 24 to 26 Oct 2026 as Open-Meteo sends it: every hour labelled at +01:00
+  const times = ["2026-10-24T23:00", "2026-10-25T00:00", "2026-10-25T01:00", "2026-10-25T02:00", "2026-10-25T17:00", "2026-10-25T18:00"];
+  const json = { utc_offset_seconds: 3600, hourly: { time: times, precipitation_probability: times.map(() => 0), is_day: [0, 0, 0, 0, 1, 0] } };
+  const london = hoursFromOpenMeteo(json, "Europe/London");
+  assert.deepEqual(london.map((h) => `${h.date} ${h.time}`), ["2026-10-24 23:00", "2026-10-25 00:00", "2026-10-25 01:00", "2026-10-25 01:00", "2026-10-25 16:00", "2026-10-25 17:00"], "after 2 am BST the labels are GMT, an hour earlier");
+  assert.deepEqual(london.filter((h) => h.isDay === 1).map((h) => h.time), ["16:00"], "the light ends at 5 pm GMT, not 6");
+  const lagos = hoursFromOpenMeteo({ ...json, hourly: { ...json.hourly } }, "Africa/Lagos");
+  assert.deepEqual(lagos.map((h) => h.time), times.map((t) => t.slice(11, 16)), "a zone with one offset all year keeps its labels");
+  assert.deepEqual(hoursFromOpenMeteo(json).map((h) => h.time), times.map((t) => t.slice(11, 16)), "no zone, no relabelling");
+});

@@ -52,7 +52,7 @@ export function createOpenMeteo({ url, cache, fetchImpl }) {
   return {
     async hourly(at, { tz = "auto", days = 7 } = {}) {
       const key = `wx:${at.lat.toFixed(2)},${at.lon.toFixed(2)}:${tz}:${days}`;
-      return cached(cache, key, 3600_000, async () => hoursFromOpenMeteo(await fetchJson(forecastUrl(url, at, { tz, days }), { timeoutMs: 10000, retries: 1, fetchImpl })));
+      return cached(cache, key, 3600_000, async () => hoursFromOpenMeteo(await fetchJson(forecastUrl(url, at, { tz, days }), { timeoutMs: 10000, retries: 1, fetchImpl }), tz === "auto" ? null : tz));
     },
     async timezoneAt(at) {
       const key = `tz:${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;

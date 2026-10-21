@@ -28,22 +28,40 @@ const UV_OK = 6;
 
 /**
  * Open-Meteo's hourly arrays to a list of hours. Missing values become null.
+ *
+ * Open-Meteo labels a whole response with one UTC offset, the zone's offset at its start
+ * (checked 21 Oct 2026: London from 24 to 26 Oct came back as 72 hours at +01:00, with
+ * sunset on the 25th at "17:46", an hour after the clocks went back). So with a zone given,
+ * each hour is put back on its true instant (label minus utc_offset_seconds) and labelled in
+ * that zone again. For a zone with no daylight saving, such as Lagos, nothing changes.
  * @param {any} json  the API response (hourly.time, precipitation_probability, apparent_temperature, uv_index, precipitation)
+ * @param {string|null} [tz]  the zone to label hours in
  * @returns {Hour[]}
  */
-export function hoursFromOpenMeteo(json) {
+export function hoursFromOpenMeteo(json, tz = null) {
   const h = json?.hourly;
   if (!h || !Array.isArray(h.time)) return [];
   const at = (/** @type {string} */ k, /** @type {number} */ i) => (Array.isArray(h[k]) && Number.isFinite(h[k][i]) ? h[k][i] : null);
-  return h.time.map((/** @type {string} */ t, /** @type {number} */ i) => ({
-    date: t.slice(0, 10),
-    time: t.slice(11, 16),
-    rainProb: at("precipitation_probability", i),
-    feelsC: at("apparent_temperature", i),
-    uv: at("uv_index", i),
-    precipMm: at("precipitation", i),
-    ...(Array.isArray(h.is_day) ? { isDay: /** @type {0|1} */ (h.is_day[i] === 1 ? 1 : 0) } : {}),
-  }));
+  const offset = Number.isFinite(json?.utc_offset_seconds) ? json.utc_offset_seconds : null;
+  const label = (/** @type {string} */ t) => {
+    if (!tz || offset == null) return t;
+    const ms = Date.parse(`${t}:00Z`) - offset * 1000;
+    if (!Number.isFinite(ms)) return t;
+    const p = localParts(ms, tz);
+    return `${p.date}T${p.time}`;
+  };
+  return h.time.map((/** @type {string} */ raw, /** @type {number} */ i) => {
+    const t = label(raw);
+    return {
+      date: t.slice(0, 10),
+      time: t.slice(11, 16),
+      rainProb: at("precipitation_probability", i),
+      feelsC: at("apparent_temperature", i),
+      uv: at("uv_index", i),
+      precipMm: at("precipitation", i),
+      ...(Array.isArray(h.is_day) ? { isDay: /** @type {0|1} */ (h.is_day[i] === 1 ? 1 : 0) } : {}),
+    };
+  });
 }
 
 /** How bad one hour is outdoors, from 0 (lovely) up. Unknown rain counts as a coin toss. */
