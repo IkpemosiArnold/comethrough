@@ -30,6 +30,7 @@
   --lagoon: #1b6782;      /* weather and links */
   --fur: #7a5b3e;         /* the sloth */
   --fur-light: #c9a87f;
+  --bark: #5a4129;        /* the branch */
   --whatsapp: #0e7a3f;    /* darker than the brand green so white text passes AA (5.4:1) */
   --highlight: rgb(255 194 26 / 0.55);
   --scrim: rgb(14 30 25 / 0.45);
@@ -98,6 +99,7 @@
     --zobo: #f28ab0;
     --lagoon: #84cbe3;
     --fur-light: #d9b98f;
+    --bark: #7a5a3c;
     --highlight: rgb(255 194 26 / 0.3);
     --sign: 0 3px 0 #06120e;
     --sign-press: 0 1px 0 #06120e;
@@ -108,6 +110,7 @@
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --bark: #7a5a3c;
   --wall: #0f2620;
   --wall-2: #0a1d18;
   --paper: #17332a;

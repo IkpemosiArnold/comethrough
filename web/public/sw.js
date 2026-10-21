@@ -1,6 +1,6 @@
 /* Come Through service worker: an app shell that opens offline, the Android share target,
    and push notifications. Hand-written so it stays small and readable. */
-const SHELL = 'ct-shell-v1';
+const SHELL = 'ct-shell-v2';
 const RUNTIME = 'ct-runtime-v1';
 const SHARE = 'ct-share';
 
@@ -12,6 +12,11 @@ self.addEventListener('install', (event) => {
     const html = await res.clone().text();
     await cache.put('/', res);
     const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+    // The font is referenced from the stylesheet, not the page, so read the CSS for it too.
+    for (const css of assets.filter((a) => a.endsWith('.css'))) {
+      const text = await (await fetch(css)).text();
+      for (const m of text.matchAll(/url\((\/assets\/[^)]+)\)/g)) assets.push(m[1]);
+    }
     await cache.addAll([...new Set([...assets, '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'])]);
     self.skipWaiting();
   })());

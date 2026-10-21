@@ -314,6 +314,12 @@ button.chip:active { transform: scale(0.96); }
   background: linear-gradient(to top, var(--wall) 62%, color-mix(in srgb, var(--wall) 0%, transparent));
   pointer-events: none;
 }
+[data-kb] .bottom-bar {
+  position: static;
+  padding: var(--s-6) 0 0;
+  background: none;
+}
+[data-kb] .column.has-bar { padding-bottom: var(--s-10); }
 .bottom-bar > * {
   pointer-events: auto;
   max-width: 448px;

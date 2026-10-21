@@ -118,6 +118,8 @@ export function PlanPage({ params, query }) {
         }
       />
 
+      {plan.offline && <p class="offline-note">You're offline, so this is what the phone saw last. <button class="link-btn" onClick={load}>Refresh</button></p>}
+
       <header class="plan-head">
         <div class="row plan-head-tags">
           <KindSticker kind={plan.kind} />
@@ -322,7 +324,8 @@ function PodCard({ pod, byId, meId, fresh, onBolt }) {
     <div class="pod pod-mine" ref={ref}>
       <div class="row pod-top">
         <div class="faces pod-faces">
-          {people.map((p) => <Avatar key={p.id} member={p} size="lg" ring="var(--paper)" class={p.id === meId ? 'pod-me' : ''} />)}
+          {people.slice(0, 4).map((p) => <Avatar key={p.id} member={p} size="lg" ring="var(--paper)" class={p.id === meId ? 'pod-me' : ''} />)}
+          {people.length > 4 && <span class="more">+{people.length - 4}</span>}
         </div>
       </div>
       <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
@@ -345,8 +348,17 @@ function ActionBar({ my, meId, menu, setMenu, answer, icsUrl, joinHref, crewName
   const menuRef = useRef(null);
   useEffect(() => {
     if (!menu) return;
+    // Focus moves into the menu, arrows move between items, Escape returns to the pill.
+    const items = () => [...(menuRef.current?.querySelectorAll('[role=menuitem]') || [])];
+    items()[0]?.focus();
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false); };
-    const esc = (e) => e.key === 'Escape' && setMenu(false);
+    const esc = (e) => {
+      const list = items();
+      const i = list.indexOf(document.activeElement);
+      if (e.key === 'Escape') { setMenu(false); menuRef.current?.querySelector('.going-pill')?.focus(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); list[(i + 1) % list.length]?.focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus(); }
+    };
     document.addEventListener('pointerdown', close);
     document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };

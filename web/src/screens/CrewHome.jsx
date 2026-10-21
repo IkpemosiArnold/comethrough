@@ -1,7 +1,7 @@
 // Crew home: the sloth's next pick, the plans coming up, and one big "Add a plan".
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
-import { getCrew, saveCrew } from '../lib/store.js';
+import { getCrew, saveCrew, readCrewCache as readCache, writeCrewCache as writeCache } from '../lib/store.js';
 import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
 import { copyText, whatsappUrl } from '../lib/platform.js';
 import { Faces } from '../ui/Avatar.jsx';
@@ -11,9 +11,6 @@ import { WeatherChip, weatherIcon } from '../ui/Weather.jsx';
 import { KindSticker, ErrorNote } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
 
-function cacheKey(slug) { return `ct.cache.${slug}`; }
-function readCache(slug) { try { return JSON.parse(localStorage.getItem(cacheKey(slug)) || 'null'); } catch { return null; } }
-function writeCache(slug, d) { try { localStorage.setItem(cacheKey(slug), JSON.stringify(d)); } catch { /* ignore */ } }
 
 export function CrewHome({ params }) {
   const { slug } = params;

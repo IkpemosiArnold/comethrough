@@ -5,7 +5,7 @@
 // Auth: `Authorization: Bearer <token>`, the member token when this phone has one for the
 // crew, otherwise the crew's invite token. The .ics download carries the token as ?t=.
 
-import { getCrew, sessionGet, sessionSet } from './store.js';
+import { getCrew, sessionGet, sessionSet, readCrewCache, writeCrewCache } from './store.js';
 
 const q = new URLSearchParams(location.search);
 if (q.has('mock')) sessionSet('ct.mock', q.get('mock') === '0' ? '0' : '1');
@@ -108,10 +108,18 @@ export const api = {
   },
   // There is no single-plan read in the contract, so the plan page reads the crew.
   async getPlan(slug, id) {
-    const data = await api.getCrew(slug);
+    let data, offline = false;
+    try {
+      data = await api.getCrew(slug);
+      writeCrewCache(slug, data);
+    } catch (e) {
+      data = e.code === 'offline' ? readCrewCache(slug) : null;
+      if (!data) throw e;
+      offline = true;
+    }
     const plan = (data.plans || []).find((p) => p.id === id);
     if (!plan) throw new ApiError("That plan isn't here any more. It may have ended.", 404);
-    return { ...plan, members: data.members || [], crew: data.crew, viewer: data.you };
+    return { ...plan, members: data.members || [], crew: data.crew, viewer: data.you, offline };
   },
   async rsvp(slug, id, rsvp) {
     const r = await req('PATCH', `/api/plans/${enc(id)}`, { slug, body: { rsvp } });

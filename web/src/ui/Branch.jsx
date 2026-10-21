@@ -7,16 +7,17 @@ import { firstName } from '../lib/format.js';
 import { springAnimate, prefersReducedMotion } from '../lib/spring.js';
 
 const SLOT = 58;      // px between hangers
-const MAX_SHOWN = 7;
+const EDGE = 36;      // px from the screen edge to the first and last hanger
 
 export function Branch({ going, meId, swingId, onSwung }) {
   const wrap = useRef(null);
   const positions = useRef(new Map());
   const [width, setWidth] = useState(358);
 
-  // You first, then the order people said yes
+  // You first, then the order people said yes. As many hangers as fit the branch.
   const ordered = [...going].sort((a, b) => (a.id === meId ? -1 : b.id === meId ? 1 : 0));
-  const shown = ordered.slice(0, MAX_SHOWN - (ordered.length > MAX_SHOWN ? 1 : 0));
+  const fit = Math.max(3, Math.floor((width - 2 * EDGE) / SLOT) + 1);
+  const shown = ordered.slice(0, ordered.length > fit ? fit - 1 : fit);
   const rest = ordered.length - shown.length;
   const count = shown.length + (rest > 0 ? 1 : 0);
 
@@ -37,7 +38,7 @@ export function Branch({ going, meId, swingId, onSwung }) {
     const t = Math.min(Math.max(x / width, 0), 1);
     return top + sag * 4 * t * (1 - t);
   };
-  const start = Math.max(SLOT / 2 + 6, (width - (count - 1) * SLOT) / 2);
+  const start = Math.max(EDGE, (width - (count - 1) * SLOT) / 2);
   const xAt = (i) => start + i * SLOT;
 
   // FLIP: anyone who moved along the branch slides to their new spot.

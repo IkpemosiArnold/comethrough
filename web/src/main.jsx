@@ -11,6 +11,19 @@ const q = new URLSearchParams(location.search);
 if (q.has('fast')) window.__CT_FAST = true;
 if (q.get('theme') === 'dark' || q.get('theme') === 'light') document.documentElement.dataset.theme = q.get('theme');
 
+// While the on-screen keyboard is up, a fixed bottom bar would sit on top of the field being
+// typed in. Mark the document so CSS can put the bar back into the page flow until typing stops.
+function watchKeyboard() {
+  let coarse = false;
+  try { coarse = matchMedia('(pointer: coarse)').matches; } catch { /* ignore */ }
+  if (!coarse) return;
+  const isField = (el) => el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|file)$/.test(el.type)));
+  document.addEventListener('focusin', (e) => { if (isField(e.target)) document.documentElement.setAttribute('data-kb', ''); });
+  document.addEventListener('focusout', () => {
+    setTimeout(() => { if (!isField(document.activeElement)) document.documentElement.removeAttribute('data-kb'); }, 60);
+  });
+}
+
 async function boot() {
   // Demo mode: open a crew link and you're already a member, unless ?guest=1
   if (MOCK) {
@@ -25,6 +38,7 @@ async function boot() {
     if (m && !q.has('guest') && (!getCrew(m[1])?.memberId || q.has('data'))) (await import('./lib/mock.js'))._seedMember(m[1]);
   }
   installLinkInterceptor();
+  watchKeyboard();
   render(<App />, document.getElementById('app'));
 }
 boot();

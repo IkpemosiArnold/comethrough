@@ -28,6 +28,14 @@ export function forgetCrew(slug) {
   write(all);
 }
 
+// The last crew read, so the app still opens with no data connection.
+export function readCrewCache(slug) {
+  try { return JSON.parse(localStorage.getItem(`ct.cache.${slug}`) || 'null'); } catch { return null; }
+}
+export function writeCrewCache(slug, data) {
+  try { localStorage.setItem(`ct.cache.${slug}`, JSON.stringify(data)); } catch { /* storage full or blocked */ }
+}
+
 export function sessionGet(key) {
   try { return sessionStorage.getItem(key); } catch { return null; }
 }
