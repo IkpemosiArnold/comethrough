@@ -60,6 +60,29 @@ async function req(method, path, { slug, invite, body, form, token } = {}) {
 
 const enc = encodeURIComponent;
 
+// The branch and the pods match faces to member ids. If a PlanView arrives without `rsvps`
+// (only the name lists `going` and `maybe`, plus `you`), rebuild it from the member list.
+function withRsvps(plan, members = [], you = null) {
+  if (!plan || plan.rsvps) return plan;
+  const ids = new Map();
+  for (const m of members) {
+    if (you && m.id === you.id) continue;
+    if (!ids.has(m.name)) ids.set(m.name, []);
+    ids.get(m.name).push(m.id);
+  }
+  const rsvps = {};
+  if (you && plan.you) rsvps[you.id] = plan.you;
+  for (const value of ['going', 'maybe']) {
+    let skippedYou = false;
+    for (const name of plan[value] || []) {
+      if (you && plan.you === value && name === you.name && !skippedYou) { skippedYou = true; continue; }
+      const id = ids.get(name)?.shift();
+      if (id) rsvps[id] = value;
+    }
+  }
+  return { ...plan, rsvps };
+}
+
 export const api = {
   // Step 1 of starting a crew: Gemma reads the sentence. Nothing is saved yet.
   async draftCrew(sentence) {
@@ -73,7 +96,8 @@ export const api = {
   },
   // { crew, members, plans, you }
   async getCrew(slug, invite) {
-    return req('GET', `/api/crews/${enc(slug)}`, { slug, invite });
+    const d = await req('GET', `/api/crews/${enc(slug)}`, { slug, invite });
+    return { ...d, plans: (d.plans || []).map((p) => withRsvps(p, d.members, d.you)) };
   },
   // { member, memberToken, memberUrl, calendarUrl, webcalUrl }
   async join(slug, { name, area }, invite) {
