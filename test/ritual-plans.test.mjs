@@ -36,16 +36,26 @@ test("a late heartbeat still makes it the day before, never on the day", () => {
   assert.equal(onTheDay.date, "2026-11-07");
 });
 
-test("idempotent: a slot with a ritual is done; a crew with a plan nearby is left alone", () => {
+test("idempotent: a slot with a ritual is done; a crew with this cycle's meetup is left alone", () => {
   assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makeRitual()] }).reason, "exists");
-  const busy = ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makePlan()] }); // Friday 23 Oct
+  // an indoor wine night on Friday 23 Oct does not replace Saturday outside
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makePlan()] }).due, true);
+  // an outdoor plan in the same cycle does
+  const outside = makePlan({ place: { ...makePlan().place, outdoor: true, private: false } });
+  const busy = ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [outside] });
   assert.equal(busy.reason, "busy");
   assert.deepEqual(busy.blockers, ["p_wine"]);
+  // and so does any plan in the slot's own hours (15:00 to 19:00), indoor or not
+  const sameHours = makePlan({ start: "2026-10-24T17:00:00+01:00", end: "2026-10-24T21:00:00+01:00" });
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [sameHours] }).reason, "busy");
+  // but an indoor brunch that ends as the window opens does not
+  const brunch = makePlan({ start: "2026-10-24T13:00:00+01:00", end: "2026-10-24T15:00:00+01:00" });
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [brunch] }).due, true);
   // a cancelled plan does not count, and nor does another crew's
-  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makePlan({ status: "cancelled" })] }).due, true);
-  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makePlan({ crewId: "other" })] }).due, true);
-  // a plan two weeks back belongs to the previous cycle
-  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [makePlan({ start: "2026-10-10T19:00:00+01:00", end: "2026-10-10T22:00:00+01:00" })] }).due, true);
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [{ ...outside, status: "cancelled" }] }).due, true);
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [{ ...outside, crewId: "other" }] }).due, true);
+  // an outdoor plan two weeks back belongs to the previous cycle
+  assert.equal(ritualDue({ crew: CREW, now: at("2026-10-22"), plans: [{ ...outside, start: "2026-10-10T19:00:00+01:00", end: "2026-10-10T22:00:00+01:00" }] }).due, true);
   assert.equal(ritualDue({ crew: { ...CREW, rhythm: null }, now: at("2026-10-22"), plans: [] }).reason, "no_rhythm");
 });
 

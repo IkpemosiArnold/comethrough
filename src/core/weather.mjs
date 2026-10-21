@@ -6,7 +6,7 @@
 // temperature, which counts humidity, often passes 35 C at midday) and then by strong sun.
 // The best window is the stretch with the least of each, in that order of weight.
 
-import { DEFAULT_TZ, localParts, minutesOfDay, hhmm, parseInstant } from "./time.mjs";
+import { DAY_NAMES, DEFAULT_TZ, addDays, localParts, minutesOfDay, hhmm, parseInstant, weekdayOf } from "./time.mjs";
 
 /**
  * @typedef {object} Hour
@@ -168,10 +168,66 @@ function summarise(rainProb, tempC) {
   if (rainProb == null) return `Forecast pending${t}`;
   if (rainProb >= 60) return `Rain likely (${rainProb}%)${t}`;
   if (rainProb >= RAIN_OK) return `Showers possible (${rainProb}%)${t}`;
+  if (rainProb >= 20) return `Mostly dry (${rainProb}%)${t}`;
   return `Dry${t}`;
 }
 
 /** True when the weather turned: it was fine (or unknown) and now it is not. */
 export function rainMovedIn(prev, next) {
   return !!next && !next.ok && (!prev || prev.ok);
+}
+
+/** Daylight hours a ritual may move into when its own window is wet (sunset in Lagos is near 18:45 all year). */
+export const DAYLIGHT = { from: "08:00", to: "19:00" };
+
+/** "15:00" as "3 pm", "08:30" as "8:30 am". */
+export function clockWords(t) {
+  const m = minutesOfDay(t);
+  const h = Math.floor(m / 60);
+  const mi = m % 60;
+  return `${h % 12 || 12}${mi ? `:${String(mi).padStart(2, "0")}` : ""} ${h < 12 ? "am" : "pm"}`;
+}
+
+/**
+ * Where and when a ritual goes when it rains. The crew's own window comes first; when its
+ * best stretch is wet (not ok), the sloth looks, in order, for:
+ *   1. a dry stretch of at least two hours in daylight on the same day ("moved");
+ *   2. a dry stretch in the crew's window on the next day ("next_day");
+ *   3. nothing dry: it keeps the least wet stretch of the crew's window and says so
+ *      plainly, suggesting a roof ("wet").
+ * Every note is built from the forecast numbers, never guessed.
+ * @param {Hour[]} hours
+ * @param {{ date: string, from: string, to: string, hours: number }} slot
+ * @returns {null | { date: string, window: { from: string, to: string }, win: NonNullable<ReturnType<typeof bestWindow>>, rainPlan: null | { kind: "moved"|"next_day"|"wet", note: string, wanted: { date: string, from: string, to: string, rainProb: number|null } } }}
+ *   null when the forecast does not reach the date
+ */
+export function ritualWindow(hours, { date, from, to, hours: span }) {
+  const own = bestWindow(hours, { date, from, to, hours: span });
+  if (!own) return null;
+  if (own.ok) return { date, window: { from: own.from, to: own.to }, win: own, rainPlan: null };
+  const inWindow = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(from) && minutesOfDay(h.time) < minutesOfDay(to));
+  const wanted = { date, from, to, rainProb: max(inWindow.map((h) => h.rainProb)) ?? own.rainProb };
+  const wet = `Rain is likely from ${clockWords(from)} to ${clockWords(to)} (up to ${wanted.rainProb ?? "?"}%)`;
+  const short = Math.min(span, 2);
+  const moved = bestWindow(hours, { date, from: DAYLIGHT.from, to: DAYLIGHT.to, hours: span }) ?? null;
+  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: DAYLIGHT.from, to: DAYLIGHT.to, hours: short });
+  if (movedShort?.ok) {
+    return {
+      date, window: { from: movedShort.from, to: movedShort.to }, win: movedShort,
+      rainPlan: { kind: "moved", wanted, note: `${wet}, so the sloth moved it to ${clockWords(movedShort.from)} to ${clockWords(movedShort.to)}, the driest stretch that day (rain chance up to ${movedShort.rainProb}%). Forecasts change; the sloth checks again before then.` },
+    };
+  }
+  const next = addDays(date, 1);
+  const nextWin = bestWindow(hours, { date: next, from, to, hours: span });
+  if (nextWin?.ok) {
+    return {
+      date: next, window: { from: nextWin.from, to: nextWin.to }, win: nextWin,
+      rainPlan: { kind: "next_day", wanted, note: `${wet} on ${DAY_NAMES[weekdayOf(date)]}, so the sloth moved it to ${DAY_NAMES[weekdayOf(next)]}, ${clockWords(nextWin.from)} to ${clockWords(nextWin.to)} (rain chance up to ${nextWin.rainProb}%). Forecasts change; the sloth checks again before then.` },
+    };
+  }
+  const dayMin = moved?.rainProb ?? own.rainProb;
+  return {
+    date, window: { from: own.from, to: own.to }, win: own,
+    rainPlan: { kind: "wet", wanted, note: `No dry stretch this weekend: the driest few hours on ${DAY_NAMES[weekdayOf(date)]} still have a ${dayMin ?? "high"}% chance of rain. Bring an umbrella, or move it somewhere with a roof: anyone in the crew can change the place.` },
+  };
 }

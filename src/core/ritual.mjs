@@ -5,9 +5,11 @@
 // ritualDue decides whether that is now and for which date. It is idempotent by design,
 // because the heartbeat (a GitHub Actions schedule) can run late, twice or not at all:
 // - a slot is a date; a ritual plan records it in ritualFor, and a slot that has one is done;
-// - any live plan within half a cycle of the slot counts as this cycle's meetup (1w: 3
-//   days either side; 2w: a week; 4w: two weeks), so a crew that already planned
-//   something is left alone;
+// - the crew is left alone when it already has this cycle's meetup: a live plan in the
+//   slot's own hours (a brunch that ends before the 3 pm window does not count), or an
+//   outdoor plan within half a cycle of the slot (1w: 3 days either side; 2w: a week; 4w:
+//   two weeks). The rhythm is about getting outside together, so an indoor wine night on
+//   the Friday does not cancel Saturday in the park, but a beach day on the Sunday does;
 // - the lead is 3 days down to 1 day: normally the plan appears 3 days ahead, and if the
 //   heartbeat missed those runs it still appears the day before, never on the day.
 
@@ -62,8 +64,11 @@ export function ritualDue({ crew, now, plans, lead = LEAD }) {
     .filter((p) => p.status !== "cancelled")
     .filter((p) => {
       const d = localParts(parseInstant(p.start), tz).date;
+      const winFrom = zonedToMs(date, r.window?.from || "15:00", tz);
+      const winTo = zonedToMs(date, r.window?.to || "19:00", tz);
+      if (parseInstant(p.start) < winTo && parseInstant(p.end) > winFrom) return true;
       const gap = daysBetween(date, d);
-      return gap >= -half && gap < PERIOD_DAYS[r.every] - half;
+      return !!p.place?.outdoor && gap >= -half && gap < PERIOD_DAYS[r.every] - half;
     })
     .map((p) => p.id);
   if (blockers.length) return { due: false, reason: "busy", date, leadDays, blockers };
