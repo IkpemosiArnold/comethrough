@@ -93,7 +93,7 @@ function oneTapHtml({ plan, crew, you }, /** @type {string} */ token, /** @type 
     ? `<form method="post" action="/basic/rsvp/${esc(plan.id)}"><input type="hidden" name="t" value="${esc(token)}"><button name="rsvp" value="${answer}">${label}</button></form>`
     : `<form method="post" action="/basic/join/${esc(crew.slug)}"><input type="hidden" name="t" value="${esc(token)}"><input type="hidden" name="next" value="${esc(plan.id)}"><input type="hidden" name="rsvp" value="${answer}">
 <label>What should the crew call you?<input name="name" maxlength="40" required></label>
-<button>${label}</button></form><p class="small">No sign-up. The link this takes you to is yours: keep it to answer again.</p>`;
+<button>${label}</button></form><p class="small">No sign-up. Keep the next page in your bookmarks to answer again from this phone.</p>`;
   return page(`${plan.title}: Come Through`, `${head}${who}${form}`);
 }
 
