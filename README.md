@@ -57,7 +57,7 @@ decision about fairness.
 | Explain the sloth's pick and write its invite | Gemma 4, checked by code | Language; any number not in the facts is thrown away |
 | Turn "friday 7" into a date and time | Code | A model should never do date arithmetic |
 | Find neighbourhoods and venues on the map | Photon (OpenStreetMap), cached | Facts |
-| Find parks and beaches near the crew | Overpass (OpenStreetMap), plus 26 checked Lagos spots | Open data |
+| Find parks and beaches near the crew | Overpass (OpenStreetMap), plus 38 checked Lagos spots from OpenStreetMap and Wikidata | Open data |
 | Pick the weather window | Open-Meteo | Open data |
 | Choose a fair place, group rides, set leave-by times | Code, with tests | Fairness and arithmetic |
 | Calendar files and feeds | Code (RFC 5545) | Standards |
@@ -130,6 +130,7 @@ checks after deploy, and the list of things to try on a real phone are in
   [openstreetmap.org/copyright](https://www.openstreetmap.org/copyright).
 - **Photon** by komoot: geocoding and type-ahead over OpenStreetMap data.
 - **Overpass API**: green spaces from OpenStreetMap.
+- **Wikidata**: coordinates for Lagos spots OpenStreetMap does not have by name (CC0).
 - **Open-Meteo**: weather forecasts. Weather data by
   [Open-Meteo.com](https://open-meteo.com/), licensed under CC BY 4.0.
 - **Gemma** by Google DeepMind, an open model, served through the Gemini API.

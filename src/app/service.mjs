@@ -162,7 +162,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   function knownSpot(name) {
     const n = normName(name);
     if (n.length < 4) return null;
-    return spots.find((s) => normName(s.name) === n || normName(s.name).replace(/ (park|beach|garden)$/, "") === n) ?? null;
+    return spots.find((s) => [s.name, ...(s.aliases || [])].some((x) => normName(x) === n || normName(x).replace(/ (park|beach|garden)$/, "") === n)) ?? null;
   }
 
   /**

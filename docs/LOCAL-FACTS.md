@@ -43,6 +43,41 @@ does not use them, and the others publish none.
 Not verified on a phone yet: that the Play and App Store pages show "Open" for an installed
 app on the devices the crew uses (DEPLOY.md, phone checklist).
 
+## Famous spots
+
+`data/lagos-spots.json` first came from OpenStreetMap only, and OpenStreetMap does not have
+many of the places a Lagos crew actually goes by name (21 Oct 2026). Those are now added from
+**Wikidata** (CC0), by `node scripts/add-wikidata-spots.mjs`, which reads each item's
+coordinate location (P625) live and records the item, the licence and the date. Each item
+was matched by name, place and description, and every coordinate was checked to fall inside
+Lagos and near where the place is known to be. OpenStreetMap was cross-checked through
+Nominatim where it had the place.
+
+| Spot | Wikidata | Lat, lon | Note |
+|---|---|---|---|
+| Elegushi Beach | [Q28232226](https://www.wikidata.org/wiki/Q28232226) | 6.422055, 3.486607 | Ikate, Lekki coast |
+| Landmark Beach | [Q108924711](https://www.wikidata.org/wiki/Q108924711) | 6.42256, 3.445648 | Item name "Landmark Leisure Beach" (not the hotel, Q113171526) |
+| Atican Beach | [Q109516089](https://www.wikidata.org/wiki/Q109516089) | 6.424958, 3.596925 | The item is Atican Beach Resort; there is no item for the beach alone |
+| Eleko Beach | [Q25042473](https://www.wikidata.org/wiki/Q25042473) | 6.4391, 3.85419 | Ibeju-Lekki |
+| JJT Park (Johnson Jakande Tinubu Park) | [Q109290920](https://www.wikidata.org/wiki/Q109290920) | 6.615213, 3.363948 | Alausa, Ikeja |
+| Ndubuisi Kanu Park | [Q109291010](https://www.wikidata.org/wiki/Q109291010) | 6.614232, 3.365765 | Next to JJT Park |
+| Jhalobia Recreation Park | [Q109421702](https://www.wikidata.org/wiki/Q109421702) | 6.55613, 3.32211 | Airport Road |
+| Omu Resort | [Q109266995](https://www.wikidata.org/wiki/Q109266995) | 6.489748, 3.753269 | Not in OpenStreetMap, so not cross-checked |
+| Lagos Yacht Club | [Q22570266](https://www.wikidata.org/wiki/Q22570266) | 6.440579, 3.401908 | OSM way 591832831 agrees |
+| Dreamworld Africana | [Q22080800](https://www.wikidata.org/wiki/Q22080800) | 6.458985, 3.601521 | Not in OpenStreetMap, so not cross-checked |
+| Point of No Return | [Q20891702](https://www.wikidata.org/wiki/Q20891702) | 6.394334, 2.891409 | The point is the centre of Gberefu Island, not the monument |
+| Nike Art Gallery | [Q25044062](https://www.wikidata.org/wiki/Q25044062) | 6.43152, 3.481894 | Indoor, so marked `covered`: the sloth may offer it when rain blocks every outdoor window. OSM way 363752678 agrees |
+
+All checked 21 Oct 2026. Every spot in the file now has a `source` and a `verifiedAt` date.
+
+**Not added, no open coordinates:** Alpha Beach (Lekki) and Lekki Leisure Lake. Neither has a
+Wikidata item or an OpenStreetMap feature by name (21 Oct 2026). Mapping them in
+OpenStreetMap would fix this for everyone.
+
+**Not added on purpose:** Bar Beach. Wikipedia describes it in the past tense ("Bar Beach was
+a beach ... on Victoria Island", summary checked 21 Oct 2026), and its Wikidata coordinate has
+only three or four decimals.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

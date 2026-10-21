@@ -1,21 +1,9 @@
 {
- "about": "Named outdoor spots in Lagos for the ritual's place search, merged with live Overpass results. Coordinates come from OpenStreetMap through the service named in each source (© OpenStreetMap contributors, ODbL). Built by scripts/build-spots.mjs; never edit coordinates by hand.",
+ "about": "Named spots in Lagos for the ritual's place search, merged with live Overpass results. Coordinates come from OpenStreetMap (© OpenStreetMap contributors, ODbL) through the service named in each source, or from Wikidata (CC0) where OpenStreetMap does not have the place by name. Built by scripts/build-spots.mjs and scripts/add-wikidata-spots.mjs; never edit coordinates by hand. `missing` lists places no open source has coordinates for.",
  "builtAt": "2026-10-21",
  "missing": [
-  "Lekki Conservation Centre",
-  "Ndubuisi Kanu Park, Ikeja",
-  "Johnson Jakande Tinubu Park, Ikeja",
-  "Elegushi Beach, Lekki",
-  "Landmark Beach, Oniru",
-  "Atican Beach, Lekki",
   "Alpha Beach, Lekki",
-  "Eleko Beach, Ibeju-Lekki",
-  "Jhalobia Recreation Park, Ikeja",
-  "Omu Resort, Lekki",
-  "Lagos Yacht Club",
-  "Dreamworld Africana",
-  "Lekki Leisure Lake",
-  "Point of No Return, Badagry"
+  "Lekki Leisure Lake"
  ],
  "spots": [
   {
@@ -37,7 +25,8 @@
     "query": "Muri Okunola Park, Victoria Island",
     "url": "https://photon.komoot.io/api/?q=Muri+Okunola+Park%2C+Victoria+Island&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Freedom Park",
@@ -58,7 +47,8 @@
     "query": "Freedom Park, Lagos Island",
     "url": "https://photon.komoot.io/api/?q=Freedom+Park%2C+Lagos+Island&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Ikoyi Park",
@@ -79,7 +69,8 @@
     "query": "Ikoyi Park, Ikoyi",
     "url": "https://photon.komoot.io/api/?q=Ikoyi+Park%2C+Ikoyi&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Love Garden, UNILAG",
@@ -100,7 +91,8 @@
     "query": "Love Garden, UNILAG",
     "url": "https://photon.komoot.io/api/?q=Love+Garden%2C+UNILAG&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lufasi Nature Park",
@@ -121,7 +113,8 @@
     "query": "Lufasi Nature Park, Lekki",
     "url": "https://photon.komoot.io/api/?q=Lufasi+Nature+Park%2C+Lekki&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Tafawa Balewa Square",
@@ -142,7 +135,8 @@
     "query": "Tafawa Balewa Square, Lagos",
     "url": "https://photon.komoot.io/api/?q=Tafawa+Balewa+Square%2C+Lagos&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Tarkwa Bay",
@@ -163,7 +157,8 @@
     "query": "Tarkwa Bay, Lagos",
     "url": "https://photon.komoot.io/api/?q=Tarkwa+Bay%2C+Lagos&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Oniru Private Beach",
@@ -184,7 +179,8 @@
     "query": "Oniru Beach, Lagos",
     "url": "https://photon.komoot.io/api/?q=Oniru+Beach%2C+Lagos&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "La Campagne Tropicana",
@@ -205,7 +201,8 @@
     "query": "La Campagne Tropicana, Ibeju-Lekki",
     "url": "https://photon.komoot.io/api/?q=La+Campagne+Tropicana%2C+Ibeju-Lekki&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lagos National Stadium",
@@ -226,7 +223,8 @@
     "query": "National Stadium, Surulere",
     "url": "https://photon.komoot.io/api/?q=National+Stadium%2C+Surulere&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Teslim Balogun Stadium",
@@ -247,7 +245,8 @@
     "query": "Teslim Balogun Stadium, Surulere",
     "url": "https://photon.komoot.io/api/?q=Teslim+Balogun+Stadium%2C+Surulere&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lagos Polo Club",
@@ -268,7 +267,8 @@
     "query": "Lagos Polo Club, Ikoyi",
     "url": "https://photon.komoot.io/api/?q=Lagos+Polo+Club%2C+Ikoyi&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Ikoyi Club Golf Course",
@@ -289,7 +289,8 @@
     "query": "Ikoyi Club Golf Course",
     "url": "https://photon.komoot.io/api/?q=Ikoyi+Club+Golf+Course&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Gani Fawehinmi Park",
@@ -310,7 +311,8 @@
     "query": "Gani Fawehinmi Park, Ojota",
     "url": "https://photon.komoot.io/api/?q=Gani+Fawehinmi+Park%2C+Ojota&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Ilashe",
@@ -331,7 +333,8 @@
     "query": "Ilashe",
     "url": "https://photon.komoot.io/api/?q=Ilashe&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Arts and Craft Market",
@@ -352,7 +355,8 @@
     "query": "Arts and Craft Market",
     "url": "https://photon.komoot.io/api/?q=Arts+and+Craft+Market&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lakowe Lakes Golf & Country Estate",
@@ -373,7 +377,8 @@
     "query": "Lakowe Lakes Golf",
     "url": "https://photon.komoot.io/api/?q=Lakowe+Lakes+Golf&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Mobolaji Johnson Arena",
@@ -394,7 +399,8 @@
     "query": "Mobolaji Johnson Arena",
     "url": "https://photon.komoot.io/api/?q=Mobolaji+Johnson+Arena&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Whispering Palms Hotel and Resort",
@@ -415,7 +421,8 @@
     "query": "Whispering Palms, Badagry",
     "url": "https://photon.komoot.io/api/?q=Whispering+Palms%2C+Badagry&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Agege Stadium",
@@ -436,7 +443,8 @@
     "query": "Agege Stadium",
     "url": "https://photon.komoot.io/api/?q=Agege+Stadium&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lighthouse Beach",
@@ -457,7 +465,8 @@
     "query": "Lighthouse Beach, Lagos",
     "url": "https://photon.komoot.io/api/?q=Lighthouse+Beach%2C+Lagos&limit=8&lat=6.5&lon=3.4",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Atlas Beach",
@@ -478,7 +487,8 @@
     "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
     "url": "https://overpass-api.de/api/interpreter",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Suntan Beach",
@@ -499,7 +509,8 @@
     "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
     "url": "https://overpass-api.de/api/interpreter",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Lekki Conservation Center",
@@ -520,7 +531,8 @@
     "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
     "url": "https://overpass-api.de/api/interpreter",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Victoria Garden City Recreational Park",
@@ -541,7 +553,8 @@
     "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
     "url": "https://overpass-api.de/api/interpreter",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
   },
   {
    "name": "Tinubu Square",
@@ -562,7 +575,236 @@
     "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
     "url": "https://overpass-api.de/api/interpreter",
     "checkedAt": "2026-10-21"
-   }
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Elegushi Beach",
+   "kind": "beach",
+   "area": "Lekki",
+   "lat": 6.422055,
+   "lon": 3.486607,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q28232226",
+    "label": "Elegushi Beach",
+    "url": "https://www.wikidata.org/wiki/Q28232226",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q28232226.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Landmark Beach",
+   "kind": "beach",
+   "area": "Victoria Island",
+   "lat": 6.42256,
+   "lon": 3.445648,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q108924711",
+    "label": "Landmark Leisure Beach",
+    "url": "https://www.wikidata.org/wiki/Q108924711",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q108924711.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Atican Beach",
+   "kind": "beach",
+   "area": "Lekki",
+   "lat": 6.424958,
+   "lon": 3.596925,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q109516089",
+    "label": "Atican Beach Resort",
+    "url": "https://www.wikidata.org/wiki/Q109516089",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q109516089.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21",
+    "note": "The Wikidata item is Atican Beach Resort; there is no separate item for the beach."
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Eleko Beach",
+   "kind": "beach",
+   "area": "Ibeju-Lekki",
+   "lat": 6.4391,
+   "lon": 3.85419,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q25042473",
+    "label": "Eleko Beach",
+    "url": "https://www.wikidata.org/wiki/Q25042473",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q25042473.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "JJT Park",
+   "kind": "park",
+   "area": "Ikeja",
+   "lat": 6.615213,
+   "lon": 3.363948,
+   "osm": null,
+   "aliases": [
+    "Johnson Jakande Tinubu Park"
+   ],
+   "source": {
+    "service": "wikidata",
+    "qid": "Q109290920",
+    "label": "Johnson Jakande Tinubu Park",
+    "url": "https://www.wikidata.org/wiki/Q109290920",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q109290920.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Ndubuisi Kanu Park",
+   "kind": "park",
+   "area": "Ikeja",
+   "lat": 6.614232,
+   "lon": 3.365765,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q109291010",
+    "label": "Ndubuisi Kanu Park",
+    "url": "https://www.wikidata.org/wiki/Q109291010",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q109291010.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Jhalobia Recreation Park",
+   "kind": "park",
+   "area": "Ikeja",
+   "lat": 6.55613,
+   "lon": 3.32211,
+   "osm": null,
+   "aliases": [
+    "Jhalobia Park"
+   ],
+   "source": {
+    "service": "wikidata",
+    "qid": "Q109421702",
+    "label": "Jhalobia Recreation Park and Gardens",
+    "url": "https://www.wikidata.org/wiki/Q109421702",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q109421702.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Omu Resort",
+   "kind": "park",
+   "area": "Ibeju-Lekki",
+   "lat": 6.489748,
+   "lon": 3.753269,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q109266995",
+    "label": "Omu Resort Ibeju Lekki",
+    "url": "https://www.wikidata.org/wiki/Q109266995",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q109266995.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Lagos Yacht Club",
+   "kind": "waterfront",
+   "area": "Lagos Island",
+   "lat": 6.440579,
+   "lon": 3.401908,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q22570266",
+    "label": "Lagos Yacht Club",
+    "url": "https://www.wikidata.org/wiki/Q22570266",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q22570266.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Dreamworld Africana",
+   "kind": "park",
+   "area": "Lekki",
+   "lat": 6.458985,
+   "lon": 3.601521,
+   "osm": null,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q22080800",
+    "label": "Dreamworld Africana",
+    "url": "https://www.wikidata.org/wiki/Q22080800",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q22080800.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Point of No Return",
+   "kind": "heritage",
+   "area": "Badagry",
+   "lat": 6.394334,
+   "lon": 2.891409,
+   "osm": null,
+   "aliases": [
+    "Gberefu Island"
+   ],
+   "source": {
+    "service": "wikidata",
+    "qid": "Q20891702",
+    "label": "Gberefu Island",
+    "url": "https://www.wikidata.org/wiki/Q20891702",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q20891702.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21",
+    "note": "The coordinate is the centre of Gberefu Island, not the monument itself."
+   },
+   "verifiedAt": "2026-10-21"
+  },
+  {
+   "name": "Nike Art Gallery",
+   "kind": "gallery",
+   "area": "Lekki",
+   "lat": 6.43152,
+   "lon": 3.481894,
+   "osm": null,
+   "covered": true,
+   "source": {
+    "service": "wikidata",
+    "qid": "Q25044062",
+    "label": "Nike Art Gallery",
+    "url": "https://www.wikidata.org/wiki/Q25044062",
+    "data": "https://www.wikidata.org/wiki/Special:EntityData/Q25044062.json",
+    "licence": "CC0",
+    "checkedAt": "2026-10-21"
+   },
+   "verifiedAt": "2026-10-21"
   }
  ]
 }

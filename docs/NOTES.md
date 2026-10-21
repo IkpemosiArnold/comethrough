@@ -84,7 +84,7 @@ Bugs found and fixed, each with a test:
 
 Built by `node scripts/build-spots.mjs` on 21 Oct 2026: 26 spots, every coordinate from a Photon or Overpass lookup, with the service, query, OSM id and date recorded. Only meetup-shaped OSM classes and full name matches are accepted. Overpass knows only 27 named parks and beaches in the whole of Lagos, and most are labels like "bbc", "open space" or a hotel; six were kept after review.
 
-Not found in OSM under their names, so left out rather than guessed: Elegushi Beach (only a road), Landmark Beach, Atican Beach, Alpha Beach, Eleko Beach, Bar Beach, JJT Park, Ndubuisi Kanu Park, Jhalobia Recreation Park, Omu Resort, Lagos Yacht Club, Dreamworld Africana, Lekki Leisure Lake, Point of No Return. Mapping these in OpenStreetMap would help everyone (and would fit the open-data story in the post).
+Not found in OSM under their names on 21 Oct 2026: Elegushi Beach (only a road), Landmark Beach, Atican Beach, Alpha Beach, Eleko Beach, Bar Beach, JJT Park, Ndubuisi Kanu Park, Jhalobia Recreation Park, Omu Resort, Lagos Yacht Club, Dreamworld Africana, Lekki Leisure Lake, Point of No Return. Twelve of them are now added from Wikidata (CC0) by `scripts/add-wikidata-spots.mjs`; Alpha Beach and Lekki Leisure Lake have no open coordinates anywhere, and Bar Beach is left out on purpose. Details in LOCAL-FACTS.md, "Famous spots". Mapping these in OpenStreetMap would still help everyone.
 
 ## Running it
 
