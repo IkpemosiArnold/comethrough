@@ -1,11 +1,13 @@
 // Type-ahead for a neighbourhood. Suggestions come from the server's geocoder (Photon,
-// biased to Lagos). Free text is fine too: the server geocodes it once.
+// biased to the crew's centre, or to the visitor's zone before there is a crew). Free text
+// is fine too: the server geocodes it once.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
+import { packUi } from '../lib/place.js';
 
 let uid = 0;
 
-export function AreaInput({ value, onChange, placeholder = 'Yaba, Lekki Phase 1, Ikeja...', autoFocus, id, onEnter, label }) {
+export function AreaInput({ value, onChange, placeholder = packUi().areaPlaceholder, autoFocus, id, onEnter, label }) {
   const [text, setText] = useState(value?.label || '');
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);

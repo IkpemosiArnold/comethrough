@@ -1,13 +1,55 @@
-// Dates are always shown in Lagos time, whatever the phone is set to.
-const TZ = 'Africa/Lagos';
+// Dates are shown in the crew's own time zone, whatever the phone is set to: a Lagos crew
+// sees Lagos time, a Berlin crew Berlin time. The zone comes with the crew (crew.tz) and is
+// set here when a crew loads; before that, Lagos, where the app began.
+let TZ = 'Africa/Lagos';
+let dayKey, weekdayLong, weekdayShort, dayNum, monthShort, hourMin, hour24;
+function build() {
+  dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+  weekdayLong = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'long' });
+  weekdayShort = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short' });
+  dayNum = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: 'numeric' });
+  monthShort = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, month: 'short' });
+  hourMin = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hourCycle: 'h12' });
+  hour24 = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23' });
+}
+build();
 
-const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
-const weekdayLong = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'long' });
-const weekdayShort = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short' });
-const dayNum = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: 'numeric' });
-const monthShort = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, month: 'short' });
-const hourMin = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hourCycle: 'h12' });
-const hour24 = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23' });
+/** Show dates in this IANA zone from now on (the crew's). Unknown zones are ignored. */
+export function setZone(tz) {
+  if (!tz || tz === TZ) return;
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: tz });
+  } catch {
+    return;
+  }
+  TZ = tz;
+  build();
+}
+export const zone = () => TZ;
+
+// The zone's offset from UTC at an instant, in minutes (Lagos 60; Berlin 60 or 120).
+function offsetMin(ms) {
+  const p = {};
+  for (const { type, value } of new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(ms))) p[type] = value;
+  return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000) / 60000);
+}
+
+// An instant as the crew's local date and time, for date and time inputs.
+export function toLocalParts(iso) {
+  if (!iso) return { date: '', time: '' };
+  const ms = new Date(iso).getTime();
+  const d = new Date(ms + offsetMin(ms) * 60000).toISOString();
+  return { date: d.slice(0, 10), time: d.slice(11, 16) };
+}
+
+// The crew's local date and time as an instant (daylight saving included).
+export function fromLocalParts(date, time) {
+  if (!date) return null;
+  const naive = Date.parse(`${date}T${time || '12:00'}:00Z`);
+  let ms = naive - offsetMin(naive) * 60000;
+  ms = naive - offsetMin(ms) * 60000;
+  return new Date(ms).toISOString();
+}
 
 export function now() {
   return window.__CT_NOW ? new Date(window.__CT_NOW) : new Date();

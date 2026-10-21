@@ -6,6 +6,7 @@ import { navigate } from '../lib/router.js';
 import { useSpeech } from '../lib/speech.js';
 import { copyText, whatsappUrl } from '../lib/platform.js';
 import { DAYS } from '../lib/format.js';
+import { exampleSentence, setPlace } from '../lib/place.js';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { MicButton } from '../ui/MicButton.jsx';
@@ -13,7 +14,8 @@ import { AreaInput } from '../ui/AreaInput.jsx';
 import { Dots } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
 
-const EXAMPLE = 'The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki';
+// A Lagos example on a phone set to Lagos time; a nearby city's elsewhere (src/lib/place.js)
+const EXAMPLE = exampleSentence();
 const UNSURE = 0.6;
 
 export function Start({ query }) {
@@ -34,6 +36,8 @@ export function Start({ query }) {
     setStep('reading');
     try {
       const d = await api.draftCrew(sentence.trim());
+      // the organiser's own area is looked up near the crew's areas, in the crew's city
+      if (d.region) setPlace({ tz: d.region.timezone, region: d.region, pack: d.pack });
       setDraft(d);
       setStep('confirm');
     } catch (err) {
@@ -45,7 +49,7 @@ export function Start({ query }) {
   async function create() {
     setStep('creating');
     try {
-      const { confidence, low, notes, ai, ...clean } = draft;
+      const { confidence, low, notes, ai, pack, ...clean } = draft;
       const organiser = me.name.trim() && me.area?.label?.trim()
         ? { name: me.name.trim(), area: me.area.lat != null ? me.area : me.area.label.trim() }
         : null;

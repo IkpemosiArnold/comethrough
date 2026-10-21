@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
 import { getCrew, saveCrew, readCrewCache as readCache, writeCrewCache as writeCache } from '../lib/store.js';
+import { setPlace } from '../lib/place.js';
 import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
 import { whatsappUrl } from '../lib/platform.js';
 import { Faces } from '../ui/Avatar.jsx';
@@ -14,7 +15,8 @@ import { KindSticker, ErrorNote } from '../ui/misc.jsx';
 export function CrewHome({ params }) {
   const { slug } = params;
   const mine = getCrew(slug);
-  const [data, setData] = useState(() => readCache(slug));
+  // a cached crew shows at once, in its own time zone
+  const [data, setData] = useState(() => { const c = readCache(slug); if (c?.crew) setPlace(c.crew); return c; });
   const [error, setError] = useState(null);
 
   function load() {

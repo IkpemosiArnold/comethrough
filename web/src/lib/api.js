@@ -6,6 +6,7 @@
 // crew, otherwise the crew's invite token. The .ics download carries the token as ?t=.
 
 import { getCrew, sessionGet, sessionSet, readCrewCache, writeCrewCache } from './store.js';
+import { areaContext, hint, setPlace } from './place.js';
 
 const q = new URLSearchParams(location.search);
 if (q.has('mock')) sessionSet('ct.mock', q.get('mock') === '0' ? '0' : '1');
@@ -85,28 +86,31 @@ function withRsvps(plan, members = [], you = null) {
 
 export const api = {
   // Step 1 of starting a crew: Gemma reads the sentence. Nothing is saved yet.
+  // The visitor's own zone goes with it, so a crew started in Berlin is not looked for in Lagos.
   async draftCrew(sentence) {
-    const r = await req('POST', '/api/crews', { body: { sentence } });
-    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
+    const r = await req('POST', '/api/crews', { body: { sentence, hint: hint() } });
+    return { ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [], ai: r.ai !== false };
   },
   // Step 2: the organiser confirms the edited draft, and can join in the same step.
   async createCrew(draft, organiser) {
-    const r = await req('POST', '/api/crews', { body: { confirm: draft, ...(organiser ? { organiser } : {}) } });
+    const r = await req('POST', '/api/crews', { body: { confirm: draft, hint: hint(), ...(organiser ? { organiser } : {}) } });
     return { ...r, crew: { ...r.crew, inviteToken: r.inviteToken || r.crew?.inviteToken } };
   },
   // { crew, members, plans, you }
   async getCrew(slug, invite) {
     const d = await req('GET', `/api/crews/${enc(slug)}`, { slug, invite });
+    setPlace(d.crew);
     return { ...d, plans: (d.plans || []).map((p) => withRsvps(p, d.members, d.you)) };
   },
   // { member, memberToken, memberUrl, calendarUrl, webcalUrl }
   async join(slug, { name, area }, invite) {
     return req('POST', `/api/crews/${enc(slug)}/members`, { token: invite || getCrew(slug)?.invite, body: { name, area } });
   },
-  // Area type-ahead (Photon on the server, biased to Lagos): [{ label, detail, lat, lon }]
+  // Area type-ahead (Photon on the server, biased to the crew's centre once there is a crew,
+  // else to the visitor's zone): [{ label, detail, lat, lon }]
   async geocode(text, signal) {
     if (MOCK) return (await mock()).areas(text);
-    const res = await fetch(`/api/areas?q=${enc(text)}`, { signal });
+    const res = await fetch(`/api/areas?q=${enc(text)}${areaContext()}`, { signal });
     if (!res.ok) return [];
     const data = await res.json();
     return data.results || [];
@@ -141,6 +145,7 @@ export const api = {
     } catch (e) {
       data = e.code === 'offline' ? readCrewCache(slug) : null;
       if (!data) throw e;
+      setPlace(data.crew);
       offline = true;
     }
     const plan = (data.plans || []).find((p) => p.id === id);
@@ -151,10 +156,11 @@ export const api = {
     const r = await req('PATCH', `/api/plans/${enc(id)}`, { slug, body: { rsvp } });
     return r.plan;
   },
-  // { pods: [Pod], unplaced: [{ id, name }] }
+  // { pods: [Pod], unplaced: [{ id, name }], rides: the ride apps the crew's city pack has
+  // verified (none outside Lagos), directions: { android, ios, web } or null }
   async pods(slug, id) {
     const r = await req('GET', `/api/plans/${enc(id)}/pods`, { slug });
-    return { pods: r?.pods || [], unplaced: r?.unplaced || [] };
+    return { pods: r?.pods || [], unplaced: r?.unplaced || [], rides: Array.isArray(r?.rides) ? r.rides : null, directions: r?.directions || null };
   },
   // A single-event calendar file. Works on Android and iPhone without subscribing.
   eventIcsUrl(slug, plan) {

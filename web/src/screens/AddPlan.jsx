@@ -14,6 +14,8 @@ import { AreaInput } from '../ui/AreaInput.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
 import { prepareFlyer, formatBytes } from '../lib/image.js';
+import { fromLocalParts, toLocalParts } from '../lib/format.js';
+import { packUi } from '../lib/place.js';
 
 const UNSURE = 0.6;
 const URL_RE = /https?:\/\/[^\s]+/i;
@@ -26,16 +28,9 @@ const lockedWords = (url) => (/tix\.africa/i.test(url || '')
 const STATUS_IMAGE = ['reading the flyer', 'finding the date', 'finding the place', 'checking the price'];
 const STATUS_TEXT = ['reading it', 'working out the day', 'finding the place'];
 
-// Lagos is UTC+1 all year, so the conversion is fixed.
-function toParts(iso) {
-  if (!iso) return { date: '', time: '' };
-  const d = new Date(new Date(iso).getTime() + 3600e3).toISOString();
-  return { date: d.slice(0, 10), time: d.slice(11, 16) };
-}
-function fromParts(date, time) {
-  if (!date) return null;
-  return new Date(`${date}T${time || '12:00'}:00+01:00`).toISOString();
-}
+// Date and time inputs are in the crew's own zone (Lagos, Berlin...), daylight saving included.
+const toParts = toLocalParts;
+const fromParts = fromLocalParts;
 
 // The crew sees the flyer as a small poster: a ~480px JPEG (well under the server's 200 KB
 // limit) is kept as the plan's thumbnail. The big copy is only read by Gemma, never stored.
@@ -427,7 +422,7 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
           <Unsure low={isLow('price')} order={4}>
             <label class="field">
               <span class="label">Price</span>
-              <input class="input" value={draft.price?.text || ''} placeholder="Free, or ₦5,000 at the gate" onInput={(ev) => { const t = ev.currentTarget.value; set({ price: t ? { text: t, free: /^free/i.test(t.trim()) } : null }); }} />
+              <input class="input" value={draft.price?.text || ''} placeholder={packUi().pricePlaceholder} onInput={(ev) => { const t = ev.currentTarget.value; set({ price: t ? { text: t, free: /^free/i.test(t.trim()) } : null }); }} />
             </label>
           </Unsure>
         )}

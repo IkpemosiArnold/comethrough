@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api, MOCK } from '../lib/api.js';
 import { getCrew } from '../lib/store.js';
+import { packUi } from '../lib/place.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
 import { copyText, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
@@ -24,7 +25,9 @@ export function PlanPage({ params, query }) {
   const meId = mine?.memberId || null;
   const [plan, setPlan] = useState(null);
   const [pods, setPods] = useState(null);
-  const [rides, setRides] = useState(FALLBACK_RIDES);
+  // Lagos's ride apps until the server says otherwise; a crew elsewhere gets none, and directions
+  const [rides, setRides] = useState(() => (packUi().directions ? [] : FALLBACK_RIDES));
+  const [directions, setDirections] = useState(null);
   const [error, setError] = useState(null);
   const [swingId, setSwingId] = useState(null);
   const [menu, setMenu] = useState(false);
@@ -34,7 +37,7 @@ export function PlanPage({ params, query }) {
   function load() {
     setError(null);
     api.getPlan(slug, id).then(setPlan).catch(setError);
-    api.pods(slug, id).then((r) => { setPods(r.pods); if (r.rides?.length) setRides(r.rides); }).catch(() => setPods([]));
+    api.pods(slug, id).then((r) => { setPods(r.pods); if (r.rides) setRides(r.rides); setDirections(r.directions); }).catch(() => setPods([]));
   }
   useEffect(load, [slug, id]);
   const [posted, setPosted] = useState(() => !!query.get('posted'));
@@ -230,7 +233,7 @@ export function PlanPage({ params, query }) {
         <section class="rides" aria-labelledby="rides-title">
           <h2 id="rides-title" class="section-label">Rides</h2>
           {my === 'going' && myPod && (
-            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onCopy={copyAddress} rides={rides} host={host} />
+            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onCopy={copyAddress} rides={rides} directions={directions} host={host} />
           )}
           {my === 'going' && pods && !myPod && (
             <div class="pod pod-solo">
@@ -313,7 +316,8 @@ export function PlanPage({ params, query }) {
 }
 
 // The ride apps that work in Lagos, Bolt first (the server sends the same list with the pods;
-// src/core/rides.mjs has the sources). None documents a link that fills in the drop-off, so a
+// src/packs/lagos/rides.mjs has the sources). A crew in a city with no pack gets no ride app
+// named, only "Get directions" and "Copy address". None documents a link that fills in the drop-off, so a
 // button opens the app's store page on a phone (it says "Open" when the app is installed) and
 // the Lagos web page elsewhere, and "Copy address" does the rest.
 const FALLBACK_RIDES = [
@@ -321,6 +325,7 @@ const FALLBACK_RIDES = [
   { id: 'indrive', name: 'inDrive', blurb: 'You name the fare.', links: { android: 'https://play.google.com/store/apps/details?id=sinet.startup.inDriver', ios: 'https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801', web: 'https://indrive.com/en-ng/' } },
 ];
 const rideHref = (r) => (isAndroid ? r.links.android : isIOS ? r.links.ios : r.links.web);
+const directionsHref = (d) => (isAndroid ? d.android : isIOS ? d.ios : d.web);
 
 // "Free" only when a source says so (the server sends entry only with a source, or unknown)
 function entryWords(entry) {
@@ -328,7 +333,7 @@ function entryWords(entry) {
   if (entry.free === false) return entry.note || 'There is a fee to get in';
   return 'Entry: check at the gate';
 }
-const monthYear = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-NG', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const monthYear = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 // Once per device, right after the first "I'm going": the push opt-in, or the iPhone install hint.
 function NudgeAsk({ slug }) {
@@ -364,7 +369,7 @@ function NudgeAsk({ slug }) {
   );
 }
 
-function PodCard({ pod, byId, meId, fresh, onCopy, rides, host = null }) {
+function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, host = null }) {
   const ref = useRef(null);
   const [how, setHow] = useState(false);
   const people = pod.memberIds.map((m, i) => byId[m] || { id: m, name: pod.names?.[i] || '?' });
@@ -399,15 +404,28 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, host = null }) {
         {pod.destinationText && (
           <button class="btn secondary block" onClick={() => onCopy(pod.destinationText)}><Icon name="copy" size={20} /> Copy address</button>
         )}
-        <div class="ride-apps">
-          {rides.slice(0, 2).map((r) => (
-            <a key={r.id} class="btn ghost grow" href={rideHref(r)} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> {r.name}</a>
-          ))}
-        </div>
-        <p class="fine ride-fine">
-          No ride app here takes a drop-off from a link yet, so paste the address in.
-          {rides.length > 2 && <> Also: {rides.slice(2).map((r, i) => <span key={r.id}>{i ? ', ' : ''}<a href={rideHref(r)} target="_blank" rel="noopener" data-external>{r.name}</a></span>)}.</>}
-        </p>
+        {rides.length > 0 ? (
+          <>
+            <div class="ride-apps">
+              {rides.slice(0, 2).map((r) => (
+                <a key={r.id} class="btn ghost grow" href={rideHref(r)} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> {r.name}</a>
+              ))}
+            </div>
+            <p class="fine ride-fine">
+              No ride app here takes a drop-off from a link yet, so paste the address in.
+              {rides.length > 2 && <> Also: {rides.slice(2).map((r, i) => <span key={r.id}>{i ? ', ' : ''}<a href={rideHref(r)} target="_blank" rel="noopener" data-external>{r.name}</a></span>)}.</>}
+            </p>
+          </>
+        ) : (
+          <>
+            {directions && (
+              <div class="ride-apps">
+                <a class="btn ghost grow" href={directionsHref(directions)} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Get directions</a>
+              </div>
+            )}
+            <p class="fine ride-fine">Opens your maps app. For a ride, paste the address into whichever app you use.</p>
+          </>
+        )}
       </div>
     </div>
   );
