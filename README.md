@@ -46,6 +46,12 @@ What the app claims about Lagos, and where each claim comes from, is in
   weather, and posts the plan two or three days ahead. If rain is coming, it moves to a
   drier stretch inside the hours people actually go out (in Lagos, 11 am to 6:30 pm at the
   weekend), and when there is none it skips the week and says why.
+- **The sloth has 3 ideas.** "Too lazy to think?" One card, three things to do tonight or
+  this weekend: a green spot near the middle of the crew (when the forecast is dry), a place
+  the crew already liked, and in Lagos an event from the **Awe Lagos** and **Nothing To Do
+  In Lagos** weekly guides, read from their RSS feeds and credited with a link to the post.
+  Code filters by time, distance and weather; Gemma ranks and writes one line each, and any
+  line with a number it made up is replaced. One tap makes an idea a plan.
 - **WhatsApp first.** Plans travel the way Lagos crews already talk: every "tell the crew"
   button opens WhatsApp with the plan's link in the message (after you post a plan, after
   you say you're going, the invite, the rain heads-up). Web Push is the extra nudge for
@@ -63,6 +69,8 @@ decision about fairness.
 | Read a flyer, a web page or a sentence into a plan | Gemma 4 (with vision for flyers), JSON output | People write plans in every possible way |
 | Read the crew's setup sentence | Gemma 4 | Language |
 | Explain the sloth's pick and write its invite | Gemma 4, checked by code | Language; any number not in the facts is thrown away |
+| Rank the 3 ideas and say why | Gemma 4, after code has filtered by time, distance and weather | Taste is language; the filters are facts |
+| Read a curated weekly guide into events | Gemma 4, then code keeps only what the post states | Messy text; nothing invented survives |
 | Turn "friday 7" into a date and time | Code | A model should never do date arithmetic |
 | Find neighbourhoods and venues on the map; the crew's city | Photon and Nominatim (OpenStreetMap), cached | Facts |
 | The crew's time zone | Open-Meteo (`timezone=auto`) | Open data |
@@ -98,6 +106,34 @@ Tested live in London, Berlin, Nairobi, Bengaluru and New York, with Lagos as th
 see [docs/CITY-PACKS.md](docs/CITY-PACKS.md): spots with sources, ride apps with dated
 sources, and traffic notes.
 
+## Run your own sloth
+
+Every Gemma task goes through one port (`src/adapters/llm.mjs`). The default is Gemma 4 on
+Google's Gemini API. Set `LLM=ollama` and the same tasks run on Gemma on your own machine or
+server through [Ollama](https://ollama.com):
+
+```sh
+ollama pull gemma3:4b                       # or any Gemma you like; 12b and up read better
+LLM=ollama OLLAMA_MODEL=gemma3:4b npm run dev
+node scripts/llm-check.mjs                  # three tasks through the port, with timings
+```
+
+Why open weights matter here:
+
+- **No lock-in.** The app does not depend on one company's API, its quota or its pricing.
+  Gemma's weights are open, so the sloth keeps working if the free API changes.
+- **Free.** No key and no bill. A recent laptop or a small GPU server is enough.
+- **Your crew's words stay on your machine.** With `LLM=ollama`, nothing goes to Google:
+  not the setup sentence, not the plans, not the ideas.
+
+The trade-offs, measured on 21 Oct 2026 on a 2017 MacBook Pro (Intel Core i5, CPU only, no
+GPU) with `gemma3-4b-hf`: reading the crew sentence took 217 s, reading a plan sentence
+300 s and explaining the sloth's pick 89 s, all three right. A recent Mac or any GPU is many
+times faster. Reading a flyer needs a model with vision: Ollama says whether the model has
+one, and a text-only model answers "Reading a flyer needs a vision model ... Type the plan
+or paste the link instead." Settings: `OLLAMA_URL` (default `http://localhost:11434`),
+`OLLAMA_MODEL`, `OLLAMA_VISION=auto|yes|no`, `OLLAMA_TIMEOUT_MS` (default 180000).
+
 ## Privacy
 
 - Gemma runs through Google's free Gemini API, and Google may use what it receives to improve
@@ -106,6 +142,13 @@ sources, and traffic notes.
   - **Add a plan**: your sentence, the flyer picture, or the link with its page's text.
   - **The sloth's note**: the place, the weather, the crew's vibe words and the minutes from
     each neighbourhood. No names.
+  - **The 3 ideas**: each idea's name, time, place, price and weather, the crew's vibe words
+    and budget, and the minutes from each neighbourhood. No names.
+  - Or none of it: with `LLM=ollama`, Gemma runs on your own machine (see "Run your own sloth").
+- The Lagos weekly guides are read only from their public RSS feeds, at most once a day,
+  while their robots.txt allows it. Only short facts are kept (name, date and time, venue,
+  price, ticket link), each idea links back to the guide's post, and the posts' text is never
+  stored or shown.
 - Your crew list and where people live stay with Come Through. Members give a name and a
   neighbourhood, never an address or a phone number. A host's home address is shown only to
   crew members.
@@ -130,7 +173,7 @@ For the real thing, copy `.env.example` to `.env`, add `GEMINI_API_KEY`
 (aistudio.google.com/apikey) and run `npm run dev`.
 
 ```sh
-npm test                 # 165 tests: core, city packs, adapters, service and the HTTP API
+npm test                 # 179 tests: core, city packs, ideas, the LLM port, adapters, service and the HTTP API
 npm run typecheck        # tsc over the JSDoc types
 npm run e2e -- http://localhost:3000 <event link>   # the whole flow against a running server
 ```

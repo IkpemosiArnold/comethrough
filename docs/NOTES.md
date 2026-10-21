@@ -80,6 +80,64 @@ Bugs found and fixed, each with a test:
   is no address; an Android phone is never taken for an iPad; no marker animation under
   reduced motion; invalid `ALLOWED_ORIGINS` entries no longer crash the server at boot.
 
+## The sloth's 3 ideas: live runs, Wed 21 Oct 2026 (afternoon)
+
+`GET /api/crews/:slug/ideas` (docs/SPEC.md, "Ideas"). Checked with `scripts/feeds-check.mjs`
+(the two Lagos guides through Gemma) and `scripts/ideas-check.mjs` (a whole card for a made-up
+Yaba, Lekki Phase 1 and Surulere crew, "outside and music", cheap), against
+gemma-4-26b-a4b-it, Photon, Overpass and Open-Meteo. The feeds were fetched twice that day
+(once in the research, once for the first check); later runs read those saved copies with
+`FEEDS_DIR`, so no feed was fetched a third time.
+
+| Step | Result |
+|---|---|
+| Fetch both feeds (robots.txt first) | 200 in 1.1 to 1.3 s, 20 posts each, about 410 KB; `/feed` allowed for `*` |
+| Read the newest Awe Lagos post (16 to 18 Oct) | 12 events listed, 12 kept, 32 s. Dates, times, venues, prices as stated, and each event's own ticket link |
+| Read the newest Nothing To Do In Lagos post (15 to 18 Oct) | 13 listed, 12 kept (a "title_placeholder" dropped: not in the post), 34 s |
+| The first card (cold caches) | **215 s.** Overpass took longer than the 15 s budget, and 25 venue lookups ran for events that had already passed |
+| The card after the guides were read (as after the heartbeat) | **17 s**, 2 ideas: Lagos Trivia Night (Sun 25 Oct, the only guide event still to come that Wednesday, "From Awe Lagos' weekly guide") and Nike Art Gallery (Sat 4 to 7 pm, a roof: rain was forecast all weekend, so no outdoor places) |
+
+Bugs found and fixed in these runs:
+
+- **Slow first card.** Venues are now looked up only for events still to come, within 20 s
+  per post; a card waits at most 25 s for a guide being read (it goes on in the background,
+  and that card is kept 10 minutes instead of 3 hours); a slow map gives way to the curated
+  spots after 15 s.
+- **An event under a far day heading was dropped** ("B3AM Galaxy" sat 3,000 characters below
+  "SATURDAY, OCTOBER 17"). The nearest day heading above an event now counts as stating its
+  date.
+- **Gemma picked none of two.** Asked for "the three best" of two ideas it answered
+  `{"picks": []}`. The message now says how many to pick; re-run: both picked, both reasons
+  grounded (3.3 s).
+- **Reading a whole guide timed out** at the default 25 s. The extraction asks for two minutes.
+- Weekend places and the usual now try Saturday and Sunday before a Friday evening (a covered
+  place on Friday at rush hour failed the 90-minute trip cap).
+
+Gemini API 500s came back on two of five long reads that day. A post whose facts could not
+be read is fetched again in full on the next day's try (no `If-None-Match`).
+
+## Run your own sloth: Ollama on this Mac, Wed 21 Oct 2026
+
+`LLM=ollama OLLAMA_MODEL=gemma3-4b-hf:latest OLLAMA_TIMEOUT_MS=900000 node scripts/llm-check.mjs`,
+Ollama 0.12.5, on a 2017 MacBook Pro (Intel Core i5-7360U, 2 cores, 16 GB, CPU only). The
+model was imported without a vision projector (`/api/show` lists only `completion`).
+
+| Task | Tokens in / out | Time | Result |
+|---|---|---|---|
+| parse-crew ("the uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki") | 517 / 122 | 217 s | Right: "the uni guys", cheap, every 2 weeks on Saturday, Yaba and Lekki |
+| parse-plan ("wine and monopoly at mine friday 7, bring a bottle") | 654 / 173 | 300 s | Right: hosted, "Wine and monopoly", Fri 23 Oct 19:00, bring a bottle |
+| explain-pick | 364 / 28 | 89 s | Grounded: "Freedom Park is a good choice because it keeps everyone's trip from Yaba within 28 minutes." |
+| parse-plan with a flyer | | 0 s | Refused before any call: "Reading a flyer needs a vision model, and this server runs gemma3-4b-hf:latest, which reads text only. Type the plan or paste the link instead." |
+
+The first run, with the default 180 s timeout, finished only explain-pick (70 s). Raw speed
+on this machine is about 9 tokens a second in and 4 out; the JSON schema grammar roughly
+doubles the time. So: the port and the adapter work, and the answers were right for
+these three sentences, and a laptop this old is far too slow for people waiting on a screen
+(the server's request timeout follows `OLLAMA_TIMEOUT_MS` when `LLM=ollama`). A recent Mac
+or any GPU, or `gemma3:12b` on a small GPU server, is the realistic self-hosted setup.
+Not run on Ollama: the two ideas tasks (reading a whole guide would take this machine well
+over the 3 minute default).
+
 ## Curated Lagos spots (data/lagos-spots.json)
 
 Built by `node scripts/build-spots.mjs` on 21 Oct 2026: 26 spots, every coordinate from a Photon or Overpass lookup, with the service, query, OSM id and date recorded. Only meetup-shaped OSM classes and full name matches are accepted. Overpass knows only 27 named parks and beaches in the whole of Lagos, and most are labels like "bbc", "open space" or a hotel; six were kept after review.
@@ -90,11 +148,14 @@ Not found in OSM under their names on 21 Oct 2026: Elegushi Beach (only a road),
 
 ```sh
 npm install
-npm test               # 165 tests: core, city packs, adapters (fakes and a local HTTP server), service, API end to end
+npm test               # 179 tests: core, city packs, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
 npm run smoke          # the live calls above (needs GEMINI_API_KEY)
+node scripts/llm-check.mjs                  # three Gemma tasks through the LLM port (LLM=ollama for your own model), with timings
+node scripts/feeds-check.mjs                # the Lagos guides' feeds read live (FEEDS_DIR=dir reads saved copies)
+node scripts/ideas-check.mjs [tonight|weekend]   # a whole ideas card for a made-up Lagos crew, live
 node scripts/pidgin-eval.mjs                # 16 Pidgin and mixed English inputs, live, per-field accuracy
 node scripts/cities-check.mjs [city ...]    # a crew in Lagos, London, Berlin, Nairobi, Bengaluru and New York, live (LOCAL-FACTS.md, "Beyond Lagos")
 node scripts/events-check.mjs <url> ...     # real event pages through the link reader
@@ -133,4 +194,11 @@ Exact steps, checks after deploy and the phone checklist: [DEPLOY.md](DEPLOY.md)
   A non-naira price now gets a note and lower confidence. Tix.africa blocks servers, so its
   links ask for a screenshot. See LOCAL-FACTS.md, "Event sources".
 - SerpApi (events near the crew) is not built.
+- Ask Awe Lagos and Nothing To Do In Lagos for permission to list their picks (with the
+  credit and link the app already shows). Until then the feeds are read with a small
+  footprint (LOCAL-FACTS.md, "Curated weekly guides").
+- The ideas card has not been seen with a week's fresh guides yet: on Wednesday 21 Oct only
+  one guide event was still to come. Re-run `scripts/ideas-check.mjs` on Friday.
+- Ollama was tested only with a 4B text model on an old CPU. The two ideas tasks were not
+  run on it, and no vision model was tried.
 - No email or account recovery by design: losing the member link means joining again. A "send me my link" option could come later.

@@ -398,6 +398,38 @@ machine cannot load a Tix page; the flyer path itself is tested.
 
 **Instagram** stays "share the picture instead" (empty page to servers, checked 21 Oct 2026).
 
+### Curated weekly guides (the sloth's 3 ideas)
+
+Researched and tested on 21 Oct 2026 (the full survey of Lagos event sources, including what
+was ruled out and why, is in the project's research notes: Eventbrite search is gone and its
+terms forbid scraping, Tix.africa blocks servers, Luma and Resident Advisor forbid fetching).
+Two weekly guides are read, through their RSS feeds only:
+
+| Guide | Feed | Seen | robots.txt for `*` | Terms |
+|---|---|---|---|---|
+| **Awe Lagos** ("Your Lagos Weekend Guide") | https://awelagos.substack.com/feed | Weekly, Thursday or Friday; 20 posts back to August | Disallows `/action/`, `/publish`, `/sign-in`, `/feed/private` and others, not `/feed` | Substack's |
+| **Nothing To Do In Lagos** ("This Weekend in Lagos ... #FindYourLagos") | https://nothingtodoinlagos.substack.com/feed | Weekly, Thursdays | Same | Substack's |
+
+Substack's Acceptable Use Policy (https://substack.com/tos, "Last updated: October 6, 2026")
+forbids crawling or scraping pages and copying or storing "any significant portion of the
+content". It does not mention RSS, which exists to be read. So the app reads the feed and
+nothing else, at most once a day, as `ComeThrough/0.1 (+contact)`, only while robots.txt
+allows the feed path; it keeps only short facts (name, date and time, venue or area, price as
+stated, ticket link), credits the guide with a link to the post on every idea, and never
+stores or shows the prose. **Both curators should still be asked for permission** (a
+"featured in Come Through" credit is a fair trade); until they answer, this stays a grey area
+with a small footprint.
+
+Live read on 21 Oct 2026 (`scripts/feeds-check.mjs`, gemma-4-26b-a4b-it, on the newest post
+of each, 15 to 18 October): Awe Lagos, 12 events listed and 12 kept, in 32 s; Nothing To Do
+In Lagos, 13 listed and 12 kept (one placeholder name dropped), in 34 s. Every kept event had
+the date, time, venue and price the post gives, and the post's own ticket link (jetronticket,
+tix.africa, gruve.events, eventporte, selar, getbookt). The first version dropped "B3AM
+Galaxy" because its day heading sat far above a long block; the nearest day heading now
+counts. On that Wednesday only one event was still to come (Awe Lagos' own Lagos Trivia
+Night, Sunday 25 October); the next guides land Thursday and Friday. Two of five long reads
+that day got a Gemini API 500; a failed post is read again on the next day's fetch.
+
 ## Beyond Lagos
 
 The app now has a global core and city packs (docs/CITY-PACKS.md). Lagos keeps everything
