@@ -1,0 +1,286 @@
+// The mock backend for ?mock=1. Shapes match docs/SPEC.md exactly, so swapping to the
+// real server changes nothing in the screens. State lives in sessionStorage for the tab.
+
+import { saveCrew, getCrew as storedCrew, sessionGet, sessionSet } from './store.js';
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms * (window.__CT_FAST ? 0.05 : 1)));
+
+const AREAS = [
+  ['Yaba', 'Lagos Mainland', 6.5095, 3.3711], ['Surulere', 'Lagos Mainland', 6.4969, 3.3549],
+  ['Lekki Phase 1', 'Eti-Osa', 6.4474, 3.4723], ['Lekki Phase 2', 'Eti-Osa', 6.4471, 3.5297],
+  ['Ajah', 'Eti-Osa', 6.4683, 3.5714], ['Ikeja', 'Ikeja', 6.6018, 3.3515], ['Ikeja GRA', 'Ikeja', 6.5786, 3.3542],
+  ['Gbagada', 'Kosofe', 6.5564, 3.3909], ['Ikoyi', 'Eti-Osa', 6.4549, 3.4366], ['Victoria Island', 'Eti-Osa', 6.4281, 3.4219],
+  ['Lagos Island', 'Lagos Island', 6.4541, 3.3947], ['Maryland', 'Ikeja', 6.5713, 3.3667], ['Magodo', 'Kosofe', 6.6215, 3.3846],
+  ['Ogudu', 'Kosofe', 6.5753, 3.3906], ['Festac Town', 'Amuwo-Odofin', 6.4667, 3.2833], ['Ilupeju', 'Mushin', 6.5531, 3.3569],
+  ['Oshodi', 'Oshodi-Isolo', 6.5568, 3.3415], ['Isolo', 'Oshodi-Isolo', 6.5373, 3.3237], ['Ikorodu', 'Ikorodu', 6.6194, 3.5105],
+  ['Sangotedo', 'Eti-Osa', 6.4702, 3.6303], ['Chevron', 'Eti-Osa', 6.4396, 3.5317], ['Oniru', 'Eti-Osa', 6.4325, 3.4529],
+  ['Akoka', 'Lagos Mainland', 6.5244, 3.3874], ['Ebute Metta', 'Lagos Mainland', 6.4884, 3.3815], ['Obalende', 'Lagos Island', 6.4483, 3.4069],
+  ['Ojodu Berger', 'Ikeja', 6.6382, 3.3659], ['Opebi', 'Ikeja', 6.5928, 3.3593], ['Allen Avenue', 'Ikeja', 6.6012, 3.3533],
+  ['Bariga', 'Shomolu', 6.5394, 3.3878], ['Shomolu', 'Shomolu', 6.5392, 3.3842], ['Agungi', 'Eti-Osa', 6.4416, 3.5054],
+  ['Ikota', 'Eti-Osa', 6.4489, 3.5465], ['Ogba', 'Ikeja', 6.6271, 3.3402], ['Anthony Village', 'Kosofe', 6.5596, 3.3721],
+  ['Mushin', 'Mushin', 6.5273, 3.3414], ['Apapa', 'Apapa', 6.4489, 3.3592], ['Ketu', 'Kosofe', 6.5976, 3.3895],
+];
+
+const PLACES = {
+  muri: { name: 'Muri Okunola Park', address: 'Ademola Adetokunbo St, Victoria Island', lat: 6.4352, lon: 3.4258, outdoor: true, private: false },
+  glover: { name: 'Glover Court suya spot', address: 'Glover Court, off Glover Rd, Ikoyi', lat: 6.4479, lon: 3.4295, outdoor: true, private: false },
+  tobis: { name: "Tobi's place", address: '12 Alagomeji St, Yaba', lat: 6.4985, lon: 3.3775, outdoor: false, private: true },
+  freedom: { name: 'Freedom Park', address: '1 Hospital Rd, Lagos Island', lat: 6.4497, lon: 3.3988, outdoor: true, private: false },
+  jjt: { name: 'JJT Park', address: 'Obafemi Awolowo Way, Alausa, Ikeja', lat: 6.6139, lon: 3.3576, outdoor: true, private: false },
+};
+
+const MEMBERS = [
+  ['m0', 'Ife Adebayo', 'Yaba'], ['m1', 'Tobi', 'Yaba'], ['m2', 'Ada Okafor', 'Surulere'], ['m3', 'Seyi', 'Lekki Phase 1'],
+  ['m4', 'Kemi', 'Ikeja GRA'], ['m5', 'Dayo', 'Akoka'], ['m6', 'Chioma', 'Ajah'], ['m7', 'Femi', 'Gbagada'], ['m8', 'Zainab', 'Lekki Phase 1'],
+];
+
+function area(label) {
+  const a = AREAS.find((x) => x[0].toLowerCase() === String(label).toLowerCase());
+  return a ? { label: a[0], lat: a[2], lon: a[3] } : { label, lat: 6.5244, lon: 3.3792 };
+}
+
+// Dates relative to now, in Lagos time (UTC+1, no DST)
+function lagosDate(daysAhead, hh, mm = 0) {
+  const n = new Date(Date.now() + 3600e3); // shift to Lagos wall clock
+  const d = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + daysAhead, hh - 1, mm));
+  return d.toISOString();
+}
+function nextDow(dow, minAhead = 0) {
+  const n = new Date(Date.now() + 3600e3);
+  let ahead = (dow - n.getUTCDay() + 7) % 7;
+  if (ahead < minAhead) ahead += 7;
+  return ahead;
+}
+
+function seed() {
+  const lagosHour = new Date(Date.now() + 3600e3).getUTCHours();
+  const suyaDay = lagosHour >= 21 ? 1 : 0;
+  const fri = nextDow(5, 1), sat = nextDow(6, 1), sun = nextDow(0, 1);
+  const crew = {
+    id: 'c1', slug: 'yaba-lot', name: 'The Yaba Lot', vibe: 'Outside and cheap. Good food, no long talk.',
+    rhythm: { every: '2w', day: 6, window: { from: '15:00', to: '19:00' } },
+    areas: [area('Yaba'), area('Lekki Phase 1')], createdAt: lagosDate(-40, 12), inviteToken: 'inv_demo',
+  };
+  const members = MEMBERS.map(([id, name, a], i) => ({ id, name, area: { label: a }, joinedAt: lagosDate(-40 + i, 12) }));
+  const plans = [
+    {
+      id: 'p-suya', crewId: 'c1', kind: 'quick', title: 'Suya at Glover Court', start: lagosDate(suyaDay, 20), end: lagosDate(suyaDay, 22),
+      tz: 'Africa/Lagos', place: PLACES.glover, price: { text: 'About ₦3,000 each', free: false }, host: null, bring: [],
+      source: { text: "Who's up for suya tonight? Glover Court, 8ish" }, why: null, invite: null, weather: null,
+      status: 'on', confidence: {}, rsvps: { m3: 'going', m5: 'maybe' }, createdBy: 'm3', createdAt: lagosDate(0, 9),
+    },
+    {
+      id: 'p-monopoly', crewId: 'c1', kind: 'hosted', title: "Wine and Monopoly at Tobi's", start: lagosDate(fri, 19), end: lagosDate(fri, 23),
+      tz: 'Africa/Lagos', place: PLACES.tobis, price: null, host: 'm1', bring: ['A bottle of wine', 'Small chops or chin chin', 'Ice'],
+      source: { text: 'Wine and monopoly at mine, Friday 7, bring a bottle' }, why: null, invite: null, weather: null,
+      status: 'on', confidence: {}, rsvps: { m1: 'going', m2: 'going', m7: 'maybe', m4: 'going' }, createdBy: 'm1', createdAt: lagosDate(-1, 18),
+    },
+    {
+      id: 'p-ritual', crewId: 'c1', kind: 'ritual', title: 'Lazy Saturday at Muri Okunola Park', start: lagosDate(sat, 16), end: lagosDate(sat, 19),
+      tz: 'Africa/Lagos', place: { ...PLACES.muri, osm: { type: 'way', id: 25374721, tags: { leisure: 'park' } } }, price: { text: 'Free to get in', free: true },
+      host: null, bring: ['A mat or a wrapper', 'Something to share'],
+      source: {}, why: "Muri Okunola sits about halfway between Yaba and Lekki, so nobody does the long trip. It's free, there's shade under the big trees, and you were at JJT Park last time.",
+      invite: 'Mats out, music low, suya on the way. Come through if you can.',
+      weather: { checkedAt: lagosDate(0, 8), summary: 'Dry, clouds after 4', rainProb: 10, tempC: 29, ok: true },
+      status: 'on', confidence: {}, rsvps: { m2: 'going', m3: 'going', m8: 'going', m6: 'maybe', m5: 'going' }, createdBy: 'sloth', createdAt: lagosDate(0, 6),
+    },
+    {
+      id: 'p-groove', crewId: 'c1', kind: 'found', title: 'Sunday Groove Sessions', start: lagosDate(sun, 18), end: lagosDate(sun, 22),
+      tz: 'Africa/Lagos', place: PLACES.freedom, price: { text: '₦5,000 at the gate', free: false }, host: null, bring: [],
+      source: { url: 'https://example.com/sunday-groove', image: true, imageUrl: '/mock/flyer.svg' }, why: null, invite: null,
+      weather: { checkedAt: lagosDate(0, 8), summary: 'Showers possible after 8pm', rainProb: 55, tempC: 27, ok: false },
+      status: 'on', confidence: {}, rsvps: { m4: 'going', m7: 'going', m1: 'maybe' }, createdBy: 'm4', createdAt: lagosDate(-2, 13),
+    },
+  ];
+  return { crew, members, plans, me: null };
+}
+
+function load() {
+  const raw = sessionGet('ct.mockdb');
+  if (raw) { try { return JSON.parse(raw); } catch { /* reseed */ } }
+  const db = seed();
+  sessionSet('ct.mockdb', JSON.stringify(db));
+  return db;
+}
+function save(db) { sessionSet('ct.mockdb', JSON.stringify(db)); }
+
+function meId(slug) { return storedCrew(slug)?.memberId || null; }
+
+// ---------- crews ----------
+
+export async function draftCrew(sentence) {
+  await wait(1400);
+  const s = sentence.toLowerCase();
+  const first = sentence.split(/[,.]/)[0].trim();
+  const name = first.length > 2 && first.length < 32 ? first.replace(/^\w/, (c) => c.toUpperCase()) : 'The crew';
+  const every = /every other|fortnight|every two/.test(s) ? '2w' : /month/.test(s) ? '4w' : /every|weekly/.test(s) ? '1w' : null;
+  const dayIdx = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].findIndex((d) => s.includes(d));
+  const found = AREAS.filter(([l]) => s.includes(l.toLowerCase().split(' ')[0])).slice(0, 4).map(([l, , lat, lon]) => ({ label: l, lat, lon }));
+  const vibeBits = [];
+  if (/outside|outdoor|park|beach/.test(s)) vibeBits.push('Outside');
+  if (/cheap|budget|broke/.test(s)) vibeBits.push('cheap');
+  if (/chill|lazy|calm/.test(s)) vibeBits.push('chill');
+  return {
+    name,
+    vibe: vibeBits.length ? vibeBits.join(' and ').replace(/^\w/, (c) => c.toUpperCase()) : 'Easy and low-key',
+    rhythm: every ? { every, day: dayIdx >= 0 ? dayIdx : 6, window: { from: '15:00', to: '19:00' } } : null,
+    areas: found.length ? found : [area('Yaba')],
+    confidence: { name: name === 'The crew' ? 0.3 : 0.85, rhythm: every ? 0.9 : 0.4, areas: found.length ? 0.9 : 0.3, vibe: 0.75 },
+  };
+}
+
+export async function createCrew(draft) {
+  await wait(700);
+  const db = load();
+  const slug = (draft.name || 'crew').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'crew';
+  db.crew = { ...db.crew, ...draft, slug, id: 'c-new', inviteToken: 'inv_' + Math.random().toString(36).slice(2, 8) };
+  db.members = [];
+  db.plans = db.plans.filter((p) => p.kind === 'ritual').map((p) => ({ ...p, rsvps: {} }));
+  db.members = [];
+  save(db);
+  return { crew: db.crew, inviteUrl: `${location.origin}/c/${slug}?t=${db.crew.inviteToken}` };
+}
+
+export async function getCrew(slug) {
+  await wait(350);
+  const db = load();
+  // The demo crew answers to any slug, so shared demo links never 404.
+  const { crew, members, plans } = db;
+  return { crew: { ...crew, slug }, members, plans: plans.filter((p) => p.status !== 'cancelled').sort((a, b) => a.start.localeCompare(b.start)) };
+}
+
+export async function join(slug, { name, area: a }) {
+  await wait(800);
+  const db = load();
+  const id = 'm' + Math.random().toString(36).slice(2, 7);
+  const member = { id, crewId: db.crew.id, name, area: typeof a === 'string' ? area(a) : a, calToken: 'cal_' + id, joinedAt: new Date().toISOString() };
+  db.members.push({ id, name, area: { label: member.area.label }, joinedAt: member.joinedAt });
+  save(db);
+  return {
+    member,
+    calendarUrl: `${location.origin}/cal/${member.calToken}.ics`,
+    webcalUrl: `webcal://${location.host}/cal/${member.calToken}.ics`,
+  };
+}
+
+export async function geocode(text) {
+  await wait(150);
+  const t = text.trim().toLowerCase();
+  if (!t) return [];
+  return AREAS.filter(([l]) => l.toLowerCase().includes(t))
+    .sort((a, b) => a[0].toLowerCase().indexOf(t) - b[0].toLowerCase().indexOf(t))
+    .slice(0, 5)
+    .map(([label, detail, lat, lon]) => ({ label, detail: `${detail}, Lagos`, lat, lon }));
+}
+
+// ---------- plans ----------
+
+export async function parsePlan(slug, { text, url, image }) {
+  await wait(image ? 2600 : 1500);
+  const sat = nextDow(6, 1), fri = nextDow(5, 1);
+  if (image || (url && /flyer|groove|instagram|ig/.test(url))) {
+    return {
+      kind: 'found', title: 'Highlife on the Lagoon', start: lagosDate(sat + 7, 17), end: lagosDate(sat + 7, 22),
+      place: { name: 'Terra Kulture Arena', address: '1376 Tiamiyu Savage St, Victoria Island', lat: 6.4262, lon: 3.4237, outdoor: false, private: false },
+      price: { text: '₦10,000, or ₦8,000 early bird', free: false }, host: null, bring: [],
+      source: { url: url || undefined, image: !!image }, why: null,
+      confidence: { title: 0.95, start: 0.55, end: 0.4, place: 0.9, price: 0.85 },
+      notes: { start: "The flyer says \"Sat 31st\" with no month. We guessed the next one.", end: 'No end time on the flyer.' },
+    };
+  }
+  if (url) {
+    return {
+      kind: 'found', title: 'Lagos Photo Walk: Lagos Island', start: lagosDate(sat, 8), end: lagosDate(sat, 11),
+      place: { name: 'Tinubu Square', address: 'Broad St, Lagos Island', lat: 6.4531, lon: 3.3895, outdoor: true, private: false },
+      price: { text: 'Free', free: true }, host: null, bring: ['Water', 'Comfortable shoes'], source: { url },
+      confidence: { title: 0.9, start: 0.85, end: 0.8, place: 0.65, price: 0.95 },
+      notes: { place: 'The page names two meeting points. We picked the first.' },
+    };
+  }
+  const s = (text || '').toLowerCase();
+  const hosted = /\bmine\b|my place|at mine|bring/.test(s);
+  return {
+    kind: hosted ? 'hosted' : 'quick',
+    title: hosted ? 'Wine and Monopoly at yours' : (text || 'Hang out').replace(/\?$/, '').replace(/^who'?s up for /i, '').replace(/^\w/, (c) => c.toUpperCase()),
+    start: hosted ? lagosDate(fri, 19) : lagosDate(0, 20), end: null,
+    place: hosted ? { name: 'Your place', address: '', lat: null, lon: null, outdoor: false, private: true } : { name: '', address: '', lat: null, lon: null, outdoor: true, private: false },
+    price: null, host: meId(slug), bring: hosted ? ['A bottle'] : [], source: { text },
+    confidence: { title: 0.8, start: 0.85, end: 0.2, place: hosted ? 0.5 : 0.2 },
+    notes: hosted ? { place: 'Add your address. Only your crew sees it.' } : { place: 'No place in the message.' },
+  };
+}
+
+export async function createPlan(slug, draft) {
+  await wait(600);
+  const db = load();
+  const me = meId(slug) || 'm0';
+  const plan = {
+    id: 'p-' + Math.random().toString(36).slice(2, 8), crewId: db.crew.id, tz: 'Africa/Lagos', why: null, invite: null, weather: null,
+    status: 'on', rsvps: { [me]: 'going' }, createdBy: me, createdAt: new Date().toISOString(), bring: [], ...draft,
+  };
+  delete plan.notes;
+  if (plan.place?.outdoor && plan.start) plan.weather = { checkedAt: new Date().toISOString(), summary: 'Dry most of the day', rainProb: 15, tempC: 30, ok: true };
+  db.plans.push(plan);
+  save(db);
+  return plan;
+}
+
+export async function getPlan(slug, id) {
+  await wait(300);
+  const db = load();
+  const plan = db.plans.find((p) => p.id === id);
+  if (!plan) { const e = new Error("That plan isn't here any more. It may have ended."); e.status = 404; throw e; }
+  return { ...plan, members: db.members, crew: { ...db.crew, slug } };
+}
+
+export async function rsvp(slug, id, value) {
+  await wait(250);
+  const db = load();
+  const plan = db.plans.find((p) => p.id === id);
+  const me = meId(slug) || 'm0';
+  if (value) plan.rsvps[me] = value; else delete plan.rsvps[me];
+  save(db);
+  return plan;
+}
+
+const km = (a, b) => {
+  const R = 6371, toR = (x) => (x * Math.PI) / 180;
+  const dLat = toR(b.lat - a.lat), dLon = toR(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a.lat)) * Math.cos(toR(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+
+export async function pods(slug, id) {
+  await wait(400);
+  const db = load();
+  const plan = db.plans.find((p) => p.id === id);
+  if (!plan || !plan.place?.lat) return [];
+  const going = Object.entries(plan.rsvps).filter(([, v]) => v === 'going').map(([mid]) => db.members.find((m) => m.id === mid)).filter(Boolean);
+  if (going.length < 2) return [];
+  // Group by nearest of a few hubs; good enough for a mock
+  const hubs = [area('Yaba'), area('Lekki Phase 1'), area('Ikeja'), area('Surulere')];
+  const groups = new Map();
+  for (const m of going) {
+    const a = area(m.area.label);
+    const hub = hubs.reduce((best, h) => (km(a, h) < km(a, best) ? h : best), hubs[0]);
+    if (!groups.has(hub.label)) groups.set(hub.label, { hub, ids: [] });
+    groups.get(hub.label).ids.push(m.id);
+  }
+  const dest = plan.place;
+  return [...groups.values()].map(({ hub, ids }) => {
+    const travelMin = Math.round(km(hub, dest) * 3.2 + 12);
+    const leave = new Date(new Date(plan.start).getTime() - (travelMin + 10) * 60e3);
+    leave.setUTCMinutes(Math.floor(leave.getUTCMinutes() / 5) * 5, 0, 0);
+    return {
+      memberIds: ids, fromLabel: hub.label, leaveBy: leave.toISOString(), travelMin,
+      uberUrl: `https://m.uber.com/looking?drop[0]=${encodeURIComponent(JSON.stringify({ latitude: dest.lat, longitude: dest.lon, addressLine1: dest.name, addressLine2: dest.address }))}`,
+      boltText: `${dest.name}, ${dest.address}`,
+    };
+  });
+}
+
+export function _reset() { sessionSet('ct.mockdb', ''); }
+export function _seedMember(slug, id = 'm0') {
+  const m = MEMBERS.find((x) => x[0] === id);
+  saveCrew(slug, { name: 'The Yaba Lot', memberId: id, memberName: m[1], memberToken: 'cal_' + id, invite: 'inv_demo', calendarUrl: `${location.origin}/cal/cal_${id}.ics` });
+}
