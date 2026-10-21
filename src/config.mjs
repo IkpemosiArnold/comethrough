@@ -31,6 +31,16 @@ export function loadDotEnv(file = path.resolve(".env")) {
 
 const num = (/** @type {string|undefined} */ v, /** @type {number} */ d) => (v != null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
 const list = (/** @type {string|undefined} */ v) => String(v || "").split(",").map((s) => s.trim()).filter(Boolean);
+/** Origins ("https://a.example") from a comma-separated list; anything that is not an http(s) URL is dropped. */
+const origins = (/** @type {string|undefined} */ v) =>
+  list(v).flatMap((s) => {
+    try {
+      const u = new URL(s);
+      return /^https?:$/.test(u.protocol) ? [u.origin] : [];
+    } catch {
+      return [];
+    }
+  });
 
 /**
  * The resolved configuration.
@@ -43,9 +53,14 @@ export function config(env = process.env) {
     port,
     /** where this API is reachable; calendar links are built from it */
     publicUrl,
-    /** where the web app lives; invite links point there, and CORS allows only these origins */
+    /** where the web app lives; invite links point there */
     webUrl: (env.WEB_URL || publicUrl).replace(/\/+$/, ""),
-    webOrigins: list(env.WEB_ORIGIN || env.WEB_URL || ""),
+    /**
+     * Other origins allowed to call the API from a browser (CORS), comma separated. The app is
+     * served from PUBLIC_URL itself, which never needs CORS, so this is usually empty.
+     * WEB_ORIGIN is the older name. Entries that are not URLs are dropped.
+     */
+    webOrigins: origins(env.ALLOWED_ORIGINS ?? env.WEB_ORIGIN ?? env.WEB_URL ?? ""),
     dataDir: path.resolve(env.DATA_DIR || ".data"),
     mongoUri: env.MONGODB_URI || "",
     mongoDb: env.MONGODB_DB || "comethrough",
