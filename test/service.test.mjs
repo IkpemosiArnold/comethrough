@@ -154,3 +154,24 @@ test("a dry Saturday keeps the crew's window, cut to the social hours", async ()
   assert.equal(r.plan?.end, "2026-10-24T18:00:00+01:00");
   assert.equal(/** @type {any} */ (r.plan)?.rainPlan, undefined);
 });
+
+test("a ritual at a park with a sourced fee shows it; one without says check at the gate; no plan says free unsourced", async () => {
+  const { withEntries } = await import("../src/core/places.mjs");
+  const spots = withEntries([{ name: "Freedom Park", kind: "park", lat: PLACES.freedom.lat, lon: PLACES.freedom.lon }], [{ spot: "Freedom Park", free: false, note: "₦500 at the gate", source: { url: "https://example.test/fees", says: "Entry to Freedom Park is N500 per person" } }]);
+  const { store, svc } = make({ places: fakeOverpass([]), spots });
+  await store.put("crews", CREW);
+  await store.put("members", { id: "m1", crewId: CREW.id, name: "Tolu", area: AREAS.yaba, token: "t1", calToken: "c1", joinedAt: "2026-10-21T08:00:00.000Z" });
+  const r = await svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
+  assert.equal(r.plan?.price, null, "the sloth never writes a price");
+  const view = (await svc.getCrew({ slug: CREW.slug, token: "t1" })).plans.find((/** @type {any} */ p) => p.kind === "ritual");
+  assert.equal(view.place.entry.free, false);
+  assert.equal(view.place.entry.note, "₦500 at the gate");
+  // a park with no fee tag and no curated fee: unknown (the fixture's Freedom Park is tagged fee=yes)
+  const noTag = { ...PLACES.freedom, osm: { type: /** @type {"way"} */ ("way"), id: 77, tags: { name: "Freedom Park", leisure: "park" } } };
+  const bare = make({ places: fakeOverpass([noTag]) });
+  await bare.store.put("crews", CREW);
+  await bare.store.put("members", { id: "m1", crewId: CREW.id, name: "Tolu", area: AREAS.yaba, token: "t1", calToken: "c1", joinedAt: "2026-10-21T08:00:00.000Z" });
+  await bare.svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
+  const v2 = (await bare.svc.getCrew({ slug: CREW.slug, token: "t1" })).plans.find((/** @type {any} */ p) => p.kind === "ritual");
+  assert.deepEqual(v2.place.entry, { free: null, note: null, source: null });
+});

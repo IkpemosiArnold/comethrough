@@ -15,6 +15,7 @@ import { AppError } from "../app/errors.mjs";
 import { makeIds, safeEqual } from "../app/ids.mjs";
 import { loadPrompts } from "../app/prompts.mjs";
 import { createService } from "../app/service.mjs";
+import { withEntries } from "../core/places.mjs";
 import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather } from "../adapters/fakes.mjs";
 import { createGemini } from "../adapters/gemini.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
@@ -221,7 +222,9 @@ export async function buildDeps(cfg, log = jsonLog) {
   const store = await openStore(cfg);
   const cache = layeredCache(memoryCache(), storeCache(store));
   const spotsFile = path.resolve(here, "../../data/lagos-spots.json");
-  const spots = fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [];
+  const feesFile = path.resolve(here, "../../data/spot-entry-fees.json");
+  const fees = fs.existsSync(feesFile) ? JSON.parse(fs.readFileSync(feesFile, "utf8")).fees : [];
+  const spots = withEntries(fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [], fees);
   const common = { store, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log };
   if (cfg.offline) {
     return { ...common, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };

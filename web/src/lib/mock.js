@@ -77,9 +77,9 @@ function seed() {
     },
     {
       id: 'p-ritual', crewId: 'c1', kind: 'ritual', title: 'Lazy Saturday at Muri Okunola Park', start: lagosDate(sat, 16), end: lagosDate(sat, 19),
-      tz: 'Africa/Lagos', place: { ...PLACES.muri, osm: { type: 'way', id: 25374721, tags: { leisure: 'park' } } }, price: { text: 'Free to get in', free: true },
+      tz: 'Africa/Lagos', place: { ...PLACES.muri, osm: { type: 'way', id: 25374721, tags: { leisure: 'park' } }, entry: { free: null, note: null, source: null } }, price: null,
       host: null, bring: ['A mat or a wrapper', 'Something to share'],
-      source: {}, why: "Muri Okunola sits about halfway between Yaba and Lekki, so nobody does the long trip. It's free, there's shade under the big trees, and you were at JJT Park last time.",
+      source: {}, why: "Muri Okunola sits about halfway between Yaba and Lekki, so nobody does the long trip, and you were at JJT Park last time.",
       invite: 'Mats out, music low, suya on the way. Come through if you can.',
       weather: { checkedAt: lagosDate(0, 8), summary: 'Dry, clouds after 4', rainProb: 10, tempC: 29, ok: true },
       status: 'on', confidence: {}, rsvps: { m2: 'going', m3: 'going', m8: 'going', m6: 'maybe', m5: 'going' }, createdBy: 'sloth', createdAt: lagosDate(0, 6),
@@ -124,7 +124,7 @@ function seedWorst() {
   mono.end = null;
   ritual.rsvps = many;
   ritual.place = { ...ritual.place, name: 'Johnson Jakande Tinubu Park (JJT Park), Alausa Secretariat' };
-  ritual.why = ritual.why + ' It also has proper toilets, which matters with 23 people, and the gate closes at 7.';
+  ritual.why = ritual.why + ' With 23 people coming from four corners of Lagos, it is the fairest middle the sloth could find, and the longest trip is still the one from Ikorodu.';
   groove.rsvps = { m4: 'going', m7: 'maybe' };
   groove.weather = { checkedAt: lagosDate(0, 8), summary: 'Heavy thunderstorms likely from 5pm, with strong winds near the lagoon and flooding on low roads', rainProb: 90, tempC: 26, ok: false };
   db.plans.push({ ...suya, id: 'p-same-day', title: 'Ok', kind: 'quick', place: { name: null, address: null, lat: null, lon: null, outdoor: false, private: false }, rsvps: {}, price: null, start: suya.start, weather: null });
@@ -247,7 +247,7 @@ function parsePlan(viewer, { text, url, image }) {
     return pack({
       kind: 'found', title: 'Lagos Photo Walk: Lagos Island', start: lagosDate(sat, 8), end: lagosDate(sat, 11),
       place: { name: 'Tinubu Square', address: 'Broad St, Lagos Island', lat: 6.4531, lon: 3.3895, outdoor: true, private: false },
-      price: { text: 'Free', free: true }, bring: ['Water', 'Comfortable shoes'], source: { url },
+      price: null, bring: ['Water', 'Comfortable shoes'], source: { url },
     }, { title: 0.9, start: 0.85, end: 0.8, place: 0.55, price: 0.95 }, ['The page names two meeting points. This is the first one.']);
   }
   const s = (text || '').toLowerCase();

@@ -78,6 +78,28 @@ OpenStreetMap would fix this for everyone.
 a beach ... on Victoria Island", summary checked 21 Oct 2026), and its Wikidata coordinate has
 only three or four decimals.
 
+## Entry fees
+
+The app never says a place is free unless a source says so. Fees live in
+`data/spot-entry-fees.json`, each with the source's URL, publisher, date and the words it
+uses; a fee without a source is dropped before it reaches anyone. A plan's place gets
+`entry: { free: true|false|null, note, source }`, and `free: null` shows as "Entry: check at
+the gate". A plan read from a flyer or an event page keeps the price it gave, and gets no
+entry line.
+
+| Spot | Entry | Source (published; checked 21 Oct 2026) |
+|---|---|---|
+| Elegushi Beach | Paid: "typically around N1,000 to N2,000 at the gate", lounges and cabanas more | Nairametrics, "Most popular beaches in Lagos and cost of access in 2026" (23 May 2026), https://nairametrics.com/2026/05/23/most-popular-beaches-in-lagos-and-cost-of-access-in-2026/ |
+| JJT Park | Paid: "In 2024, the Lagos State Parks and Gardens Agency (LASPARK) introduced a N1,000 access fee for individuals at public parks, including JJT Park." The same article says entry was free until 2024. | Ikeja Record, "In Lagos, accessing public parks is becoming expensive" (2 May 2025), https://ikejarecord.com/in-lagos-accessing-public-parks-is-becoming-expensive/ |
+| La Campagne Tropicana | Paid resort (packages; one listed at N1.9 million) | Nairametrics, as above |
+| Every other spot | Unknown: "Entry: check at the gate" | None found. LASPARK's fee covers "public parks", but the article names only JJT Park, so it is not applied to Ndubuisi Kanu Park, Freedom Park or others. Third-party guides give fees for Lekki Conservation Centre and LUFASI, but they are undated or old, so they are not used. |
+
+An OpenStreetMap `fee` tag on a place is also a source, and is linked as one.
+
+Fixed in this pass: the demo data said "Free to get in" for Muri Okunola Park, and the sloth's
+sample explanation said "It's free"; neither had a source. The demo's worst-case text also
+claimed "proper toilets" and "the gate closes at 7" for JJT Park; both are gone.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

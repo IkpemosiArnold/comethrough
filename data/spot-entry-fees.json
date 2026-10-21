@@ -1,0 +1,41 @@
+{
+ "about": "What it costs to get into a curated spot, only where a dated source says so. A spot not listed here has entry { free: null }, and the app says \"Entry: check at the gate\". Never write free: true without a source that says free. See docs/LOCAL-FACTS.md, \"Entry fees\".",
+ "fees": [
+  {
+   "spot": "Elegushi Beach",
+   "free": false,
+   "note": "About ₦1,000 to ₦2,000 at the gate; lounges and cabanas cost more",
+   "source": {
+    "url": "https://nairametrics.com/2026/05/23/most-popular-beaches-in-lagos-and-cost-of-access-in-2026/",
+    "publisher": "Nairametrics",
+    "published": "2026-05-23",
+    "says": "Entrance is relatively affordable, typically around N1,000–N2,000 at the gate, while access to premium lounges, cabanas, and private sections ranges widely from about N2,000 to over N150,000",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "spot": "JJT Park",
+   "free": false,
+   "note": "₦1,000 per person at the gate since 2024 (Lagos parks agency)",
+   "source": {
+    "url": "https://ikejarecord.com/in-lagos-accessing-public-parks-is-becoming-expensive/",
+    "publisher": "Ikeja Record",
+    "published": "2025-05-02",
+    "says": "In 2024, the Lagos State Parks and Gardens Agency (LASPARK) introduced a N1,000 access fee for individuals at public parks, including JJT Park.",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "spot": "La Campagne Tropicana",
+   "free": false,
+   "note": "A paid resort: packages, not a free beach",
+   "source": {
+    "url": "https://nairametrics.com/2026/05/23/most-popular-beaches-in-lagos-and-cost-of-access-in-2026/",
+    "publisher": "Nairametrics",
+    "published": "2026-05-23",
+    "says": "La Campagne Tropicana Beach Resort Cost: N1.9 million ... The resort offers a range of exclusive getaway packages.",
+    "checkedAt": "2026-10-21"
+   }
+  }
+ ]
+}

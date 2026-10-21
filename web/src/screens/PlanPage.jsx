@@ -179,6 +179,15 @@ export function PlanPage({ params, query }) {
         {plan.price && (
           <li><Icon name="ticket" size={20} /><span>{plan.price.free ? (plan.price.text || 'Free') : plan.price.text}</span></li>
         )}
+        {!plan.price && plan.place?.entry && (
+          <li>
+            <Icon name="ticket" size={20} />
+            <span>
+              {entryWords(plan.place.entry)}
+              {plan.place.entry.source?.url && <> <a class="fine entry-src" href={plan.place.entry.source.url} target="_blank" rel="noopener">{plan.place.entry.source.publisher || 'Source'}{plan.place.entry.source.published ? `, ${monthYear(plan.place.entry.source.published)}` : ''}</a></>}
+            </span>
+          </li>
+        )}
         {w && outdoor && (
           <li class={w.ok ? '' : 'bad'}><Icon name={weatherIcon(w)} size={20} /><span>{weatherWords(w)}</span></li>
         )}
@@ -296,6 +305,14 @@ const FALLBACK_RIDES = [
   { id: 'indrive', name: 'inDrive', blurb: 'You name the fare.', links: { android: 'https://play.google.com/store/apps/details?id=sinet.startup.inDriver', ios: 'https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801', web: 'https://indrive.com/en-ng/' } },
 ];
 const rideHref = (r) => (isAndroid ? r.links.android : isIOS ? r.links.ios : r.links.web);
+
+// "Free" only when a source says so (the server sends entry only with a source, or unknown)
+function entryWords(entry) {
+  if (entry.free === true) return 'Free to get in';
+  if (entry.free === false) return entry.note || 'There is a fee to get in';
+  return 'Entry: check at the gate';
+}
+const monthYear = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-NG', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 // Once per device, right after the first "I'm going": the push opt-in, or the iPhone install hint.
 function NudgeAsk({ slug }) {

@@ -22,6 +22,7 @@ import { DEFAULT_TZ, DAY } from "./time.mjs";
  * @property {string} [address]
  * @property {{ type: "node"|"way"|"relation", id: number, tags: Record<string,string> }} [osm]
  * @property {boolean} [outdoor]  known to be an outdoor spot (the curated list says so) even if its OSM tags do not
+ * @property {{ free: boolean|null }} [entry]  a sourced entry fee from the curated list
  */
 /**
  * @typedef {object} Traveller
@@ -177,7 +178,8 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
         cost: maxMin + SPREAD_WEIGHT * spreadMin,
         green: isGreen(tags) || c.outdoor === true,
         vibe: vibeFit(tags, vibeTags),
-        budget: budgetFit(tags, budget),
+        // a sourced entry fee on a curated spot counts like an OpenStreetMap fee tag
+        budget: budgetFit(c.entry?.free === true ? { ...tags, fee: "no" } : c.entry?.free === false ? { ...tags, fee: "yes" } : tags, budget),
         variety: varietyPenalty(key, recent, now),
       };
     });
@@ -247,4 +249,67 @@ function whyNot(r, pick) {
   if (!r.green && pick.green) return "not outdoors";
   if (r.budget.score < pick.budget.score) return r.budget.fee === "yes" ? "charges a fee" : "may charge a fee";
   return "a close second";
+}
+
+/**
+ * @typedef {{ free: boolean|null, note: string|null, source: { url: string, publisher?: string, published?: string, says: string, checkedAt?: string }|null }} Entry
+ *   free: true only when a source says free; null means nobody we can cite knows
+ */
+
+/** Unknown entry: the UI says "Entry: check at the gate". */
+export const UNKNOWN_ENTRY = Object.freeze({ free: null, note: null, source: null });
+
+const normName = (/** @type {any} */ s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * The curated spots with their sourced entry fees attached (data/spot-entry-fees.json).
+ * A fee that claims free or paid without a source is dropped, so it can never reach a person.
+ * @param {any[]} spots
+ * @param {{ spot: string, free: boolean|null, note?: string|null, source?: any }[]} fees
+ */
+export function withEntries(spots, fees = []) {
+  return spots.map((s) => {
+    const f = fees.find((x) => normName(x.spot) === normName(s.name));
+    const sourced = f && typeof f.source?.url === "string" && /^https:\/\//.test(f.source.url) && typeof f.source.says === "string";
+    return { ...s, entry: sourced ? { free: f.free === true ? true : f.free === false ? false : null, note: f.note ?? null, source: f.source } : UNKNOWN_ENTRY };
+  });
+}
+
+/**
+ * The curated spot a plan's place is, if any: the same OpenStreetMap feature, or the same
+ * name (or alias) within half a kilometre.
+ * @param {{ name?: string|null, lat?: number|null, lon?: number|null, osm?: { type: string, id: number } }} place
+ * @param {any[]} spots
+ */
+export function spotFor(place, spots) {
+  if (!place) return null;
+  const key = place.osm ? `${place.osm.type}/${place.osm.id}` : null;
+  const n = normName(place.name);
+  return spots.find((s) => {
+    if (key && s.osm && `${s.osm.type}/${s.osm.id}` === key) return true;
+    if (!n || ![s.name, ...(s.aliases || [])].some((x) => normName(x) === n)) return false;
+    return !Number.isFinite(place.lat) || travelEstimate(/** @type {any} */ (place), s).km <= 0.5;
+  }) ?? null;
+}
+
+/**
+ * What to say about getting in, for a plan's place, or null when there is nothing to say (a
+ * home, or a flyer that gave its own price). A curated spot's sourced fee comes first, then
+ * an OpenStreetMap fee tag (itself a source), else unknown for any public spot the sloth
+ * picked.
+ * @param {any} place
+ * @param {any[]} spots
+ * @param {{ ritual?: boolean }} [opts]
+ * @returns {Entry|null}
+ */
+export function entryFor(place, spots, { ritual = false } = {}) {
+  if (!place || place.private) return null;
+  const spot = spotFor(place, spots);
+  if (spot?.entry && spot.entry.free !== null) return spot.entry;
+  const fee = String(place.osm?.tags?.fee || "").toLowerCase();
+  if (fee && place.osm) {
+    const url = `https://www.openstreetmap.org/${place.osm.type}/${place.osm.id}`;
+    return { free: fee === "no" || fee === "free", note: null, source: { url, publisher: "OpenStreetMap", says: `fee=${fee}` } };
+  }
+  return spot || ritual ? UNKNOWN_ENTRY : null;
 }

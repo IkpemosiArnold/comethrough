@@ -10,7 +10,7 @@
 
 import { centroid, haversineKm, isLatLon } from "../core/geo.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
-import { placeKey, scorePlaces } from "../core/places.mjs";
+import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
 import { podsForPlan } from "../core/pods.mjs";
 import { ridesForApi } from "../core/rides.mjs";
@@ -127,7 +127,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   const memberView = (/** @type {Member} */ m) => ({ id: m.id, name: m.name, area: { label: m.area?.label ?? null } });
 
   function planView(/** @type {Plan} */ plan, /** @type {Crew} */ crew, /** @type {Member[]} */ members, /** @type {"member"|"guest"} */ role, /** @type {Member|null} */ me) {
-    return viewPlan(plan, {
+    const view = viewPlan(plan, {
       role,
       memberId: me?.id ?? null,
       names: namesOf(members),
@@ -135,6 +135,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       planUrl: links.plan(crew, plan.id),
       flyerUrl: links.flyer,
     });
+    // what it costs to get in, only from a source; a flyer's own price speaks for itself
+    const entry = plan.price ? null : entryFor(plan.place, spots, { ritual: plan.kind === "ritual" });
+    return entry ? { ...view, place: { ...view.place, entry } } : view;
   }
 
   // ------------------------------------------------------------ places and areas
@@ -616,7 +619,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // outdoor spots, plus any spot a source says has a roof (offered only when it rains)
     const curated = spots
       .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
-      .map((s) => s.covered === true ? { name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, outdoor: false, covered: true } : { name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, outdoor: true });
+      .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, ...(s.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(s.entry ? { entry: s.entry } : {}) }));
     const out = [...live];
     for (const c of curated) {
       const dup = out.some((o) => placeKey(o) === placeKey(c) || (haversineKm(o, c) < 0.3 && o.name.toLowerCase() === c.name.toLowerCase()));
