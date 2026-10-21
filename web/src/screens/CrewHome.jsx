@@ -127,7 +127,7 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
           <p class="ritual-wx"><Icon name={weatherIcon(w)} size={18} /> {weatherWords(w)}</p>
         )}
         {ritual.rainPlan && (
-          <p class="ritual-wx ritual-rain">{ritual.rainPlan.kind === 'covered' ? 'Rain all afternoon, so somewhere with a roof. Tap for why.' : 'Moved to dodge the rain. Tap for why.'}</p>
+          <p class="ritual-wx ritual-rain">{ritual.rainPlan.kind === 'covered' ? 'Rain likely, so somewhere with a roof. Tap for why.' : 'Moved to dodge the rain. Tap for why.'}</p>
         )}
         <div class="row ritual-who">
           {going.length > 0 && <Faces members={going} max={4} ring="var(--canopy)" />}

@@ -51,7 +51,7 @@ function page(/** @type {string} */ title, /** @type {string} */ body) {
   return `<!doctype html>
 <html lang="en-NG"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>${esc(title)}</title>
-<style>body{font:16px/1.5 sans-serif;margin:0 auto;max-width:34em;padding:12px 16px 32px;background:#E3EBD2;color:#14302A}h1{font-size:1.5em;line-height:1.2;margin:.4em 0}h2{font-size:1.1em;margin:1.2em 0 .3em}.box{background:#F8FAF1;padding:10px 12px;border-radius:12px;margin:10px 0}button,.btn{display:inline-block;font:inherit;font-weight:bold;padding:10px 16px;margin:4px 6px 4px 0;border:2px solid #14302A;border-radius:999px;background:#FFC21A;color:#14302A;text-decoration:none}button.plain{background:#F8FAF1}input{font:inherit;padding:8px;width:100%;box-sizing:border-box;margin:4px 0 10px;border:2px solid #4F655B;border-radius:10px}.small{font-size:.875em;color:#3D574E}a{color:#1B6782}.wa{background:#0E7A3F;color:#fff;border-color:#0E7A3F}</style>
+<style>body{font:16px/1.5 system-ui,-apple-system,Roboto,"Segoe UI",Arial,sans-serif;margin:0 auto;max-width:34em;padding:12px 16px 32px;background:#E3EBD2;color:#14302A}h1{font-size:1.5em;line-height:1.2;margin:.4em 0}h2{font-size:1.1em;margin:1.2em 0 .3em}.box{background:#F8FAF1;padding:10px 12px;border-radius:12px;margin:10px 0}button,.btn{display:inline-block;font:inherit;font-weight:bold;padding:10px 16px;margin:4px 6px 4px 0;border:2px solid #14302A;border-radius:999px;background:#FFC21A;color:#14302A;text-decoration:none}button.plain{background:#F8FAF1}input{font:inherit;padding:8px;width:100%;box-sizing:border-box;margin:4px 0 10px;border:2px solid #4F655B;border-radius:10px}.small{font-size:.875em;color:#3D574E}a{color:#1B6782}.wa{background:#0E7A3F;color:#fff;border-color:#0E7A3F}</style>
 </head><body>
 ${body}
 <p class="small">The basic version of Come Through, for Opera Mini and phones without JavaScript.</p>
@@ -103,7 +103,7 @@ function planHtml({ plan, crew, you, members }, /** @type {string} */ token, /**
 <button>Join and see the plan</button></form>`;
     }
   }
-  const back = `<p><a href="${esc(link(slug, null, token))}">All of ${esc(crew.name)}'s plans</a></p>`;
+  const back = `<p><a href="${esc(link(slug, null, token))}">All plans from ${esc(crew.name)}</a></p>`;
   return page(`${plan.title}: Come Through`, `<p class="small">${esc(crew.name)}</p><h1>${esc(plan.title)}</h1><div class="box">${rows}</div>${who}${act}
 <p><a class="btn wa" href="${esc(share)}">Share on WhatsApp</a></p>${back}`);
 }

@@ -206,12 +206,12 @@ export function AddPlan({ params, query }) {
           <div class="reading-status" role="status" aria-live="polite">
             <Sloth size={64} mood="reading" branch={false} />
             <p><b>Gemma</b> is {list[status % list.length]}<Dots /></p>
-            {image && sending && (
-              <p class="fine upload-size">
-                Sending {formatBytes(sending.bytes)}{sending.originalBytes > sending.bytes * 1.2 ? `, shrunk from ${formatBytes(sending.originalBytes)} to save your data` : ''}.
-              </p>
-            )}
           </div>
+          {image && sending && (
+            <p class="fine upload-size">
+              Sending {formatBytes(sending.bytes)}{sending.originalBytes > sending.bytes * 1.2 ? `, shrunk from ${formatBytes(sending.originalBytes)} to save your data` : ''}.
+            </p>
+          )}
         </div>
       </div>
     );

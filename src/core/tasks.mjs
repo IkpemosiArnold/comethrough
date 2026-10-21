@@ -112,6 +112,16 @@ export function firstCap(s) {
   return s && !/\p{Lu}/u.test(s) ? s.replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : s;
 }
 
+/**
+ * The naira sign as it should be. A model reading a flyer sometimes returns the sign's
+ * look-alikes: on 21 Oct 2026 Gemma read "GATE ₦3,000" as "Gate \u20383,000" (U+2038, a caret).
+ * A caret before a number becomes ₦; "N" and "NGN" before a number are left as written.
+ * @param {string|null} s
+ */
+export function nairaSign(s) {
+  return s ? s.replace(/[\u2038\u2041^\u02C6](\s?)(?=\d)/g, "\u20a6") : s;
+}
+
 /** An address with its repeated parts removed ("Ikeja, Lagos, LA 021189, Lagos, LA" keeps one "Lagos"). */
 export function tidyAddress(s) {
   if (!s) return s;
@@ -354,7 +364,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   let titleConf = title ? c.title ?? 0.6 : 0;
   let venue = calmCaps(text(d.venueName, 120));
   let address = calmCaps(text(d.address, 200));
-  let priceText = calmCaps(text(d.priceText, 60));
+  let priceText = nairaSign(calmCaps(text(d.priceText, 60)));
   let free = d.free === true || (priceText ? /\bfree\b/i.test(priceText) : false);
   let hostName = calmCaps(text(d.hostName, 60));
   let placeConf = ground(venue || address, venue || address ? c.place ?? 0.6 : 0, "place");

@@ -54,3 +54,12 @@ test("what to bring must be in the message; one clear clock time is read by code
   assert.equal(w.draft.start, "2026-10-31T14:00:00+01:00");
   assert.ok(w.confidence.start <= 0.7);
 });
+
+test("a naira sign read as a caret is put back", async () => {
+  const { nairaSign } = await import("../src/core/tasks.mjs");
+  assert.equal(nairaSign("Gate \u20383,000"), "Gate \u20a63,000");
+  assert.equal(nairaSign("^5,000 at the door"), "\u20a65,000 at the door");
+  assert.equal(nairaSign("N5,000"), "N5,000");
+  const r = readPlan({ kind: "found", title: "Highlife", priceText: "Gate \u20383,000", confidence: {} }, { image: { mimeType: "image/png", data: "x" }, today: TODAY, member: MEMBER });
+  assert.equal(r.draft.price?.text, "Gate \u20a63,000");
+});

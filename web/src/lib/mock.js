@@ -22,11 +22,13 @@ const AREAS = [
 ];
 
 const PLACES = {
-  muri: { name: 'Muri Okunola Park', address: 'Ademola Adetokunbo St, Victoria Island', lat: 6.4352, lon: 3.4258, outdoor: true, private: false },
-  glover: { name: 'Glover Court suya spot', address: 'Glover Court, off Glover Rd, Ikoyi', lat: 6.4479, lon: 3.4295, outdoor: true, private: false },
+  // the real places use the coordinates in data/lagos-spots.json (OpenStreetMap and Wikidata)
+  muri: { name: 'Muri Okunola Park', address: 'Victoria Island', lat: 6.43782, lon: 3.425083, outdoor: true, private: false },
+  // not on OpenStreetMap by name (Photon, 21 Oct 2026), so the demo leaves it unpinned
+  glover: { name: 'Glover Court suya spot', address: 'Glover Court, Ikoyi', lat: null, lon: null, outdoor: true, private: false },
   tobis: { name: "Tobi's place", address: '12 Alagomeji St, Yaba', lat: 6.4985, lon: 3.3775, outdoor: false, private: true },
-  freedom: { name: 'Freedom Park', address: '1 Hospital Rd, Lagos Island', lat: 6.4497, lon: 3.3988, outdoor: true, private: false },
-  jjt: { name: 'JJT Park', address: 'Obafemi Awolowo Way, Alausa, Ikeja', lat: 6.6139, lon: 3.3576, outdoor: true, private: false },
+  freedom: { name: 'Freedom Park', address: 'Lagos Island', lat: 6.448819, lon: 3.396531, outdoor: true, private: false },
+  jjt: { name: 'JJT Park', address: 'Alausa, Ikeja', lat: 6.615213, lon: 3.363948, outdoor: true, private: false },
 };
 
 const MEMBERS = [
@@ -76,7 +78,7 @@ function seed() {
       status: 'on', confidence: {}, rsvps: { m1: 'going', m2: 'going', m7: 'maybe', m4: 'going' }, createdBy: 'm1', createdAt: lagosDate(-1, 18),
     },
     {
-      id: 'p-ritual', crewId: 'c1', kind: 'ritual', title: 'Lazy Saturday at Muri Okunola Park', start: lagosDate(sat, 16), end: lagosDate(sat, 19),
+      id: 'p-ritual', crewId: 'c1', kind: 'ritual', title: 'Lazy Saturday at Muri Okunola Park', start: lagosDate(sat, 15), end: lagosDate(sat, 18),
       tz: 'Africa/Lagos', place: { ...PLACES.muri, osm: { type: 'way', id: 25374721, tags: { leisure: 'park' } }, entry: { free: null, note: null, source: null } }, price: null,
       host: null, bring: ['A mat or a wrapper', 'Something to share'],
       source: {}, why: "Muri Okunola sits about halfway between Yaba and Lekki, so nobody does the long trip, and you were at JJT Park last time.",

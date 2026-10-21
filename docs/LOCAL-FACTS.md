@@ -397,3 +397,28 @@ reads as a flyer. That path could not be tested with a real Tix screenshot, beca
 machine cannot load a Tix page; the flyer path itself is tested.
 
 **Instagram** stays "share the picture instead" (empty page to servers, checked 21 Oct 2026).
+
+## Also found and fixed in this pass
+
+- **The naira sign.** Gemma read the test flyer's "GATE ₦3,000" as "Gate ‸3,000" (U+2038, a
+  caret) on 21 Oct 2026. A caret before a number is now turned back into ₦.
+- **The demo data** pinned Muri Okunola Park and Freedom Park at made-up coordinates (the Muri
+  pin landed on King's College Annex) and invented street addresses. It now uses the sourced
+  coordinates from `data/lagos-spots.json`; the Glover Court suya spot, which no open map has
+  by name, is left unpinned. The demo's sloth plan ran to 7pm, past the social hours; it now
+  runs 3 to 6pm.
+- **Wording that promised what does not exist:** "Ride links will need the address" (there
+  are no ride links), and the crew home's "Rain all afternoon" on a covered pick even when the
+  note covered only part of the afternoon.
+- **The server sent the app uncompressed** (see "Data cost").
+
+## Not verified, and why
+
+- Nothing here was tried on a real phone in Lagos: the store pages' "Open" button for Bolt
+  and inDrive, Opera for Android push, Opera Mini itself, HEIC on an iPhone, and the
+  share target are on the phone checklist in DEPLOY.md.
+- Tix.africa's screenshot path could not be tried with a real Tix page, because this machine
+  is blocked by Tix.africa's Cloudflare.
+- The traffic bands are assumptions; no source for Saturday traffic was found.
+- Whether Rida runs in Lagos.
+- How much of Opera's share in Nigeria is Opera Mini.

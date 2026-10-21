@@ -173,7 +173,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   /**
    * Put a plan's place on the map when it has a name or an address but no pin. When the
    * exact place is not on the map, the neighbourhood named in its address ("..., Surulere")
-   * is kept as `near`: good enough for ride times and the weather, never for a ride link.
+   * is kept as `near`: good enough for ride times and the weather, never as the drop-off.
    */
   async function pinPlace(place) {
     if (!place || isLatLon(place) || !(place.address || place.name) || (/'s place$/.test(place.name || "") && !place.address)) return { place, note: null };
@@ -190,10 +190,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     for (const label of neighbourhoodsIn(place.address)) {
       try {
         const hit = await geocoder.lookupArea(label);
-        if (hit) return { place: { ...bare, near: { label, lat: hit.lat, lon: hit.lon } }, note: `Could not find the exact address on the map, so ride times and the weather are guessed from ${label}. Ride links will need the address.` };
+        if (hit) return { place: { ...bare, near: { label, lat: hit.lat, lon: hit.lon } }, note: `Could not find the exact address on the map, so ride times and the weather are guessed from ${label}. Riders will paste the address into their ride app.` };
       } catch {}
     }
-    return { place: bare, note: "Could not pin the place on the map, so ride links will need the address." };
+    return { place: bare, note: "Could not pin the place on the map, so there are no ride times. Riders will paste the address into their ride app." };
   }
 
   // ------------------------------------------------------------ crews
