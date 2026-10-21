@@ -59,10 +59,10 @@ test("elsewhere the prompts name the crew's city, and Pidgin hints only for Nige
   assert.ok(!/Lagos|Pidgin|naira|Lekki/i.test(berlin.system), "nothing from Lagos");
   const crew = localisePrompt(p["parse-crew"], DEFAULT.local(BERLIN)).system;
   assert.match(crew, /meetups in Berlin, Germany\./);
-  assert.match(crew, /- areas: the Berlin neighbourhoods they mention, as written, or an empty list\./);
+  assert.match(crew, /- areas: the Berlin neighbourhoods they mention, as written \("Brixton", "Kreuzberg"; a neighbourhood in the group's name counts: "the Kreuzberg lot" is around Kreuzberg\), or an empty list\./);
   const anywhere = localisePrompt(p["parse-crew"], {}).system;
   assert.match(anywhere, /for an app that organises meetups\. Extract/);
-  assert.match(anywhere, /- areas: the neighbourhoods or areas they mention, as written, or an empty list\./);
+  assert.match(anywhere, /- areas: the neighbourhoods or areas they mention, as written \(.*\), or an empty list\./);
   for (const n of PROMPT_NAMES) assert.ok(!/\{\{(inCity|inCityCountry|areaNoun|areaNounOne|areaExamples|areaExample|priceExample|localNotes|crewNotes)\}\}/.test(JSON.stringify(localisePrompt(p[n], {}))), `${n}: every place slot filled`);
   assert.match(localisePrompt(p["parse-plan"], DEFAULT.local(ABUJA)).system, /Nigerian Pidgin/);
   assert.match(localisePrompt(p["parse-plan"], DEFAULT.local({ ...BERLIN, countryCode: "GH", city: "Accra" })).system, /Ghanaian Pidgin/);
@@ -245,4 +245,26 @@ test("a crew from before regions still gets Lagos: ride apps, the lagoon, Lagos 
   const view = await svc.getCrew({ slug: "old", token: "inv" });
   assert.equal(view.crew.pack.id, "lagos");
   assert.equal(view.crew.region.city, "Lagos");
+});
+
+test("ambiguous names: the visitor's country first, and the areas that sit together win", async () => {
+  // Photon's own order on 21 Oct 2026: "Kilimani" is a Tanzanian village first, "Westlands" a Kenyan village second
+  const areas = /** @type {any[]} */ ([
+    { label: "Kilimani", detail: "Mara Region", lat: -1.966, lon: 34.5054, country: "TZ" },
+    { label: "Kilimani", detail: "Nairobi", lat: -1.296, lon: 36.7818, country: "KE", city: "Nairobi" },
+    { label: "Westlands", detail: "Nakuru", lat: -0.2578, lon: 35.9512, country: "KE" },
+    { label: "Westlands", detail: "Nairobi", lat: -1.2648, lon: 36.8018, country: "KE", city: "Nairobi" },
+    { label: "Nairobi", detail: "Kenya", lat: -1.2921, lon: 36.8219, country: "KE", city: "Nairobi" },
+    { label: "Indiranagar", detail: "Bangalore East", lat: 12.9733, lon: 77.6405, country: "IN" },
+    { label: "Indiranagar", detail: "Maharashtra", lat: 19.636, lon: 79.4386, country: "IN" },
+    { label: "Koramangala", detail: "Bengaluru", lat: 12.9352, lon: 77.6245, country: "IN" },
+    { label: "Kolkata", detail: "West Bengal", lat: 22.5726, lon: 88.3639, country: "IN" },
+  ]);
+  const answers = (/** @type {string[]} */ names) => ({ "parse-crew": { name: "Campus crew", vibe: null, vibeTags: [], budget: null, every: "1w", day: "Saturday", from: "afternoon", to: null, areas: names, confidence: { name: 0.9, vibe: 0, rhythm: 0.9, areas: 0.9 } } });
+  const make = (/** @type {string[]} */ names) => createService({ store: memoryStore(), ai: fakeAi({ answers: answers(names) }), geocoder: fakeGeocoder({ areas }), places: fakeOverpass([]), weather: fakeWeather(), pages: fakePageMeta(), push: fakePush(), spots: [], prompts: loadPrompts(), ids: makeIds(), now: () => Date.parse("2026-10-21T09:00:00Z"), cfg: { publicUrl: "https://x.test", webUrl: "https://x.test", uidDomain: "x.test" } });
+  const nairobi = await make(["Kilimani", "Westlands"]).draftCrew({ sentence: "Campus crew, every Saturday afternoon, somewhere outside, around Kilimani and Westlands", hint: { tz: "Africa/Nairobi" } });
+  assert.deepEqual(nairobi.draft.areas.map((a) => a.lat), [-1.296, -1.2648], "both in Nairobi");
+  assert.equal(nairobi.draft.region.countryCode, "KE");
+  const blr = await make(["Indiranagar", "Koramangala"]).draftCrew({ sentence: "Office gang, every other Saturday, somewhere green, around Indiranagar and Koramangala", hint: { tz: "Asia/Kolkata" } });
+  assert.deepEqual(blr.draft.areas.map((a) => a.lat), [12.9733, 12.9352], "the Indiranagar next to Koramangala, not the one nearer Kolkata");
 });

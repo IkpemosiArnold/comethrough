@@ -70,7 +70,7 @@ export const LOCALE_SLOTS = {
   inCityCountry: "",
   areaNoun: "neighbourhoods or areas",
   areaNounOne: "a neighbourhood or area",
-  areaExamples: "",
+  areaExamples: ' ("Brixton", "Kreuzberg"; a neighbourhood in the group\'s name counts: "the Kreuzberg lot" is around Kreuzberg)',
   areaExample: '("in the old town", "near the market")',
   priceExample: '"15 at the door"',
   localNotes: "",

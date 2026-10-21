@@ -22,6 +22,7 @@ import { cached, fetchJson, throttle, userAgent } from "./http.mjs";
  * @property {(q: string, opts?: { limit?: number, areas?: boolean, near?: { lat: number, lon: number }|null, country?: string|null, viewbox?: string }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookup      a venue or an address
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
+ * @property {(at: { lat: number, lon: number }) => Promise<{ city: string|null, country: string|null }|null>} [cityAt]  the city a point is in (Nominatim, city level), once per new crew
  * @property {(at: { lat: number, lon: number }) => Promise<{ label: string, country?: string, city?: string }|null>} [reverse]  the neighbourhood's name at a point (the caller rounds the point first)
  */
 
@@ -194,11 +195,34 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
     });
   };
 
+  /**
+   * The city a point is in, from Nominatim's reverse lookup at city level (zoom 10): one
+   * request per new crew, within Nominatim's one-a-second rule, cached for 30 days. Photon's
+   * own "city" is often a borough ("London Borough of Southwark") or missing (Indiranagar);
+   * Nominatim's city level says "Greater London" (read as "London") and "Bengaluru".
+   * @type {NonNullable<Geocoder["cityAt"]>}
+   */
+  const cityAt = async (at) => {
+    if (!nominatimUrl) return null;
+    return cached(cache, `geo:city:${at.lat.toFixed(2)},${at.lon.toFixed(2)}`, TTL, () => nominatimGate(async () => {
+      const u = new URL("/reverse", nominatimUrl);
+      u.searchParams.set("format", "jsonv2");
+      u.searchParams.set("lat", at.lat.toFixed(5));
+      u.searchParams.set("lon", at.lon.toFixed(5));
+      u.searchParams.set("zoom", "10");
+      const j = await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 8000, retries: 1, fetchImpl });
+      const a = j?.address || {};
+      const city = String(a.city || a.town || a.municipality || a.county || a.state || "").replace(/^Greater /, "").trim() || null;
+      return { city, country: a.country_code ? String(a.country_code).toUpperCase() : null };
+    }));
+  };
+
   return {
     search,
     lookup: (q, ctx = {}) => one(q, ctx, false),
     lookupArea: (q, ctx = {}) => one(q, ctx, true),
     reverse,
+    cityAt,
   };
 }
 
