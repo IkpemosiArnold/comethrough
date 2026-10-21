@@ -47,7 +47,7 @@ export const OFFLINE_ANSWERS = {
   /** @param {string} s */
   "parse-plan": (s) => {
     const t = s.toLowerCase();
-    const dateWords = t.match(/\b(tonight|today|tomorrow|(?:next |this )?(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*)\b/)?.[1] ?? null;
+    const dateWords = t.match(/\b(tonight|today|tomorrow|(?:next |this )?(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tue|wed|thu|fri|sat))\b/)?.[1] ?? null;
     const startTime = t.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b(?!\s*(?:k|,000))/)?.[1]?.trim() ?? null;
     const atHost = /\b(at mine|my place|my house|our place)\b/.test(t);
     const title = (s.split(/\bat\b|,|\bon\b/i)[0] || "").replace(/^message:\s*/i, "").trim().replace(/^./, (c) => c.toUpperCase()).slice(0, 60) || null;

@@ -148,7 +148,8 @@ export function resolveDateWords(text, today) {
   const t = String(text).toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
   if (/^(today|tonight|this evening|this night|later today|later)$/.test(t)) return today;
   if (/^(tomorrow|tmrw|tmr|2moro|tomorrow night|tomorrow evening)$/.test(t)) return addDays(today, 1);
-  const wd = t.match(/^(this |next |coming |on )?(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*( night| evening| morning| afternoon)?$/);
+  // only real weekday words: "fri" and "friday", never "monopoly" or "saturated"
+  const wd = t.match(/^(this |next |coming |on )?(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)( night| evening| morning| afternoon)?$/);
   if (wd) {
     const target = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(wd[2].slice(0, 3));
     const now = weekdayOf(today);
@@ -172,9 +173,9 @@ export function resolveDateWords(text, today) {
     if (daysBetween(today, s) < -60) s = `${year + 1}-${pad(m)}-${pad(d)}`;
     return isDate(s) ? s : null;
   };
-  const dm = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]* )?(\d{1,2})(?:st|nd|rd|th)?(?: of)? ([a-z]{3})[a-z]*(?: (\d{4}))?$/);
+  const dm = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]{0,6} )?(\d{1,2})(?:st|nd|rd|th)?(?: of)? ([a-z]{3})[a-z]*(?: (\d{4}))?$/);
   if (dm && MONTHS.includes(dm[2])) return withYear(pick(Number(dm[1]), MONTHS.indexOf(dm[2]) + 1), dm[3]);
-  const md = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]* )?([a-z]{3})[a-z]* (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/);
+  const md = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]{0,6} )?([a-z]{3})[a-z]* (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/);
   if (md && MONTHS.includes(md[1])) return withYear(pick(Number(md[2]), MONTHS.indexOf(md[1]) + 1), md[3]);
   // Nigeria writes day first: 23/10 is 23 October
   const num = t.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);

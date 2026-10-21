@@ -32,7 +32,7 @@ Not found in OSM under their names, so left out rather than guessed: Elegushi Be
 
 ```sh
 npm install
-npm test               # 85 tests: core, adapters (fakes and a local HTTP server), API end to end
+npm test               # 90 tests: core, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
@@ -40,6 +40,8 @@ npm run smoke          # the live calls above (needs GEMINI_API_KEY)
 ```
 
 The web dev server (Vite) proxies `/api`, `/cal` and `/healthz` to port 3000.
+
+The MongoDB store has its own test, run against a real server when `MONGODB_URI_TEST` is set (`docker run -d --rm -p 127.0.0.1:27027:27017 mongo:8.0`, then `MONGODB_URI_TEST=mongodb://127.0.0.1:27027 npm test`). On 21 Oct it passed against MongoDB 8.0, and a full offline run of the server on MongoDB (create a crew, parse a plan, tick a ritual) worked. That run also caught two bugs, both fixed and tested: "monopoly" was read as Monday by the date-word resolver, and with only the organiser joined the ritual centred on that one member instead of the crew's declared areas.
 
 ## Deploying (checklist)
 

@@ -551,11 +551,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   // ------------------------------------------------------------ the ritual
 
-  /** Where the crew is: members' areas, else the areas named at setup. */
+  /**
+   * Where the crew is: the members' areas once two or more have joined; before that, the
+   * areas named at setup as well (one early joiner in Yaba should not pull a Yaba and Lekki
+   * crew's ritual to Yaba).
+   */
   function crewPoints(crew, members) {
     const fromMembers = members.filter((m) => isLatLon(m.area)).map((m) => ({ id: m.id, name: m.name, area: m.area }));
-    if (fromMembers.length) return fromMembers;
-    return (crew.areas || []).filter(isLatLon).map((a, i) => ({ id: `area${i}`, name: a.label, area: a }));
+    if (fromMembers.length >= 2) return fromMembers;
+    const declared = (crew.areas || []).filter(isLatLon).map((a, i) => ({ id: `area${i}`, name: a.label, area: a }));
+    const extra = declared.filter((d) => !fromMembers.some((m) => haversineKm(m.area, d.area) < 2));
+    return [...fromMembers, ...extra];
   }
 
   /** Candidate places near a point: live Overpass results merged with the curated spots. */

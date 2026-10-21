@@ -46,6 +46,10 @@ test("date words resolve with code, not the model (today is Wednesday 21 Oct 202
   assert.equal(resolveDateWords("31/10", today), "2026-10-31");
   assert.equal(resolveDateWords("3 Jan", "2026-12-20"), "2027-01-03");
   assert.equal(resolveDateWords("sometime soon", today), null);
+  assert.equal(resolveDateWords("monopoly", today), null, "a word that starts like a weekday is not one");
+  assert.equal(resolveDateWords("saturated", today), null);
+  assert.equal(resolveDateWords("thurs", today), "2026-10-22");
+  assert.equal(resolveDateWords("SUN 25 OCT", today), "2026-10-25");
   assert.equal(resolveDateWords("31/02", today), null);
 });
 
