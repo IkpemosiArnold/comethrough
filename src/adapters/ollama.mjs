@@ -107,10 +107,10 @@ export function createOllama({ url = OLLAMA_DEFAULT_URL, model, vision = "auto",
     return visionCheck;
   };
 
-  /** @param {any} body */
-  async function post(body) {
+  /** @param {any} body @param {number} [limitMs] */
+  async function post(body, limitMs = timeoutMs) {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    const timer = setTimeout(() => ctl.abort(), limitMs);
     try {
       const res = await fetchImpl(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
       const text = await res.text();
@@ -121,7 +121,7 @@ export function createOllama({ url = OLLAMA_DEFAULT_URL, model, vision = "auto",
       return { ok: res.ok, status: res.status, json, text };
     } catch (e) {
       throw Object.assign(
-        new Error(ctl.signal.aborted ? `${model} did not answer within ${Math.round(timeoutMs / 1000)} s.` : `Could not reach Ollama at ${base}: ${/** @type {any} */ (e).message}`),
+        new Error(ctl.signal.aborted ? `${model} did not answer within ${Math.round(limitMs / 1000)} s.` : `Could not reach Ollama at ${base}: ${/** @type {any} */ (e).message}`),
         { status: 0, transient: true, hint: ctl.signal.aborted ? "The local model is slow right now. Try again in a minute." : "The local model is not running. Start Ollama and try again." },
       );
     } finally {
@@ -134,7 +134,7 @@ export function createOllama({ url = OLLAMA_DEFAULT_URL, model, vision = "auto",
     available: !!model,
     model,
     vision: hasVision,
-    async generate({ messages, schema, maxTokens = 512, temperature = 0.2 }) {
+    async generate({ messages, schema, maxTokens = 512, temperature = 0.2, timeoutMs: callTimeout }) {
       const t0 = Date.now();
       if (messages.some((m) => m.images?.length) && !(await hasVision())) {
         throw Object.assign(new Error(`${model} has no vision projector`), {
@@ -145,12 +145,14 @@ export function createOllama({ url = OLLAMA_DEFAULT_URL, model, vision = "auto",
         });
       }
       let useSchema = schemaOk !== false;
-      let r = await post(ollamaBody({ model, messages, schema, maxTokens, temperature, schemaFormat: useSchema }));
+      // a long task may ask for more time, never less than the server's own setting
+      const limit = Math.max(timeoutMs, callTimeout ?? 0);
+      let r = await post(ollamaBody({ model, messages, schema, maxTokens, temperature, schemaFormat: useSchema }), limit);
       // an older server, or a schema its grammar converter cannot take: plain JSON mode
       if (!r.ok && schema && useSchema && r.status >= 400 && r.status < 500 && /format|schema|grammar|json/i.test(r.text)) {
         schemaOk = false;
         useSchema = false;
-        r = await post(ollamaBody({ model, messages, schema, maxTokens, temperature, schemaFormat: false }));
+        r = await post(ollamaBody({ model, messages, schema, maxTokens, temperature, schemaFormat: false }), limit);
       }
       if (!r.ok) {
         const message = r.json?.error || r.text.slice(0, 200) || `HTTP ${r.status}`;

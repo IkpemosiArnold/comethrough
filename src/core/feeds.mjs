@@ -223,14 +223,23 @@ export function eventBlock(title, text) {
   if (i < 0 && words.length > 3 && words.slice(0, 3).join(" ").length >= 6) i = find(words.slice(0, 3));
   if (i < 0) return null;
   const raw = text.slice(i, i + 1400);
-  return { own: norm(raw), before: norm(text.slice(Math.max(0, i - 2500), i)), raw };
+  return { own: norm(raw), before: norm(text.slice(Math.max(0, i - 2500), i)), raw, heading: norm(dayHeading(text.slice(0, i)) || "") };
+}
+
+const HEADING = /^[^a-z0-9\n]*(mon|tues|wednes|thurs|fri|satur|sun)day\b[^\n]{0,12}(\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))[^\n]{0,20}$/im;
+
+/** The last day heading ("FRIDAY, OCTOBER 16", "THURSDAY - OCTOBER 15, 2026") above a point, or null. */
+export function dayHeading(/** @type {string} */ above) {
+  const lines = above.split("\n");
+  for (let k = lines.length - 1; k >= 0; k--) if (HEADING.test(lines[k])) return lines[k];
+  return null;
 }
 
 /** True when a date's day number and month are written near the event, or in the post's title. */
 function dateStated(date, block, postTitle) {
   const [, m, d] = date.split("-").map(Number);
   const month = MONTHS[m - 1];
-  const where = `${block.before} ${block.own}`;
+  const where = `${block.heading} ${block.before} ${block.own}`;
   const title = norm(postTitle);
   const day = new RegExp(`(^|\\D)${d}(st|nd|rd|th)?(\\D|$)`);
   const monthNear = where.includes(month) || where.includes(month.slice(0, 3)) || title.includes(month) || title.includes(month.slice(0, 3));

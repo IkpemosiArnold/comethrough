@@ -89,6 +89,15 @@ test("events from a guide: only what the post states; invented names, unstated d
   assert.deepEqual(rb.dropped.map((d) => d.why), ["no date the post states", "unsure of the date"]);
 });
 
+test("a day heading far above a long block still dates the events under it; a heading for another day does not", () => {
+  const item = { title: "Your Weekend Guide: 23–25 October 2026", link: "https://guide-a.example.com/p/x", published: "2026-10-22T13:00:00.000Z", html: "" };
+  const text = `SATURDAY, OCTOBER 24\nFirst Thing\n${"Long words about the first thing. ".repeat(100)}\nLate Party\nWhere: The Roof, Ikoyi\nWhen: Saturday • 11 PM\nSUNDAY, OCTOBER 25\nBrunch Club\nWhen: Sunday • 1 PM`;
+  const ask = (/** @type {string} */ title, /** @type {string} */ date) => readEvents({ events: [{ title, dates: [date], startTime: "11 PM", endTime: null, venue: null, area: null, priceText: null, free: null, ticketLink: null, outdoor: null, category: null, confidence: { date: 0.9, time: 0.9 } }] }, { source: A, item, text, links: [] });
+  assert.deepEqual(ask("Late Party", "2026-10-24").events.map((e) => e.dates), [["2026-10-24"]]);
+  assert.equal(ask("Late Party", "2026-10-24").events[0].start, "23:00");
+  assert.deepEqual(ask("Brunch Club", "2026-10-24").dropped, [{ title: "Brunch Club", why: "no date the post states" }], "Sunday's heading does not say the 24th");
+});
+
 test("facts only: nothing of the post's prose is kept with an event", () => {
   const [item] = parseRss(fixture("guide-a.xml"));
   const r = readEvents(extractAnswer(`Title: ${item.title}`), { source: A, item, ...postText(item.html) });

@@ -34,6 +34,8 @@ import { safeEqual } from "./ids.mjs";
 /** @typedef {import("../core/feeds.mjs").FeedEvent} FeedEvent */
 
 const FACTS_TTL_MS = 14 * 24 * 3_600_000;
+/** Reading a whole weekly guide is a long answer (about 1,500 tokens): two minutes. */
+export const EVENTS_TIMEOUT_MS = 120_000;
 const INDEX_TTL_MS = 30 * 24 * 3_600_000;
 /** How long a request waits for the places pipeline before going on without it. */
 export const PLACES_BUDGET_MS = 15_000;
@@ -111,7 +113,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       let data = null;
       const t0 = now();
       try {
-        const r = await ai.generate({ task: "extract-events", messages: eventsMessages(prompt, { source, item, text, today }), schema: EVENTS_SCHEMA, maxTokens: EVENTS_MAX_TOKENS, temperature: 0.1 });
+        const r = await ai.generate({ task: "extract-events", messages: eventsMessages(prompt, { source, item, text, today }), schema: EVENTS_SCHEMA, maxTokens: EVENTS_MAX_TOKENS, temperature: 0.1, timeoutMs: EVENTS_TIMEOUT_MS });
         data = r.data;
         log("gemma", { task: "extract-events", model: r.model, sec: r.wallSec, parsed: r.data != null });
       } catch (e) {

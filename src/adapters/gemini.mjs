@@ -173,8 +173,9 @@ export async function geminiGenerate({ key, model, messages, schema, maxTokens, 
  * @typedef {object} AiPort
  * @property {boolean} available
  * @property {string} model
- * @property {(req: { task?: string, messages: Message[], schema?: any, maxTokens?: number, temperature?: number }) => Promise<AiResult>} generate
- *   task names the prompt (for logs, and for the offline stand-in in fakes.mjs)
+ * @property {(req: { task?: string, messages: Message[], schema?: any, maxTokens?: number, temperature?: number, timeoutMs?: number }) => Promise<AiResult>} generate
+ *   task names the prompt (for logs, and for the offline stand-in in fakes.mjs); timeoutMs overrides the
+ *   adapter's own for a long task (reading a whole weekly guide)
  */
 
 /**
@@ -189,7 +190,7 @@ export function createGemini({ key, model, fallbacks = [], visionModel = "", tim
   return {
     available: !!key,
     model,
-    async generate({ messages, schema, maxTokens, temperature }) {
+    async generate({ messages, schema, maxTokens, temperature, timeoutMs: callTimeout }) {
       if (!key) throw Object.assign(new Error("No GEMINI_API_KEY is set."), { status: 0, transient: false, hint: "Gemma is not set up on this server." });
       const hasImage = messages.some((m) => m.images?.length);
       const order = [...new Set([hasImage && visionModel ? visionModel : model, model, ...fallbacks])];
@@ -197,7 +198,7 @@ export function createGemini({ key, model, fallbacks = [], visionModel = "", tim
       let last = null;
       for (const m of order) {
         try {
-          const r = await geminiGenerate({ key, model: m, messages, schema, maxTokens, temperature, features: learned.get(m) || {}, fetchImpl, base, timeoutMs });
+          const r = await geminiGenerate({ key, model: m, messages, schema, maxTokens, temperature, features: learned.get(m) || {}, fetchImpl, base, timeoutMs: callTimeout ?? timeoutMs });
           learned.set(m, r.features);
           return { data: parseModelJson(r.text), text: r.text, model: m, wallSec: r.wallSec, jsonMode: !!schema && r.features.json !== false };
         } catch (e) {
