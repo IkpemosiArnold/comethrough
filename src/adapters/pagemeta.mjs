@@ -9,15 +9,16 @@
 // hand, at most 3, each checked the same way. Limits: 6 s in all, 512 KB of HTML, and
 // HTML only (an image link comes back as the image, for Gemma to read as a flyer).
 //
-// Instagram and Facebook are not fetched: they return an empty shell to servers (checked
-// 21 Oct 2026), so the UI asks for a screenshot of the flyer instead.
+// Instagram, Facebook and Tix.africa are not fetched: the first two return an empty shell to
+// servers and Tix.africa returns a Cloudflare 403 (both checked 21 Oct 2026), so the UI asks
+// for a screenshot instead.
 
 import dns from "node:dns/promises";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import { parseHtmlMeta } from "../core/htmlmeta.mjs";
-import { LOCKED_HOSTS, checkUrl, isPublicIp } from "../core/netguard.mjs";
+import { LOCKED_HOSTS, checkUrl, isPublicIp, lockedMessage, lockedSite } from "../core/netguard.mjs";
 
 /** @typedef {import("../core/tasks.mjs").PageMeta} PageMeta */
 /** @typedef {{ meta: PageMeta|null, image: { mimeType: string, data: string }|null, note: string|null }} PageResult */
@@ -122,7 +123,7 @@ export function createPageMeta({ contact, timeoutMs = 6000, maxBytes = 512 * 102
       const first = checkUrlImpl(raw);
       if (!first.ok || !first.url) throw new LinkError(first.reason || "That is not a link.");
       if (SKIP_HOSTS.test(first.url.hostname)) {
-        return { meta: null, image: null, note: "Instagram and Facebook do not share posts with other apps. Add a screenshot of the flyer instead." };
+        return { meta: null, image: null, note: lockedMessage(lockedSite(first.url.href)) };
       }
       const deadline = Date.now() + timeoutMs;
       let url = first.url;
@@ -134,7 +135,7 @@ export function createPageMeta({ contact, timeoutMs = 6000, maxBytes = 512 * 102
           if (hop === 3) throw new LinkError("That link redirects too many times.");
           const next = checkUrlImpl(new URL(r.location, url).href);
           if (!next.ok || !next.url) throw new LinkError(next.reason || "That link redirects somewhere odd.");
-          if (SKIP_HOSTS.test(next.url.hostname)) return { meta: null, image: null, note: "That link leads to Instagram or Facebook, which do not share posts with other apps. Add a screenshot of the flyer instead." };
+          if (SKIP_HOSTS.test(next.url.hostname)) return { meta: null, image: null, note: `That link leads to ${lockedSite(next.url.href)}. ${lockedMessage(lockedSite(next.url.href))}` };
           url = next.url;
           continue;
         }

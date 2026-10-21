@@ -103,11 +103,19 @@ function walk(x, depth = 0) {
 function flattenEvent(ev) {
   const loc = [].concat(ev.location || [])[0] || {};
   const addr = typeof loc.address === "string" ? loc.address : loc.address ? [loc.address.streetAddress, loc.address.addressLocality, loc.address.addressRegion].filter(Boolean).join(", ") : null;
-  const offer = [].concat(ev.offers || [])[0] || {};
-  const priceNum = offer.price ?? offer.lowPrice;
-  const free = ev.isAccessibleForFree === true || ev.isAccessibleForFree === "True" || Number(priceNum) === 0;
-  const price = free ? "Free" : priceNum != null ? `${offer.priceCurrency || ""} ${priceNum}`.trim() : null;
+  const offers = [].concat(ev.offers || []).filter((o) => o && typeof o === "object");
+  const offer = offers[0] || {};
+  const nums = offers.flatMap((o) => [o.price, o.lowPrice, o.highPrice]).map(Number).filter((n) => Number.isFinite(n));
+  const low = nums.length ? Math.min(...nums) : null;
+  const high = nums.length ? Math.max(...nums) : null;
+  // Eventbrite marks free events with a price of 0.0 in USD: zero is free whatever the currency
+  const free = ev.isAccessibleForFree === true || ev.isAccessibleForFree === "True" || ev.isAccessibleForFree === "true" || (nums.length > 0 && high === 0);
+  const currency = free ? null : clean(offer.priceCurrency, 3)?.toUpperCase() ?? null;
+  const price = free ? "Free" : low != null ? `${high != null && high > low ? "From " : ""}${money(low, currency)}` : null;
   const org = [].concat(ev.organizer || [])[0];
+  const img = [].concat(ev.image || [])[0];
+  const image = typeof img === "string" ? img : typeof img?.url === "string" ? img.url : null;
+  const status = String(ev.eventStatus || "").replace(/^https?:\/\/schema\.org\//, "");
   return {
     name: clean(ev.name, 120),
     startDate: clean(ev.startDate, 40),
@@ -116,6 +124,17 @@ function flattenEvent(ev) {
     address: clean(addr, 200),
     price: clean(price, 60),
     free,
+    currency,
     organizer: clean(typeof org === "string" ? org : org?.name, 60),
+    image: image && /^https:\/\//.test(image) ? image : null,
+    status: ["EventCancelled", "EventPostponed", "EventRescheduled", "EventMovedOnline"].includes(status) ? status : null,
   };
+}
+
+/** 15000 in NGN as "₦15,000"; 50 in USD as "USD 50"; 161.9 as "USD 161.90". */
+export function money(n, currency) {
+  const whole = Number.isInteger(n);
+  const digits = n.toLocaleString("en-NG", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+  if (!currency) return digits;
+  return currency === "NGN" ? `\u20a6${digits}` : `${currency} ${digits}`;
 }

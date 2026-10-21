@@ -204,7 +204,7 @@ test("page meta: a real fetch pinned to the vetted address, with redirects, size
     assert.equal(r.meta?.event?.startDate, "2026-10-31T20:00:00+01:00");
     assert.equal(r.meta?.event?.venue, "Hard Rock Cafe");
     assert.equal(r.meta?.event?.address, "Landmark Village, Lagos");
-    assert.equal(r.meta?.event?.price, "NGN 10000");
+    assert.equal(r.meta?.event?.price, "\u20a610,000");
     assert.ok(!r.meta?.text?.includes("var x"), "scripts are not text");
     const img = await pm.fetchPage(`${base}/img.png`);
     assert.equal(img.image?.mimeType, "image/png");

@@ -102,7 +102,9 @@ export const MAX_TOKENS = { "parse-crew": 400, "parse-plan": 600, "explain-pick"
 /** Flyers shout: "GROOVE SESSIONS" reads better as "Groove Sessions" (short words like "DJ" stay). */
 export function calmCaps(s) {
   if (!s || /[a-z]/.test(s) || !/[A-Z]{3}/.test(s)) return s;
-  return s.toLowerCase().replace(/(^|[\s(/&+-])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase()).replace(/\b(Dj|Mc|Vip|Ft|Lgbt|Nyc|Uk|Usa|Vi)\b/g, (w) => w.toUpperCase());
+  return s.toLowerCase().replace(/(^|[\s(/&+-])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase()).replace(/\b(Dj|Mc|Vip|Ft|Lgbt|Nyc|Uk|Usa|Vi)\b/g, (w) => w.toUpperCase())
+    // small words stay small inside a title ("Amala and Palmwine"), never first
+    .replace(/(?<=\S\s)(And|Of|The|At|In|On|For|With|To|A|An|Or)(?=\s)/g, (w) => w.toLowerCase());
 }
 
 /** "wine and monopoly" as "Wine and monopoly": a title typed all in lower case gets a capital. */
@@ -221,7 +223,7 @@ const addHours = (/** @type {string} */ t, /** @type {number} */ h) => {
  * @property {string|null} [siteName]
  * @property {string|null} [image]
  * @property {string|null} [text]
- * @property {{ name?: string|null, startDate?: string|null, endDate?: string|null, venue?: string|null, address?: string|null, price?: string|null, free?: boolean|null, organizer?: string|null }|null} [event]
+ * @property {{ name?: string|null, startDate?: string|null, endDate?: string|null, venue?: string|null, address?: string|null, price?: string|null, free?: boolean|null, currency?: string|null, organizer?: string|null, image?: string|null, status?: string|null }|null} [event]
  */
 
 /**
@@ -329,9 +331,16 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
         endConf = 0.95;
       }
     }
-    if (ev.name) [title, titleConf] = [text(ev.name, 120), 0.95];
+    if (ev.name) [title, titleConf] = [calmCaps(text(ev.name, 120)), 0.95];
     if (ev.venue || ev.address) [venue, address, placeConf] = [text(ev.venue, 120) ?? venue, tidyAddress(text(ev.address, 200)) ?? address, 0.95];
     if (ev.price || ev.free) [priceText, free, priceConf] = [text(ev.price, 60) ?? (ev.free ? "Free" : priceText), ev.free === true, 0.9];
+    // the organiser picks the currency; a Lagos event priced in dollars (or, once seen, in
+    // Norwegian kroner for naira tickets) is worth a second look
+    if (!ev.free && ev.currency && ev.currency !== "NGN") {
+      priceConf = 0.5;
+      notes.push(`The page lists the price in ${ev.currency}, not naira. Check what you will pay with the organiser.`);
+    }
+    if (ev.status) notes.push(`The page marks this event as ${ev.status.replace(/^Event/, "").toLowerCase()}. Check with the organiser.`);
     if (ev.organizer && !hostName) hostName = text(ev.organizer, 60);
     notes.push("Used the event details the page publishes.");
   }

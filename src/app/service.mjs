@@ -21,7 +21,7 @@ import {
 import { DAY, DAY_NAMES, DEFAULT_TZ, hhmm, isTime, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
-import { isLockedLink } from "../core/netguard.mjs";
+import { lockedMessage, lockedSite } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 
@@ -321,8 +321,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (!t && !link && !image) throw invalid([{ field: "text", message: "Paste a link, type a sentence or add a flyer." }]);
     // Instagram and Facebook give servers an empty page: with nothing else to read, ask for
     // the flyer picture instead of spending a Gemma call on a bare link
-    if (link && isLockedLink(link) && !image && !(t && t.replace(/https?:\/\/\S+/gi, "").trim().length >= 8)) {
-      throw new AppError(422, "link_locked", "Instagram keeps that one locked. Share the flyer picture instead: a screenshot works.");
+    const locked = link ? lockedSite(link) : null;
+    if (locked && !image && !(t && t.replace(/https?:\/\/\S+/gi, "").trim().length >= 8)) {
+      throw new AppError(422, "link_locked", lockedMessage(locked));
     }
     /** @type {string[]} */
     const notes = [];
@@ -356,7 +357,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       await store.put("flyers", { id, crewId: crew.id, mimeType: small.mimeType, data: small.data.toString("base64"), expiresAt: new Date(now() + 2 * DAY).toISOString() });
       source.flyerId = id;
       source.imageUrl = links.flyer(id);
-    } else if (typeof pageMeta?.image === "string" && pageMeta.image.startsWith("https://")) source.imageUrl = pageMeta.image;
+    } else if (typeof pageMeta?.event?.image === "string") source.imageUrl = pageMeta.event.image;
+    else if (typeof pageMeta?.image === "string" && pageMeta.image.startsWith("https://")) source.imageUrl = pageMeta.image;
     return { draft: { ...r.draft, place: pinned.place, source }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, model: g.model };
   }
 

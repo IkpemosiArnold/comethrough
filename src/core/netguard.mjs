@@ -105,13 +105,37 @@ export function checkUrl(raw) {
  * Threads, checked 21 Oct 2026). Their links are never fetched: the person is asked for
  * the flyer picture instead.
  */
-export const LOCKED_HOSTS = /(^|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net)$/i;
+export const LOCKED_HOSTS = /(^|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net|tix\.africa)$/i;
+
+/**
+ * Which locked site a link is on, in the words a person uses, or null.
+ * Instagram, Facebook and Threads return an empty page to servers (checked 21 Oct 2026).
+ * Tix.africa answers every server request with a Cloudflare 403, whatever the user agent,
+ * and its pages carry no event data until JavaScript runs (checked 21 Oct 2026; see
+ * docs/LOCAL-FACTS.md, "Event sources").
+ * @param {string} raw
+ */
+export function lockedSite(raw) {
+  let host;
+  try {
+    host = new URL(String(raw)).hostname;
+  } catch {
+    return null;
+  }
+  if (!LOCKED_HOSTS.test(host)) return null;
+  if (/(^|\.)tix\.africa$/i.test(host)) return "Tix.africa";
+  if (/(^|\.)threads\.net$/i.test(host)) return "Threads";
+  if (/(^|\.)(facebook\.com|fb\.com|fb\.me)$/i.test(host)) return "Facebook";
+  return "Instagram";
+}
 
 /** True for a link on one of the LOCKED_HOSTS. */
 export function isLockedLink(raw) {
-  try {
-    return LOCKED_HOSTS.test(new URL(String(raw)).hostname);
-  } catch {
-    return false;
-  }
+  return lockedSite(raw) != null;
+}
+
+/** What to tell the person about a locked link. No dashes. */
+export function lockedMessage(site) {
+  if (site === "Tix.africa") return "Tix.africa does not let other apps read its event pages. Share a screenshot of the event page or the flyer instead.";
+  return `${site || "Instagram"} keeps that one locked. Share the flyer picture instead: a screenshot works.`;
 }

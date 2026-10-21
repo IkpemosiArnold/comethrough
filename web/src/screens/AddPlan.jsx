@@ -16,8 +16,12 @@ import { installPrompt } from '../lib/install.js';
 
 const UNSURE = 0.6;
 const URL_RE = /https?:\/\/[^\s]+/i;
-// Instagram, Facebook and Threads give servers an empty page (the server says link_locked too)
-const IG_RE = /(^|\/\/|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net)\//i;
+// Instagram, Facebook and Threads give servers an empty page, and Tix.africa blocks servers
+// outright (the server says link_locked too; docs/LOCAL-FACTS.md)
+const IG_RE = /(^|\/\/|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net|tix\.africa)\//i;
+const lockedWords = (url) => (/tix\.africa/i.test(url || '')
+  ? 'Tix.africa does not let other apps read its event pages. Share a screenshot of the event page or the flyer instead.'
+  : `${/threads/i.test(url || '') ? 'Threads' : /facebook|fb\./i.test(url || '') ? 'Facebook' : 'Instagram'} keeps that one locked. Share the flyer picture instead: a screenshot works.`);
 const STATUS_IMAGE = ['reading the flyer', 'finding the date', 'finding the place', 'checking the price'];
 const STATUS_TEXT = ['reading it', 'working out the day', 'finding the place'];
 
@@ -258,7 +262,7 @@ export function AddPlan({ params, query }) {
         </div>
         {isInstagram && (
           <div class="ig-note" role="note">
-            <p>{/facebook|fb\.|threads/i.test(url || '') ? 'Facebook keeps that one locked.' : 'Instagram keeps that one locked.'} Share the flyer picture instead: a screenshot works.</p>
+            <p>{lockedWords(url)}</p>
             <button type="button" class="btn secondary" onClick={() => fileRef.current && fileRef.current.click()}><Icon name="image" size={20} /> Choose the flyer</button>
           </div>
         )}

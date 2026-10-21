@@ -125,7 +125,8 @@ Exact steps, checks after deploy and the phone checklist: [DEPLOY.md](DEPLOY.md)
 - The free Gemma quota is unpublished (a third-party source says 15 requests a minute). The
   server allows 20 Gemma calls a minute in total and 8 per visitor; watch for 429s in the
   logs. A vision call took over 25 s once in six tries on 21 Oct.
-- Eventbrite's page gave the bot a USD price ("USD 42.39") for a Lagos event priced in naira
-  on its flyer. The draft is editable, but a note could flag a foreign currency.
+- Eventbrite prices are in whatever currency the organiser chose (often USD for Lagos events).
+  A non-naira price now gets a note and lower confidence. Tix.africa blocks servers, so its
+  links ask for a screenshot. See LOCAL-FACTS.md, "Event sources".
 - SerpApi (events near the crew) is not built.
 - No email or account recovery by design: losing the member link means joining again. A "send me my link" option could come later.
