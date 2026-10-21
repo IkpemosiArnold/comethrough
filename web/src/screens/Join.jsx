@@ -25,7 +25,16 @@ export function Join({ params, query }) {
 
   function load() {
     setLoadError(null);
-    api.getCrew(slug, invite).then(setData).catch(setLoadError);
+    api.getCrew(slug, invite).then((d) => {
+      // A member's own link carries their member token as ?t=. The server answers with `you`,
+      // so this phone becomes that member and goes straight to the crew.
+      if (d?.you?.id && invite) {
+        saveCrew(slug, { name: d.crew?.name, memberId: d.you.id, memberName: d.you.name, memberToken: invite });
+        navigate(`/c/${slug}`, { replace: true });
+        return;
+      }
+      setData(d);
+    }).catch(setLoadError);
   }
   useEffect(load, [slug]);
 

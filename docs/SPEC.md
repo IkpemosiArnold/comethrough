@@ -137,7 +137,7 @@ The web app in `web/` is built against the contract above. These are the gaps it
 
 - **Serve the web app.** Serve `web/dist` as static files, with `index.html` as the fallback for `/`, `/start`, `/share`, and `/c/*`. Serve `/sw.js` and `/manifest.webmanifest` from the root with `Cache-Control: no-cache`, so a new deploy reaches phones.
 - **Keep `rsvps` in `PlanView`.** The branch and the ride pods match faces to member ids, so the UI reads `plan.rsvps` (`{ memberId: "going"|"maybe" }`) together with `members`. The name lists `going` and `maybe` are not enough on their own.
-- **`memberUrl` format.** Please make it `/c/<slug>?m=<memberToken>`. The web app reads `?m=`, saves the token, and then reads `you` from `GET /api/crews/:slug`.
+- **`memberUrl`** works as built (`/c/<slug>?t=<memberToken>`): the join screen sees `you` in the crew read, saves the member, and opens the crew. No change needed.
 - **A flyer thumbnail.** Please add `source.imageUrl` to `PlanView` for plans read from a flyer: a small stored copy (about 400 px wide JPEG) or a data URL. The crew list shows the flyer as a pasted poster, and the plan page shows it under "Gemma read this from a flyer". Without it, the UI shows neither.
 - **Pod fields used:** `memberIds`, `names`, `fromLabel`, `solo`, `leaveBy` (ISO), `travelMin`, `crossesLagoon`, `uberUrl` and `boltText`. The host of a hosted plan should not be put in a pod.
 - **Optional:** `GET /api/plans/:id` with member or invite auth would let the plan page load one plan instead of the whole crew. Today the UI reads the crew and finds the plan.
