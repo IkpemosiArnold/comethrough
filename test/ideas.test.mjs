@@ -17,6 +17,8 @@ import { memoryStore } from "../src/adapters/store.mjs";
 import { parseRss, postText, readEvents, robotsAllows } from "../src/core/feeds.mjs";
 import { creditFor, fallbackOrder, groundedWhy, readRanking, slotFor } from "../src/core/ideas.mjs";
 import { validateDraft } from "../src/core/plans.mjs";
+import { config } from "../src/config.mjs";
+import { createApi } from "../src/server/server.mjs";
 import { AREAS, PLACES } from "./fixtures/lagos.mjs";
 
 const fixture = (/** @type {string} */ f) => fs.readFileSync(new URL(`./fixtures/feeds/${f}`, import.meta.url), "utf8");
@@ -297,4 +299,31 @@ test("tonight: only what starts this evening; a bad slot is refused; a wrong tok
   for (const i of card.ideas) assert.match(i.start, /^2026-10-22T(1[6-9]|2\d)/, i.title);
   await assert.rejects(ideas.getIdeas({ slug: "uni-guys", token: "tok_tolu", when: "brunch" }), /tonight/);
   await assert.rejects(ideas.getIdeas({ slug: "uni-guys", token: "nope", when: "tonight" }), (e) => /** @type {any} */ (e).code === "bad_token");
+});
+
+test("HTTP: GET /api/crews/:slug/ideas?when= answers the card; a bad slot is a 400; a server without ideas says so", async () => {
+  const { ideas, service } = await setup({ rank: { picks: [] } });
+  const cfg = config({ PUBLIC_URL: "https://x.test", STATIC_DIR: "/nonexistent" });
+  for (const [withIdeas, checks] of /** @type {const} */ ([[true, "on"], [false, "off"]])) {
+    const server = createApi({ service, cfg, now: () => NOW, ideas: withIdeas ? ideas : null });
+    await new Promise((r) => server.listen(0, "127.0.0.1", () => r(null)));
+    const base = `http://127.0.0.1:${/** @type {any} */ (server.address()).port}`;
+    const get = (/** @type {string} */ q) => fetch(`${base}/api/crews/uni-guys/ideas${q}`, { headers: { authorization: "Bearer tok_tolu" } });
+    try {
+      if (checks === "on") {
+        const ok = await get("?when=weekend");
+        assert.equal(ok.status, 200);
+        const body = await ok.json();
+        assert.equal(body.ideas.length, 3);
+        assert.ok(body.ideas.every((/** @type {any} */ i) => i.draftPlan && i.why && i.when));
+        assert.equal((await get("?when=brunch")).status, 400);
+      } else {
+        const off = await get("?when=weekend");
+        assert.equal(off.status, 503);
+        assert.equal((await off.json()).error.code, "ideas_off");
+      }
+    } finally {
+      server.close();
+    }
+  }
 });

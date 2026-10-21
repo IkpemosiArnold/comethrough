@@ -14,11 +14,13 @@ import { config, loadDotEnv } from "../config.mjs";
 import { AppError } from "../app/errors.mjs";
 import { makeIds, safeEqual } from "../app/ids.mjs";
 import { loadPrompts } from "../app/prompts.mjs";
+import { createIdeas } from "../app/ideas.mjs";
 import { createService } from "../app/service.mjs";
 import { withEntries } from "../core/places.mjs";
 import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather, fakeWikidata } from "../adapters/fakes.mjs";
-import { createGemini } from "../adapters/gemini.mjs";
+import { createFeeds } from "../adapters/feeds.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
+import { createLlm, describeLlm } from "../adapters/llm.mjs";
 import { layeredCache, memoryCache, storeCache } from "../adapters/http.mjs";
 import { createOpenMeteo } from "../adapters/openmeteo.mjs";
 import { createOsrm } from "../adapters/osrm.mjs";
@@ -27,7 +29,7 @@ import { createPageMeta } from "../adapters/pagemeta.mjs";
 import { createWebPush } from "../adapters/push.mjs";
 import { openStore } from "../adapters/store.mjs";
 import { createWikidata } from "../adapters/wikidata.mjs";
-import { LAGOS } from "../packs/index.mjs";
+import { LAGOS, LAGOS_REGION } from "../packs/index.mjs";
 import { BASE_HEADERS, HttpFail, clientIp, makeLimiter, parseMultipart, readBody, readJson, sendJson, sniffImage, tokenOf } from "./http.mjs";
 import { staticHandler } from "./static.mjs";
 import { APP_ROUTE, PAGE_ROUTE, basicHandler, wantsBasic } from "./basic.mjs";
@@ -42,6 +44,8 @@ export const RATE = {
   aiGlobal: { limit: 20, windowMs: 60_000 },
   areas: { limit: 40, windowMs: 60_000 },
   create: { limit: 20, windowMs: 3_600_000 },
+  /** per crew: a cached card is free; a new one also counts against the Gemma limits */
+  ideas: { limit: 30, windowMs: 3_600_000 },
 };
 
 /**
@@ -50,8 +54,9 @@ export const RATE = {
  * @param {import("../config.mjs").Config} opts.cfg
  * @param {() => number} [opts.now]
  * @param {(event: string, fields?: Record<string, any>) => void} [opts.log]
+ * @param {ReturnType<typeof createIdeas>|null} [opts.ideas]  "The sloth has 3 ideas"; null answers 503
  */
-export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
+export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas = null }) {
   const limiter = makeLimiter(now);
   const serveStatic = staticHandler(cfg.staticDir);
   const serveBasic = basicHandler({ service, webUrl: cfg.webUrl });
@@ -100,6 +105,10 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
       limit("areas", ip);
       return service.setMyArea({ memberId: m[1], token, body: await readJson(req, 8 * 1024) });
     }],
+    ["GET", /^\/api\/crews\/([a-z0-9-]{1,64})\/ideas$/, async ({ m, token, url, ip }) => {
+      if (!ideas) throw new AppError(503, "ideas_off", "Ideas are not set up on this server.");
+      return ideas.getIdeas({ slug: m[1], token, when: url.searchParams.get("when"), onAsk: () => limit("ideas", m[1]), onMiss: () => aiLimits(ip) });
+    }],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/plans\/parse$/, async ({ m, token, req, ip }) => {
       aiLimits(ip);
       const input = await readParseInput(req);
@@ -123,7 +132,10 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
       if (!cfg.tickSecret) throw new AppError(503, "tick_off", "TICK_SECRET is not set on the server.");
       const m = /^Bearer\s+(\S+)$/i.exec(String(req.headers.authorization || ""));
       if (!m || !safeEqual(m[1], cfg.tickSecret)) throw new AppError(401, "bad_secret", "Wrong or missing tick secret.");
-      return service.tick();
+      const out = await service.tick();
+      // the curated guides' feeds, at most once a day each, in the background (Gemma reads new posts)
+      if (ideas) ideas.refreshAll([{ pack: LAGOS, region: LAGOS_REGION }]).catch((e) => log("feed_error", { message: String(e?.message).slice(0, 120) }));
+      return out;
     }],
     ["GET", /^\/cal\/([A-Za-z0-9_-]{16,64})\.ics$/, async ({ m, req }) => {
       const ics = await service.feed({ calToken: m[1] });
@@ -250,13 +262,15 @@ export async function buildDeps(cfg, log = jsonLog) {
   const feesFile = path.resolve(here, "../..", /** @type {any} */ (LAGOS.data).fees);
   const fees = fs.existsSync(feesFile) ? JSON.parse(fs.readFileSync(feesFile, "utf8")).fees : [];
   const spots = withEntries(fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [], fees);
-  const common = { store, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log };
+  const common = { store, cache, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log };
   if (cfg.offline) {
-    return { ...common, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
+    return { ...common, feeds: null, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
   }
   return {
     ...common,
-    ai: createGemini({ key: cfg.gemini.key, model: cfg.gemini.model, fallbacks: cfg.gemini.fallbacks, visionModel: cfg.gemini.visionModel, timeoutMs: cfg.gemini.timeoutMs }),
+    // LLM=gemini (default) or LLM=ollama: every Gemma task goes through this one port
+    ai: createLlm(cfg),
+    feeds: createFeeds({ cache, contact: cfg.contact, log }),
     geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache }),
     places: createOverpass({ urls: cfg.overpassUrls, contact: cfg.contact, cache }),
     weather: createOpenMeteo({ url: cfg.openMeteoUrl, cache }),
@@ -272,11 +286,13 @@ async function main() {
   const cfg = config();
   const deps = await buildDeps(cfg);
   const service = createService({ ...deps, cfg });
-  const server = createApi({ service, cfg, log: jsonLog });
-  server.requestTimeout = 60_000;
+  const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, prompts: deps.prompts, now: deps.now, log: jsonLog });
+  const server = createApi({ service, cfg, log: jsonLog, ideas });
+  // a local model on a laptop can take minutes; the request must outlive it
+  server.requestTimeout = cfg.llm === "ollama" && !cfg.offline ? Math.max(60_000, cfg.ollama.timeoutMs + 15_000) : 60_000;
   server.headersTimeout = 20_000;
   server.listen(cfg.port, () => {
-    jsonLog("listening", { port: cfg.port, store: deps.store.kind, ai: deps.ai.available ? cfg.offline ? "offline stand-in" : cfg.gemini.model : "off", push: deps.push.enabled, web: !!staticHandler(cfg.staticDir), offline: cfg.offline, trustProxyHops: cfg.trustProxyHops });
+    jsonLog("listening", { port: cfg.port, store: deps.store.kind, ai: deps.ai.available ? cfg.offline ? "offline stand-in" : describeLlm(cfg) : "off", push: deps.push.enabled, web: !!staticHandler(cfg.staticDir), offline: cfg.offline, trustProxyHops: cfg.trustProxyHops });
   });
   const stop = async () => {
     server.close();

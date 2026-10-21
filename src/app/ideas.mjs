@@ -163,12 +163,14 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
   /**
    * The crew's three ideas for tonight or the weekend. `onMiss` is called before any new
    * card is made (the HTTP layer charges Gemma's rate limits there); a cached card is free.
-   * @param {{ slug: string, token: string|null, when: string|null, onMiss?: () => void }} input
+   * `onAsk` is called once the viewer is known (the per-crew limit).
+   * @param {{ slug: string, token: string|null, when: string|null, onAsk?: () => void, onMiss?: () => void }} input
    */
-  async function getIdeas({ slug, token, when, onMiss = () => {} }) {
+  async function getIdeas({ slug, token, when, onAsk = () => {}, onMiss = () => {} }) {
     const w = when === "tonight" || when === "weekend" ? when : null;
     if (!w) throw invalid([{ field: "when", message: 'Ask for "tonight" or "weekend".' }]);
     const { crew } = await viewerOf(slug, token);
+    onAsk();
     const key = `ideas:${crew.id}:${w}`;
     const hit = await cache.get(key);
     if (hit) return { ...hit, cached: true };
