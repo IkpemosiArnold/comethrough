@@ -86,7 +86,7 @@
  * @property {string|null} host       a member id
  * @property {string|null} [hostName] a host named in the source who is not a member
  * @property {string[]} bring
- * @property {{ url?: string, text?: string, image?: boolean }} source
+ * @property {{ url?: string, text?: string, image?: boolean, flyerId?: string, imageUrl?: string }} source  flyerId: a stored thumbnail; imageUrl: a page's own image
  * @property {string|null} why
  * @property {string|null} invite
  * @property {PlanWeather|null} weather

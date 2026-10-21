@@ -163,6 +163,12 @@ test("push: subscribe, then new plans and pods buzz the right people once", asyn
   form.append("image", new Blob([png], { type: "image/png" }), "flyer.png");
   const parsed = await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.tolu, raw: form });
   assert.equal(parsed.status, 200);
+  // the small upload is kept as the flyer thumbnail, at an unguessable URL
+  assert.match(parsed.json.draft.source.imageUrl, /^https:\/\/api\.comethrough\.test\/api\/flyers\/f_[A-Za-z0-9_-]{32}$/);
+  const flyerPath = new URL(parsed.json.draft.source.imageUrl).pathname;
+  const flyer = await fetch(base + flyerPath);
+  assert.equal(flyer.headers.get("content-type"), "image/png");
+  assert.deepEqual(Buffer.from(await flyer.arrayBuffer()), png);
   assert.deepEqual(ai.calls.at(-1).messages[1].images[0].mimeType, "image/png");
   assert.equal(parsed.json.draft.start, "2026-10-24T14:00:00+01:00");
   assert.equal(parsed.json.draft.place.outdoor, true);
@@ -170,6 +176,8 @@ test("push: subscribe, then new plans and pods buzz the right people once", asyn
   assert.ok(parsed.json.notes.includes("Pinned at Tarkwa Bay."));
   const created = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: parsed.json.draft } });
   S.beach = created.json.plan.id;
+  assert.equal(created.json.plan.source.imageUrl, parsed.json.draft.source.imageUrl, "the plan keeps its flyer");
+  assert.equal(created.json.plan.source.flyerId, undefined, "the internal id stays inside");
   assert.deepEqual(push.sent.map((m) => m.endpoint).sort(), ["https://push.example/ada", "https://push.example/kene"]);
   assert.match(push.sent[0].title, /^New plan: Beach day$/);
   assert.equal(created.json.plan.weather.rainProb, 60, "an outdoor plan gets the forecast for its own hours");
@@ -192,8 +200,17 @@ test("RSVP, ride pods, the one-event file and the feed", async () => {
   const pods = await call("GET", `/api/plans/${S.wine}/pods`, { token: S.kene });
   assert.equal(pods.status, 200);
   assert.deepEqual(pods.json.unplaced, []);
-  // the wine plan has no pin (a home with only a street), so pods have no ride link yet
-  assert.equal(pods.json.pods[0].memberIds.length, 2);
+  // the host is already there, so only Ada rides; the home has no pin, so no ride link yet
+  assert.deepEqual(pods.json.pods.map((/** @type {any} */ p) => p.names), [["Ada"]]);
+  assert.equal(pods.json.pods[0].uberUrl, null);
+  assert.deepEqual(r.json.plan.rsvps, { [S.toluId]: "going", [S.adaId]: "going" }, "rsvps by member id, for faces");
+  // one plan by id, for a member and for a guest
+  const one = await call("GET", `/api/plans/${S.wine}`, { token: S.invite });
+  assert.equal(one.status, 200);
+  assert.equal(one.json.plan.place.address, null, "a guest still does not see the home address");
+  assert.equal(one.json.you, null);
+  assert.equal((await call("GET", `/api/plans/${S.wine}`, { token: S.kene })).json.plan.place.address, "12 Herbert Macaulay Way, Yaba");
+  assert.equal((await call("GET", `/api/plans/${S.wine}`)).status, 401);
   // the beach plan has a pin: pods get a leave-by and the Uber link
   await call("PATCH", `/api/plans/${S.beach}`, { token: S.ada, body: { rsvp: "going" } });
   await call("PATCH", `/api/plans/${S.beach}`, { token: S.kene, body: { rsvp: "going" } });

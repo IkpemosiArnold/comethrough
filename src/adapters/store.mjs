@@ -26,7 +26,7 @@ import path from "node:path";
  * @property {() => Promise<void>} close
  */
 
-export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent"];
+export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "flyers"];
 
 const matches = (/** @type {any} */ doc, /** @type {Record<string, any>} */ filter) => Object.entries(filter).every(([k, v]) => doc[k] === v);
 const clone = (/** @type {any} */ x) => (x == null ? x : structuredClone(x));
@@ -156,6 +156,7 @@ export const MONGO_INDEXES = {
   push: [[{ memberId: 1 }, {}], [{ crewId: 1 }, {}]],
   cache: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   sent: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
+  flyers: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
 };
 
 /**

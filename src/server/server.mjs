@@ -90,6 +90,11 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
     }],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/plans$/, async ({ m, token, req }) => ({ status: 201, body: await service.addPlan({ slug: m[1], token, body: await readJson(req) }) })],
     ["PATCH", /^\/api\/plans\/([A-Za-z0-9_-]{1,64})$/, async ({ m, token, req }) => service.patchPlan({ id: m[1], token, body: await readJson(req) })],
+    ["GET", /^\/api\/plans\/([A-Za-z0-9_-]{1,64})$/, ({ m, token }) => service.getPlan({ id: m[1], token })],
+    ["GET", /^\/api\/flyers\/(f_[A-Za-z0-9_-]{20,64})$/, async ({ m }) => {
+      const f = await service.getFlyer({ id: m[1] });
+      return { raw: f.data, headers: { "content-type": f.mimeType, "cache-control": "public, max-age=31536000, immutable", "content-security-policy": "default-src 'none'" } };
+    }],
     ["GET", /^\/api\/plans\/([A-Za-z0-9_-]{1,64})\/pods$/, ({ m, token }) => service.getPods({ id: m[1], token })],
     ["GET", /^\/api\/plans\/([A-Za-z0-9_-]{1,64})\/event\.ics$/, async ({ m, token }) => {
       const { ics, filename } = await service.eventIcs({ id: m[1], token });
@@ -122,16 +127,16 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
   async function readParseInput(req) {
     const type = String(req.headers["content-type"] || "");
     if (/^multipart\/form-data/i.test(type)) {
-      const { fields, files } = parseMultipart(await readBody(req, cfg.imageMaxBytes + 64 * 1024), type);
-      const f = files.image;
-      let image = null;
-      if (f && f.data.length) {
+      const { fields, files } = parseMultipart(await readBody(req, cfg.imageMaxBytes + 300 * 1024), type);
+      const asImage = (/** @type {any} */ f) => {
+        if (!f || !f.data.length) return null;
         if (f.data.length > cfg.imageMaxBytes) throw new HttpFail(413, "too_large", `That image is too large (the limit is ${Math.round(cfg.imageMaxBytes / 1048576)} MB).`);
         const mimeType = sniffImage(f.data);
         if (!mimeType) throw new HttpFail(415, "not_an_image", "That file is not a JPEG, PNG, WebP or HEIC image.");
-        image = { mimeType, data: f.data };
-      }
-      return { text: fields.text ?? null, url: fields.url ?? null, image };
+        return { mimeType, data: f.data };
+      };
+      const thumb = asImage(files.thumb);
+      return { text: fields.text ?? null, url: fields.url ?? null, image: asImage(files.image), thumb: thumb && thumb.mimeType !== "image/heic" && thumb.mimeType !== "image/heif" ? thumb : null };
     }
     const b = await readJson(req, 16 * 1024);
     return { text: typeof b.text === "string" ? b.text : null, url: typeof b.url === "string" ? b.url : null, image: null };
@@ -174,7 +179,7 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
         const wrapped = out && typeof out === "object" && ("status" in out || "raw" in out) ? out : { status: 200, body: out };
         status = wrapped.status ?? 200;
         if ("raw" in wrapped) {
-          res.writeHead(status, { ...BASE_HEADERS, ...wrapped.headers, ...(status === 304 ? {} : { "content-length": String(Buffer.byteLength(wrapped.raw)) }) });
+          res.writeHead(status, { ...BASE_HEADERS, ...wrapped.headers, ...(status === 304 ? {} : { "content-length": String(Buffer.isBuffer(wrapped.raw) ? wrapped.raw.length : Buffer.byteLength(wrapped.raw)) }) });
           res.end(status === 304 ? undefined : wrapped.raw);
         } else sendJson(res, status, wrapped.body);
         return;

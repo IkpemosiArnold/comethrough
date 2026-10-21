@@ -28,6 +28,8 @@ import { endpointId, safeEqual, slugify } from "./ids.mjs";
 /** @typedef {import("../core/types.mjs").Member} Member */
 /** @typedef {import("../core/types.mjs").Plan} Plan */
 
+/** A flyer thumbnail is kept only when it is this small (the browser sends a ~400 px copy). */
+export const FLYER_MAX_BYTES = 200 * 1024;
 export const LIMITS = { sentence: 500, planText: 2000, url: 2000, memberName: 40, crewName: 60, membersPerCrew: 60, areas: 8 };
 /** The ritual looks for places this far from the crew's middle, then wider if it finds too few. */
 export const SEARCH_RADII_M = [6000, 12000];
@@ -59,6 +61,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     calendar: (/** @type {Member} */ m) => `${cfg.publicUrl}/cal/${m.calToken}.ics`,
     webcal: (/** @type {Member} */ m) => `${cfg.publicUrl.replace(/^https?:/, "webcal:")}/cal/${m.calToken}.ics`,
     eventIcs: (/** @type {string} */ planId, /** @type {Member} */ m) => `${cfg.publicUrl}/api/plans/${planId}/event.ics?t=${encodeURIComponent(m.token)}`,
+    flyer: (/** @type {string} */ flyerId) => `${cfg.publicUrl}/api/flyers/${flyerId}`,
   };
 
   // ------------------------------------------------------------ access
@@ -127,6 +130,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       names: namesOf(members),
       eventIcsUrl: role === "member" && me ? links.eventIcs(plan.id, me) : null,
       planUrl: links.plan(crew, plan.id),
+      flyerUrl: links.flyer,
     });
   }
 
@@ -293,9 +297,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /**
    * Read a plan from text, a link and/or a flyer image into a draft to confirm.
-   * @param {{ slug: string, token: string, text?: string|null, url?: string|null, image?: { mimeType: string, data: Buffer }|null }} req
+   * @param {{ slug: string, token: string, text?: string|null, url?: string|null, image?: { mimeType: string, data: Buffer }|null, thumb?: { mimeType: string, data: Buffer }|null }} req
+   *   thumb: the browser's small copy of the flyer (about 400 px), kept for the crew to see
    */
-  async function parsePlan({ slug, token, text, url, image }) {
+  async function parsePlan({ slug, token, text, url, image, thumb }) {
     const { crew, role, member } = await viewerOf(slug, token);
     if (role !== "member" || !member) throw new AppError(403, "members_only", "Join the crew first, then add plans.");
     const t = clip(text, LIMITS.planText);
@@ -324,7 +329,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name } });
     const pinned = await pinPlace(r.draft.place);
     if (pinned.note && pinned.place !== r.draft.place) notes.push(pinned.note);
-    return { draft: { ...r.draft, place: pinned.place }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, model: g.model };
+    /** @type {Record<string, any>} */
+    const source = { ...r.draft.source };
+    const small = thumb ?? (image && image.data.length <= FLYER_MAX_BYTES ? image : null);
+    if (small && small.data.length <= FLYER_MAX_BYTES) {
+      // kept for two days unless a plan claims it
+      const id = `f_${ids.token()}`;
+      await store.put("flyers", { id, crewId: crew.id, mimeType: small.mimeType, data: small.data.toString("base64"), expiresAt: new Date(now() + 2 * DAY).toISOString() });
+      source.flyerId = id;
+      source.imageUrl = links.flyer(id);
+    } else if (typeof pageMeta?.image === "string" && pageMeta.image.startsWith("https://")) source.imageUrl = pageMeta.image;
+    return { draft: { ...r.draft, place: pinned.place, source }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, model: g.model };
   }
 
   /** Create a plan from a confirmed draft. */
@@ -339,8 +354,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const members = await membersOf(crew.id);
     const draft = { ...v.draft, host: v.draft.host && members.some((m) => m.id === v.draft.host) ? v.draft.host : null };
     draft.place = (await pinPlace(draft.place)).place;
+    if (draft.source.flyerId) {
+      const flyer = await store.get("flyers", draft.source.flyerId);
+      if (flyer && flyer.crewId === crew.id) delete draft.source.imageUrl;
+      else delete draft.source.flyerId;
+    }
     let plan = createPlan(draft, { id: ids.id("p"), crewId: crew.id, createdBy: member.id, now: now() });
     plan = await withWeather(plan);
+    if (plan.source.flyerId) {
+      const flyer = await store.get("flyers", plan.source.flyerId);
+      await store.put("flyers", { ...flyer, planId: plan.id, expiresAt: plan.expiresAt });
+    }
     await store.put("plans", plan);
     log("plan_created", { crew: crew.id, plan: plan.id, kind: plan.kind });
     await notify(members.filter((m) => m.id !== member.id).map((m) => m.id), {
@@ -387,9 +411,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { plan: planView(next, crew, members, "member", member) };
   }
 
-  /** The riders for a plan: going members with their areas. */
+  /** The riders for a plan: going members with their areas (the host is already there). */
   const riders = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) =>
-    members.filter((m) => plan.rsvps?.[m.id] === "going").map((m) => ({ id: m.id, name: m.name, area: isLatLon(m.area) ? m.area : null }));
+    members.filter((m) => plan.rsvps?.[m.id] === "going" && m.id !== plan.host).map((m) => ({ id: m.id, name: m.name, area: isLatLon(m.area) ? m.area : null }));
 
   const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { uberStyle: cfg.uberLinkStyle });
 
@@ -406,6 +430,25 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       if (pod.memberIds.length < 2 || before.has(key)) continue;
       await notify(pod.memberIds, { title: `Ride pod for ${plan.title}`, body: pod.shareText, url: links.plan(crew, plan.id), tag: `${plan.id}-pod` }, `${plan.id}:pod:${key}`);
     }
+  }
+
+  /** One plan, for a member or a guest of its crew. */
+  async function getPlan({ id, token }) {
+    if (!token) throw noToken();
+    const plan = /** @type {Plan|null} */ (await store.get("plans", String(id)));
+    if (!plan || isExpired(plan, now())) throw notFound("That plan");
+    const crew = /** @type {Crew|null} */ (await store.get("crews", plan.crewId));
+    if (!crew) throw notFound("That plan");
+    const { role, member } = await viewerOf(crew.slug, token);
+    const members = await membersOf(crew.id);
+    return { plan: planView(plan, crew, members, role, member), members: members.map(memberView), crew: crewView(crew), you: member ? memberView(member) : null };
+  }
+
+  /** A stored flyer thumbnail. Its id is an unguessable capability, like the calendar token. */
+  async function getFlyer({ id }) {
+    const f = await store.get("flyers", String(id));
+    if (!f || Date.parse(f.expiresAt) <= now()) throw notFound("That flyer");
+    return { mimeType: f.mimeType, data: Buffer.from(f.data, "base64") };
   }
 
   async function getPods({ id, token }) {
@@ -638,6 +681,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         log("tick_error", { crew: crew.id, message: String(/** @type {any} */ (e).message).slice(0, 200) });
       }
     }
+    // MongoDB's TTL index removes expired flyers by itself; the file store needs a sweep
+    if (store.kind !== "mongo") {
+      for (const f of await store.find("flyers")) if (Date.parse(f.expiresAt) <= t) await store.delete("flyers", f.id);
+    }
     log("tick", out);
     return out;
   }
@@ -647,7 +694,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   return {
-    draftCrew, createCrew, getCrew, joinCrew, searchAreas, parsePlan, addPlan, patchPlan, getPods, eventIcs, feed,
+    draftCrew, createCrew, getCrew, joinCrew, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
     // exposed for tests
     _internal: { makeRitual, candidatesNear, notify },

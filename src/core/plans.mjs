@@ -57,6 +57,9 @@ export function validateDraft(draft, { tz = DEFAULT_TZ } = {}) {
   }
   if (typeof d.source?.text === "string" && d.source.text.trim()) source.text = d.source.text.trim().slice(0, LIMITS.sourceText);
   if (d.source?.image === true) source.image = true;
+  // a flyer thumbnail: an unguessable id from the parse step, or the page's own https image
+  if (typeof d.source?.flyerId === "string" && /^f_[A-Za-z0-9_-]{20,64}$/.test(d.source.flyerId)) source.flyerId = d.source.flyerId;
+  if (typeof d.source?.imageUrl === "string" && /^https:\/\//.test(d.source.imageUrl) && d.source.imageUrl.length <= LIMITS.url) source.imageUrl = d.source.imageUrl;
 
   let kind = d.kind;
   if (kind == null) {
@@ -247,9 +250,9 @@ export const whatsappLink = (/** @type {string} */ text) => `https://wa.me/?text
 /**
  * A plan as a viewer may see it.
  * @param {Plan} plan
- * @param {{ role: "member"|"guest", memberId?: string|null, names: Record<string,string>, eventIcsUrl?: string|null, planUrl?: string|null }} viewer
+ * @param {{ role: "member"|"guest", memberId?: string|null, names: Record<string,string>, eventIcsUrl?: string|null, planUrl?: string|null, flyerUrl?: (flyerId: string) => string }} viewer
  */
-export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = null, planUrl = null }) {
+export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = null, planUrl = null, flyerUrl }) {
   const isMember = role === "member";
   const hide = plan.place?.private && !isMember;
   const place = hide ? { name: plan.place.name && plan.host ? `${names[plan.host] || "A member"}'s place` : "A member's place", address: null, lat: null, lon: null, outdoor: plan.place.outdoor, private: true, hidden: true } : { ...plan.place };
@@ -268,12 +271,13 @@ export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = nul
     host: plan.host,
     hostName: plan.host ? names[plan.host] || null : plan.hostName ?? null,
     bring: plan.bring,
-    source: hide ? {} : plan.source,
+    source: hide ? {} : sourceView(plan.source, flyerUrl),
     why: plan.why,
     invite: plan.invite,
     weather: plan.weather,
     status: plan.status,
     confidence: plan.confidence,
+    rsvps: { ...(plan.rsvps || {}) },
     going: byStatus("going"),
     maybe: byStatus("maybe"),
     you: isMember && memberId ? plan.rsvps?.[memberId] ?? null : null,
@@ -290,6 +294,12 @@ export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = nul
     view.headsUp = { text, whatsappUrl: whatsappLink(text) };
   }
   return view;
+}
+
+/** The source as shown: a stored flyer becomes its URL; the internal id stays inside. */
+function sourceView(source = {}, flyerUrl) {
+  const { flyerId, ...rest } = source;
+  return flyerId && flyerUrl ? { ...rest, imageUrl: flyerUrl(flyerId) } : rest;
 }
 
 /**

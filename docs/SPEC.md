@@ -84,26 +84,32 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 | Method | Path | Auth | Request | Response |
 |---|---|---|---|---|
-| POST | `/api/crews` | none | `{ sentence }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }] }, confidence: { name, vibe, rhythm, areas }, low: [field] }` (Gemma reads the sentence; areas are geocoded; nothing is saved) |
+| POST | `/api/crews` | none | `{ sentence }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }] }, confidence: { name, vibe, rhythm, areas }, low: [field], notes: [string], ai: bool }` (Gemma reads the sentence; areas are geocoded; nothing is saved). `ai: false` means Gemma was busy: the draft is empty and the form is filled by hand |
 | POST | `/api/crews` | none | `{ confirm: draft, organiser?: { name, area } }` | `201 { crew, inviteUrl, inviteToken, member?, memberToken?, calendarUrl?, webcalUrl? }` |
-| GET | `/api/crews/:slug` | invite or member | | `{ crew, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name } \| null }` |
-| POST | `/api/crews/:slug/members` | invite | `{ name, area }` where area is a label ("Yaba") or `{ label, lat, lon }` from `/api/areas` | `201 { member, memberToken, memberUrl, calendarUrl, webcalUrl }` |
-| GET | `/api/areas?q=Yab` | none (rate limited) | | `{ results: [{ label, detail, lat, lon }] }` (Photon type-ahead, biased to Lagos, cached) |
-| POST | `/api/crews/:slug/plans/parse` | member | multipart: `text`, `url`, `image` (JPEG, PNG, WebP or HEIC, at most 5 MB); or JSON `{ text, url }` | `200 { draft: PlanDraft, confidence: { field: 0..1 }, low: [field], notes: [string] }` |
+| GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, inviteToken, createdAt }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
+| POST | `/api/crews/:slug/members` | invite | `{ name, area }` where area is a label ("Yaba") or `{ label, lat, lon }` from `/api/areas` | `201 { member, memberToken, memberUrl, calendarUrl, webcalUrl, notes }` (`memberUrl` is `/c/<slug>?t=<memberToken>`) |
+| GET | `/api/areas?q=Yab` | none (rate limited) | | `{ results: [{ label, detail, lat, lon }] }` (Photon type-ahead for neighbourhoods and towns, biased to Lagos, cached; falls back to any place) |
+| POST | `/api/crews/:slug/plans/parse` | member | multipart: `text`, `url`, `image` (JPEG, PNG, WebP or HEIC, at most 5 MB) and optionally `thumb` (the browser's ~400 px JPEG or WebP copy of the image, at most 200 KB, kept as the flyer thumbnail); or JSON `{ text, url }` | `200 { draft: PlanDraft, confidence: { field: 0..1 }, low: [field], notes: [string], ai: bool, model }`. `draft.source.imageUrl` is the flyer thumbnail (or a link's own https image); send `draft.source` back unchanged on create so the plan keeps it |
 | POST | `/api/crews/:slug/plans` | member | `{ plan: PlanDraft }` (the confirmed, possibly edited draft) | `201 { plan: PlanView }` |
 | PATCH | `/api/plans/:id` | member | `{ rsvp: "going"\|"maybe"\|null }` and/or edits `{ title, start, end, place, price, bring, status }` (edits: the creator, the host, or anyone for a ritual) | `{ plan: PlanView }` |
-| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }] }` |
+| GET | `/api/plans/:id` | invite or member | | `{ plan: PlanView, members, crew, you }` (one plan, same visibility rules) |
+| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }] }` (the host of a hosted plan is not in a pod) |
+| GET | `/api/flyers/:flyerId` | none (the id is an unguessable capability) | | the flyer thumbnail image, cached for a year |
 | GET | `/api/plans/:id/event.ics?t=<member token>` | member | | one-event calendar file (`text/calendar`, download) for "add to my calendar" after "I'm going" |
 | GET | `/cal/:calToken.ics` | calendar | | the member's subscribed feed (all crew plans; going ones marked) |
 | GET | `/api/push/key` | none | | `{ publicKey }` (VAPID, for `pushManager.subscribe`) or `{ publicKey: null }` when push is off |
 | POST | `/api/members/:id/push-subscription` | that member | `{ subscription }` (the browser's `PushSubscription.toJSON()`) | `204` |
 | DELETE | `/api/members/:id/push-subscription` | that member | `{ endpoint }` | `204` |
 | POST | `/api/tick` | `Bearer TICK_SECRET` | | `{ rituals, weatherChecked, rainAlerts, pushes, expired }`; idempotent |
-| GET | `/healthz` | none | | `{ ok, store, ai, push }` |
+| GET | `/healthz` | none | | `{ ok, store, ai, push, you }` (`you` is the client address the rate limits see; check it after a deploy) |
 
 `PlanDraft` is a Plan without ids and bookkeeping: `{ kind, title, start, end, tz, place, price, host, hostName, bring, source }`; unknown fields are `null`, never guessed.
 
-`PlanView` is a Plan as the viewer may see it: a private place's `address`, `lat` and `lon` are `null` (and `place.hidden: true`) unless the viewer is a member; and it adds `going: [name]`, `maybe: [name]`, `you: "going"|"maybe"|null`, `eventIcsUrl` (members only) and, when rain moved in, `headsUp: { text, whatsappUrl }`.
+`PlanView` is a Plan as the viewer may see it: a private place's `address`, `lat` and `lon` are `null` (and `place.hidden: true`, and `source` is `{}`) unless the viewer is a member; and it adds `rsvps` (by member id), `going: [name]`, `maybe: [name]`, `you: "going"|"maybe"|null`, `source.imageUrl` (the flyer thumbnail, when there is one), `eventIcsUrl` (members only) and, when rain moved in, `headsUp: { text, whatsappUrl }`. A plan whose time or place is edited becomes `status: "moved"`.
+
+**Errors and limits.** Codes the UI may branch on: `invalid` (400, with `fields`), `no_token` (401), `bad_token` (403), `members_only` (403), `not_yours` (403), `not_found` (404), `link_unreadable` (422), `too_large` (413), `not_an_image` (415), `slow_down` (429, with `Retry-After`). Gemma calls (crew drafts and plan parsing) are limited to 8 a minute and 80 a day per visitor and 20 a minute in all.
+
+**Serving and development.** The Node server also serves the built web app (`web/dist`) from the same origin: `index.html` for app routes, `sw.js` and `manifest.webmanifest` with `no-cache`, hashed assets for a year. It listens on port 3000 by default (the Vite proxy's target). `OFFLINE=1 npm run dev` runs the API with fakes for every outside service (no keys, no network; a regex stand-in plays Gemma), for UI work.
 
 **Push messages** (when the browser subscribed): new plan in your crew, a plan you are going to changed or was cancelled, rain moved in on a plan you are going to, and your ride pod formed. Payload: `{ title, body, url, tag }`; `tag` is the plan id, so a newer message replaces an older one.
 
@@ -134,6 +140,8 @@ Render web service and MongoDB Atlas (Free tier), both in **Frankfurt** (eu-cent
 ### Requests from the web builder (21 Oct)
 
 The web app in `web/` is built against the contract above. These are the gaps it found. Each one has a fallback in the UI, so none of them blocks the backend.
+
+Status (backend, 21 Oct): all done. The app is served with those cache rules; `rsvps` is in every PlanView; flyer thumbnails are stored from the optional `thumb` part (or the image itself when it is under 200 KB) and appear as `source.imageUrl`; link plans use the page's own https image; the host is left out of pods; and `GET /api/plans/:id` exists.
 
 - **Serve the web app.** Serve `web/dist` as static files, with `index.html` as the fallback for `/`, `/start`, `/share`, and `/c/*`. Serve `/sw.js` and `/manifest.webmanifest` from the root with `Cache-Control: no-cache`, so a new deploy reaches phones.
 - **Keep `rsvps` in `PlanView`.** The branch and the ride pods match faces to member ids, so the UI reads `plan.rsvps` (`{ memberId: "going"|"maybe" }`) together with `members`. The name lists `going` and `maybe` are not enough on their own.
