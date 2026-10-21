@@ -22,6 +22,7 @@ import { cached, fetchJson, throttle, userAgent } from "./http.mjs";
  * @property {(q: string, opts?: { limit?: number, areas?: boolean, near?: { lat: number, lon: number }|null, country?: string|null, viewbox?: string }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookup      a venue or an address
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
+ * @property {(at: { lat: number, lon: number }) => Promise<{ label: string, country?: string, city?: string }|null>} [reverse]  the neighbourhood's name at a point (the caller rounds the point first)
  */
 
 /** Beyond this distance from the crew's centre, a hit is not trusted and the city is added. */
@@ -158,9 +159,55 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
     return null; // only far-away matches: better "not found" than a pin in another city
   }
 
+  /**
+   * The neighbourhood's name at a point: the district, else the locality, else the city.
+   * Only the name comes back; the caller looks up that neighbourhood's own centre, so a
+   * member's area is never the phone's position. Photon's /reverse; Nominatim's at zoom 14.
+   * @type {NonNullable<Geocoder["reverse"]>}
+   */
+  const reverse = async (at) => {
+    const lat = Math.round(at.lat * 100) / 100;
+    const lon = Math.round(at.lon * 100) / 100;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return cached(cache, `rev:${provider}:${lat.toFixed(2)},${lon.toFixed(2)}`, TTL, async () => {
+      if (provider === "nominatim") {
+        return nominatimGate(async () => {
+          const u = new URL("/reverse", nominatimUrl);
+          u.searchParams.set("lat", String(lat));
+          u.searchParams.set("lon", String(lon));
+          u.searchParams.set("format", "jsonv2");
+          u.searchParams.set("zoom", "14");
+          const r = await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl });
+          const a = r?.address || {};
+          const label = a.suburb || a.neighbourhood || a.quarter || a.city_district || a.town || a.city || null;
+          return label ? { label, ...(a.country_code ? { country: String(a.country_code).toUpperCase() } : {}), ...(a.city || a.town ? { city: a.city || a.town } : {}) } : null;
+        });
+      }
+      return photonGate(async () => {
+        const u = new URL("/reverse", photonUrl);
+        u.searchParams.set("lat", String(lat));
+        u.searchParams.set("lon", String(lon));
+        u.searchParams.set("limit", "3");
+        u.searchParams.set("lang", "en");
+        return readReverse(await fetchJson(u.href, { headers, timeoutMs: 8000, retries: 1, fetchImpl }));
+      });
+    });
+  };
+
   return {
     search,
     lookup: (q, ctx = {}) => one(q, ctx, false),
     lookupArea: (q, ctx = {}) => one(q, ctx, true),
+    reverse,
   };
+}
+
+/** The neighbourhood named by Photon's reverse answer: district, else locality, else city. Pure; exported for tests. */
+export function readReverse(json) {
+  for (const f of json?.features || []) {
+    const p = f.properties || {};
+    const label = p.district || p.locality || p.city || p.county || null;
+    if (label) return { label, ...(p.countrycode ? { country: String(p.countrycode).toUpperCase() } : {}), ...(photonCity(p) ? { city: photonCity(p) } : {}) };
+  }
+  return null;
 }

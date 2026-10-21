@@ -112,7 +112,13 @@ export function fakeGeocoder({ areas = OFFLINE_AREAS } = {}) {
     calls.push({ q, ctx });
     return (await search(q, { limit: 1, country: ctx.country ?? null }))[0] ?? null;
   };
-  return { calls, search, lookup, lookupArea: lookup };
+  /** The nearest fake area to a point, by name only. */
+  const reverse = async (/** @type {{ lat: number, lon: number }} */ at) => {
+    calls.push({ reverse: at });
+    const near = [...areas].filter((a) => Number.isFinite(a.lat)).sort((a, b) => Math.hypot(a.lat - at.lat, a.lon - at.lon) - Math.hypot(b.lat - at.lat, b.lon - at.lon))[0];
+    return near ? { label: near.label, ...(near.country ? { country: near.country } : {}) } : null;
+  };
+  return { calls, search, lookup, lookupArea: lookup, reverse };
 }
 
 /** @param {any[]} [spots] Wikidata candidates to return */

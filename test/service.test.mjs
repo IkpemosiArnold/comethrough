@@ -205,3 +205,34 @@ test("pods use the road route when OSRM answers, and say so when it does not", a
   assert.equal(p2.bridge, null);
   assert.match(p2.estimate.text, /the road route was not available/);
 });
+
+test("setting your own area from a rough location keeps only the neighbourhood, never the point", async () => {
+  const geo = fakeGeocoder();
+  const { store, svc } = make({ geocoder: geo });
+  await store.put("crews", CREW);
+  await store.put("members", { id: "m1", crewId: CREW.id, name: "Bayo", area: null, token: "t1", calToken: "c1", joinedAt: "2026-10-21T08:00:00.000Z" });
+  const r = await svc.setMyArea({ memberId: "m1", token: "t1", body: { near: { lat: 6.60412, lon: 3.35077 } } });
+  assert.equal(r.you.area.label, "Ikeja");
+  const saved = await store.get("members", "m1");
+  assert.deepEqual([saved.area.lat, saved.area.lon], [6.6018, 3.3515], "the neighbourhood's own centre");
+  const asked = geo.calls.find((c) => c.reverse);
+  assert.deepEqual(asked.reverse, { lat: 6.6, lon: 3.35 }, "the point is rounded before it is looked up");
+  await assert.rejects(svc.setMyArea({ memberId: "m2", token: "t1", body: { area: "Yaba" } }), /link/i);
+  const typed = await svc.setMyArea({ memberId: "m1", token: "t1", body: { area: "Surulere" } });
+  assert.equal(typed.you.area.label, "Surulere");
+});
+
+test("the first pick is made when the crew is made, and asking again returns the same plan", async () => {
+  const { store, svc } = make({ places: fakeOverpass([PLACES.freedom]) });
+  await store.put("crews", CREW);
+  const a = await svc.firstPick({ slug: CREW.slug, token: CREW.inviteToken });
+  assert.equal(a.reason, "made");
+  assert.equal(a.plan?.kind, "ritual");
+  const b = await svc.firstPick({ slug: CREW.slug, token: CREW.inviteToken });
+  assert.equal(b.reason, "exists");
+  assert.equal(b.plan?.id, a.plan?.id);
+  const t = await svc.tick();
+  assert.equal(t.rituals, 0, "the heartbeat leaves the first pick be");
+  await store.put("crews", { ...CREW, id: "c_norhythm", slug: "no-rhythm", inviteToken: "inv2", rhythm: null });
+  assert.equal((await svc.firstPick({ slug: "no-rhythm", token: "inv2" })).reason, "no_rhythm");
+});

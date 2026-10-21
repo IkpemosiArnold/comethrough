@@ -442,6 +442,73 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /**
+   * The neighbourhood at a point, for "Use my rough location". The phone rounds its position
+   * to two decimals (about a kilometre) before sending it, and this rounds again: only the
+   * neighbourhood's name is looked up at that point, and its own centre is what is kept.
+   * @param {{ lat: number, lon: number }} at
+   * @param {any} ctx  the crew's geocoding context
+   */
+  async function areaNear(at, ctx = {}) {
+    const lat = Math.round(Number(at?.lat) * 100) / 100;
+    const lon = Math.round(Number(at?.lon) * 100) / 100;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) throw invalid([{ field: "near", message: "That location is not valid." }]);
+    let named = null;
+    try {
+      named = geocoder.reverse ? await geocoder.reverse({ lat, lon }) : null;
+    } catch (e) {
+      log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+    }
+    if (!named?.label) throw new AppError(404, "not_found", "Couldn't name your area. Type it instead.");
+    const label = /** @type {string} */ (clip(named.label, 60));
+    let hit = null;
+    try {
+      hit = await geocoder.lookupArea(label, { ...ctx, near: { lat, lon } });
+    } catch {}
+    // the neighbourhood's own centre when it is close by; else the rounded point itself
+    const centre = hit && haversineKm(hit, { lat, lon }) <= 5 ? { lat: hit.lat, lon: hit.lon } : { lat, lon };
+    return { label, ...centre, ...(named.country ? { country: named.country } : {}), ...(named.city ? { city: named.city } : {}) };
+  }
+
+  /** Set your own area: a typed or picked area, or `near` (a rounded point) for the rough location. */
+  async function setMyArea({ memberId, token, body }) {
+    const { member, crew } = await memberOf(token);
+    if (member.id !== memberId) throw badToken();
+    const where = placeOf(crew);
+    const input = body?.near ? await areaNear(body.near, where.geo) : body?.area;
+    const { area, note } = await resolveArea(input, where.geo);
+    if (!area) throw invalid([{ field: "area", message: "Add the area you're coming from." }]);
+    const next = { ...member, area: /** @type {any} */ (area) };
+    await store.put("members", next);
+    log("member_area", { crew: crew.id, member: member.id, located: isLatLon(area), rough: !!body?.near });
+    return { you: memberView(next), notes: note ? [note] : [] };
+  }
+
+  /**
+   * The sloth's first pick, right after a crew with a regular day is made, so the invite has
+   * something to come to. It is the ritual for the next slot of the rhythm, made now instead
+   * of two or three days before; the heartbeat then finds it and leaves it be. Asking again
+   * returns the same plan.
+   */
+  async function firstPick({ slug, token }) {
+    const { crew, role, member } = await viewerOf(slug, token);
+    if (!crew.rhythm) return { plan: null, reason: "no_rhythm" };
+    const plans = (await plansOf(crew.id)).filter((p) => !isExpired(p, now()));
+    const members = await membersOf(crew.id);
+    const view = (/** @type {Plan} */ p) => planView(p, crew, members, role, member);
+    const mine = plans.find((p) => p.kind === "ritual");
+    if (mine) return { plan: view(mine), reason: "exists" };
+    const due = ritualDue({ crew, now: now(), plans, lead: { min: 1, max: 31 } });
+    if (!due.due) return { plan: null, reason: due.reason };
+    const r = await makeRitual(crew, due, plans);
+    if (!r.made || !r.plan) {
+      const again = (await plansOf(crew.id)).find((p) => p.kind === "ritual");
+      return { plan: again ? view(again) : null, reason: r.reason || "not_made" };
+    }
+    return { plan: view(r.plan), reason: "made" };
+  }
+
+
+  /**
    * Area type-ahead, biased to where the crew is: `near` and `country` from the crew's region
    * (the join screen and the crew's own screens send them), else the visitor's zone: no zone,
    * or a Lagos one, searches Lagos as before; any other zone searches anywhere.
@@ -980,7 +1047,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   return {
-    draftCrew, createCrew, getCrew, joinCrew, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
+    draftCrew, createCrew, getCrew, joinCrew, setMyArea, areaNear, firstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
     // exposed for tests
     _internal: { makeRitual, candidatesNear, notify },

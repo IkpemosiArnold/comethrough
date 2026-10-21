@@ -92,6 +92,14 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
       limit("create", ip);
       return { status: 201, body: await service.joinCrew({ slug: m[1], token, body: await readJson(req) }) };
     }],
+    ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/first-pick$/, async ({ m, token, ip }) => {
+      aiLimits(ip);
+      return service.firstPick({ slug: m[1], token });
+    }],
+    ["PATCH", /^\/api\/members\/([A-Za-z0-9_-]{1,64})$/, async ({ m, token, req, ip }) => {
+      limit("areas", ip);
+      return service.setMyArea({ memberId: m[1], token, body: await readJson(req, 8 * 1024) });
+    }],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/plans\/parse$/, async ({ m, token, req, ip }) => {
       aiLimits(ip);
       const input = await readParseInput(req);
