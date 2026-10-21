@@ -6,3 +6,4 @@ dist/
 .DS_Store
 continuity.md
 !.env.example
+.data.bak-*/
