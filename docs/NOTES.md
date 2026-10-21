@@ -16,6 +16,13 @@ Engineering notes for the Come Through server: the live smoke test, what it chan
 | Gemma reads "wine and monopoly at mine friday 7, bring a bottle" | Gemini API, gemma-4-26b-a4b-it | 4.0 s | **JSON mode with a response schema was accepted** (unconfirmed in the docs). Answer: hosted, "wine and monopoly", dateWords "friday", startTime "7", atHost true, bring ["a bottle"]. After code: start 2026-10-23T19:00+01:00, host is the member, place "Tolu's place" (private), `low: ["start"]` with the note `Read "7" as 19:00.` |
 | Gemma reads a flyer image (test/fixtures/flyer.png) | Gemini API, gemma-4-26b-a4b-it | 5.9 s | **Image input works**, JSON mode accepted. Read every line right: "GROOVE SESSIONS", "SUN 25 OCT", "6PM", "FREEDOM PARK", "LAGOS ISLAND", "N5,000", bring "a mat". Fixed after: shouting calmed to "Groove Sessions"; "SUN 25 OCT" now resolved by code and cross-checked against the weekday; "Freedom Park" pinned from the curated spots and marked outdoor (the model had left outdoor null). |
 
+Two more Gemma calls checked the ritual's own prompts on real data (a Yaba, Surulere and Lekki crew, the curated spots): the pick was Tinubu Square, longest trip 35 minutes.
+
+| Call | Latency | Result |
+|---|---|---|
+| explain-pick | 2.3 s | "The app picked Tinubu Square because it is a green park with a chill outside vibe. It is a fair choice for everyone to meet." Passed the grounding check, but generic: the prompt now asks it to lead with a concrete fact. |
+| write-invite | 2.6 s | "Catch the chill vibe at Tinubu Square this Saturday from 16:00 to 19:00. It is a green park and a fair choice to meet up. Just come through, no need to reply 🌳" Passed: every number is in the facts, no dashes. |
+
 What this settles from the research:
 
 - Gemma 4 on the free Gemini API takes images and honours `responseMimeType` plus `responseSchema`. The adapter still retries without JSON mode if a model refuses it, and always parses with salvage.
