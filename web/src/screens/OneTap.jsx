@@ -11,7 +11,7 @@ import { haptic } from '../lib/spring.js';
 import { whatsappUrl, planMessage, planLinks } from '../lib/share.js';
 import { Branch } from '../ui/Branch.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
-import { WhatsAppIcon } from '../ui/icons.jsx';
+import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { KindSticker, Dots, ErrorNote, Spinner } from '../ui/misc.jsx';
 import { AreaAsk } from '../ui/AreaAsk.jsx';
 import { NudgeAsk } from './PlanPage.jsx';
@@ -130,6 +130,12 @@ export function OneTap({ params, query, answer }) {
             <a class="btn ghost block" href={whatsappUrl(planMessage({ title: plan.title, when, place: plan.place?.name, kind: plan.kind, links, mine: answer === 'going' ? 'going' : null }))} target="_blank" rel="noopener" data-external>
               <WhatsAppIcon size={20} /> Tell the chat
             </a>
+            {answer === 'going' && api.eventIcsUrl(slug, plan) && (
+              <a class="btn ghost block" href={api.eventIcsUrl(slug, plan)} download={`${plan.title}.ics`} data-external>
+                <Icon name="calendar" size={20} /> Add to my calendar
+              </a>
+            )}
+            {answer === 'going' && api.eventIcsUrl(slug, plan) && <p class="fine">It reminds you before it's time to leave.</p>}
           </div>
           {answer === 'going' && canRide && !area && <AreaAsk slug={slug} onSet={(l) => { setArea(l || 'set'); toast(l ? `Coming from ${l}` : 'Saved'); }} />}
           {answer === 'going' && <NudgeAsk slug={slug} />}
