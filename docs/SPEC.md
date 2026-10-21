@@ -60,6 +60,10 @@ Gemma runs through the Gemini API (free tier) with a server-held key. Google may
 | Start a crew | the setup sentence | the crew list, member names, locations |
 | Add a plan | the sentence, the flyer picture, or the link plus its page's title, description and text; today's date | who is adding it, the crew list, locations |
 | The ritual (explain and invite) | the picked place, its kind, the weather, the crew's vibe words, the minutes from each neighbourhood, the runners-up | member names, the crew list |
+| The sloth's 3 ideas (ranking) | the crew's vibe words, budget and "tonight" or "weekend"; for each candidate its name, kind, day and time, place and area, price as stated, the weather, the longest trip and the minutes from each neighbourhood, the guide's name, and the crew's own history with it (visits, days ago, how many came) | member names, the crew list, tokens |
+| Reading a curated weekly guide (Lagos) | the post's text from its public RSS feed, its title and date, today's date | anything about any crew |
+
+**Run your own sloth.** Every Gemma task goes through one LLM port (`src/adapters/llm.mjs`). `LLM=gemini` (the default) uses the Gemini API as above. `LLM=ollama` uses Gemma on your own machine or server through Ollama (`OLLAMA_URL`, default `http://localhost:11434`; `OLLAMA_MODEL`, default `gemma3:4b`; `OLLAMA_VISION=auto|yes|no`; `OLLAMA_TIMEOUT_MS`, default 180000): then nothing goes to Google at all. The task's JSON schema is Ollama's `format`. A flyer needs a model with vision (Ollama reports it in `/api/show`); a text-only model refuses it with `hint`: "Reading a flyer needs a vision model, and this server runs ..., which reads text only. Type the plan or paste the link instead." and the parse screen shows that note.
 
 (A future option is in-browser Gemma, reusing Selects Web's engine.)
 
@@ -107,6 +111,7 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 | GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, region: { center, countryCode, city, timezone }, pack: PackView, inviteToken, createdAt }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
 | POST | `/api/crews/:slug/members` | invite | `{ name, area }` where area is a label ("Yaba") or `{ label, lat, lon }` from `/api/areas` | `201 { member, memberToken, memberUrl, calendarUrl, webcalUrl, notes }` (`memberUrl` is `/c/<slug>?t=<memberToken>`) |
 | GET | `/api/areas?q=Yab&near=6.48,3.42&cc=NG` or `&tz=Europe/Berlin` | none (rate limited) | | `{ results: [{ label, detail, lat, lon, country?, city? }] }` (Photon type-ahead for neighbourhoods and towns, cached; falls back to any place). Biased to `near` (the crew's centre) and kept to `cc` when given; else by the visitor's zone `tz`: none or Lagos searches Lagos as before, any other searches anywhere |
+| GET | `/api/crews/:slug/ideas?when=tonight\|weekend` | invite or member | | `200 IdeasCard` (see "Ideas: the sloth has 3 ideas"). One card of at most three ideas; cached per crew and slot for 3 hours. `400 invalid` for any other `when`; `503 ideas_off` on a server built without it |
 | POST | `/api/crews/:slug/plans/parse` | member | multipart: `text`, `url`, `image` (JPEG, PNG, WebP or HEIC, at most 5 MB) and optionally `thumb` (the browser's ~400 px JPEG or WebP copy of the image, at most 200 KB, kept as the flyer thumbnail); or JSON `{ text, url }` | `200 { draft: PlanDraft, confidence: { field: 0..1 }, low: [field], notes: [string], ai: bool, model }`. `draft.source.imageUrl` is the flyer thumbnail (or a link's own https image); send `draft.source` back unchanged on create so the plan keeps it |
 | POST | `/api/crews/:slug/plans` | member | `{ plan: PlanDraft }` (the confirmed, possibly edited draft) | `201 { plan: PlanView }` |
 | PATCH | `/api/plans/:id` | member | `{ rsvp: "going"\|"maybe"\|null }` and/or edits `{ title, start, end, place, price, bring, status }` (edits: the creator, the host, or anyone for a ritual) | `{ plan: PlanView }` |
@@ -127,6 +132,8 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 `PlanView` is a Plan as the viewer may see it (with `place.entry: { free: true|false|null, note, source }` on a plan with no price at a curated spot or the sloth's pick: a sourced fee, or `free: null` for "Entry: check at the gate"; never "free" without a source): a private place's `address`, `lat` and `lon` are `null` (and `place.hidden: true`, and `source` is `{}`) unless the viewer is a member; and it adds `rsvps` (by member id), `going: [name]`, `maybe: [name]`, `you: "going"|"maybe"|null`, `source.imageUrl` (the flyer thumbnail, when there is one), `eventIcsUrl` (members only) and, when rain moved in, `headsUp: { text, whatsappUrl }`. A plan whose time or place is edited becomes `status: "moved"`.
 
+**Ideas limits.** `GET /ideas` is limited to 30 an hour per crew (after the token is checked). A cached card costs nothing else; making a new card also counts as one Gemma call against the visitor's limits below.
+
 **Errors and limits.** Codes the UI may branch on: `invalid` (400, with `fields`), `no_token` (401), `bad_token` (403), `members_only` (403), `not_yours` (403), `not_found` (404), `link_unreadable` (422), `link_locked` (422: an Instagram, Facebook or Threads link with nothing else to read; the UI asks for the flyer picture, and no Gemma call is made), `too_large` (413), `not_an_image` (415), `slow_down` (429, with `Retry-After`). Gemma calls (crew drafts and plan parsing) are limited to 8 a minute and 80 a day per visitor and 20 a minute in all.
 
 **The basic version.** For Opera Mini (User-Agent "Opera Mini" or the `X-OperaMini-Phone-UA` header) and for `?basic=1` (the `<noscript>` link), `GET /c/:slug`, `/c/:slug/join` and `/c/:slug/p/:id` with `?t=` return plain server-made HTML: the plan, who is going, and forms that `POST /basic/rsvp/:id` (`t`, `rsvp`: going, maybe or none) and `POST /basic/join/:slug` (`t`, `name`, `area`, `next`), each answered with a 303 back to the page. Other app pages say they need the full app.
@@ -134,6 +141,48 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 **Serving and development.** The Node server also serves the built web app (`web/dist`) from the same origin: `index.html` for app routes, `sw.js` and `manifest.webmanifest` with `no-cache`, hashed assets for a year. It listens on port 3000 by default (the Vite proxy's target). `OFFLINE=1 npm run dev` runs the API with fakes for every outside service (no keys, no network; a regex stand-in plays Gemma), for UI work.
 
 **Push messages** (when the browser subscribed): new plan in your crew, a plan you are going to changed or was cancelled, rain moved in on a plan you are going to, and your ride pod formed. Payload: `{ title, body, url, tag }`; `tag` is the plan id, so a newer message replaces an older one.
+
+## Ideas: the sloth has 3 ideas
+
+"Too lazy to think?": one card with three things the crew could do tonight or this weekend. Never a feed, never more than three. Code in `src/core/ideas.mjs` (pure), `src/core/feeds.mjs` (pure), `src/app/ideas.mjs` (the use case) and `src/adapters/feeds.mjs` (the polite feed fetcher).
+
+**Sources.**
+1. `place`, anywhere: green and open spaces near the crew's middle from the places pipeline (OpenStreetMap, Wikidata, a pack's curated spots), plus covered spots a source vouches for. The request waits 15 s for the map; after that the pack's curated spots stand in.
+2. `usual`, anywhere: the crew's own history. Places from past plans that were not cancelled and not at someone's home, most liked first (more people going, more visits).
+3. `event`, Lagos pack only: the **Awe Lagos** and **Nothing To Do In Lagos** weekly guides, read from their RSS feeds only (`https://awelagos.substack.com/feed`, `https://nothingtodoinlagos.substack.com/feed`). Each feed is fetched at most once a day (after the tick, or by the first card of the day), with `ComeThrough/0.1 (+CONTACT)` as the User-Agent, `If-None-Match`, and only while robots.txt allows the feed path (rechecked weekly; unreadable means no fetch). No other page of either site is fetched. Gemma lists a new post's events once; code then keeps only what the post itself states (the name; dates stated near the event or under its day heading and inside the post's own weekend; a time, venue or price from the event's own lines; a ticket link that is one of the post's own links). An event with no stated date, or with date confidence under 0.6, is dropped; so is one with no start time. Only these facts are stored (14 days, keyed by the post's link); the post's text is never stored or shown. Every event idea carries `source: { name, url: <the post's link>, credit }`.
+
+**Order of work.** Deterministic filters first: inside the slot and not passed; within a distance cap of the crew's middle (places 15 km, usual 25 km, events 35 km) and nobody's trip over 90 minutes (the pack's travel model); outdoors only when the forecast for those hours is dry (rain under 40%). Then Gemma ranks what is left (at most 6 events, 4 places, 3 usual) for the crew's vibe and budget, the trips, the time and the weather, and writes one line per pick. A line with a number that is not in that idea's facts, or that does not name the idea, is replaced by the code's own sentence (`by: "code"`). When Gemma is away the card still comes, in the code's own order (one of each kind first).
+
+**The slot.** `tonight`: today from 5 pm under a roof (from 4 pm outside, until the pack's outdoor hours end), never earlier than now. `weekend`: Friday evening, Saturday and Sunday (on a Saturday, the rest of Saturday and Sunday); places and the usual try Saturday and Sunday before Friday evening. A day with less than an hour left is dropped. All inside the pack's social hours.
+
+```js
+IdeasCard {
+  when: "tonight"|"weekend", generatedAt, validUntil,          // ISO; valid for 3 hours (10 minutes when partial)
+  slot: [{ date, outdoor: { from, to } | null, covered: { from, to } | null }],
+  ideas: [Idea],                                                // 0 to 3, best first
+  by: "gemma"|"code",                                           // who ordered the card
+  sources: [{ name, url }],                                     // the guides this crew's pack reads (their home pages), [] elsewhere
+  notes: [string],                                              // plain sentences to show under the card
+  partial?: true,                                               // a guide was still being read; ask again in a few minutes
+  cached: bool
+}
+Idea {
+  id: "e1"|"p1"|"u1"..., kind: "event"|"place"|"usual",
+  title,                                                        // "Sunset Jazz on the Lawn", "Freedom Park", "Picnic at Ikoyi Garden"
+  when,                                                         // "Saturday 24 October, 4 pm to 7 pm" ("Today, ...", "Tomorrow, ...")
+  start, end,                                                   // ISO with offset (end may be null)
+  place: { name, address, area, lat, lon, outdoor },            // an event's venue may have no pin
+  price: { text, free } | null,                                 // as the source states it; null when unknown, never "free" without a source
+  why, by: "gemma"|"code",                                      // one line, grounded in the facts
+  travel: { longestMinutes, from: [{ from: "Yaba", minutes }] } | null,
+  weather: { text, ok, rainProb } | null,
+  source?: { name: "Awe Lagos", url: <post link>, credit: "From Awe Lagos' weekly guide" },   // events only
+  ticketUrl?: string | null,                                    // events only: the post's own ticket link
+  draftPlan: PlanDraft                                          // POST it as { plan: draftPlan } to /api/crews/:slug/plans
+}
+```
+
+`draftPlan` is a complete `PlanDraft`: `kind` "found" for an event (its `source.url` is the ticket link, else the post) and "quick" otherwise, `start` and `end` in the crew's zone, the place with its pin when known, the price as stated. One tap sends it through the existing create flow, which validates it as any other plan.
 
 ## Delivery: how a plan reaches people (from the 21 Oct research)
 
@@ -159,6 +208,19 @@ Render web service and MongoDB Atlas (Free tier), both in **Frankfurt** (eu-cent
 - Rides: "Copy address" (`pod.destinationText`), then a button per ride app from `rides` (Bolt, then inDrive), going to `links.android`, `links.ios` or `links.web` by platform. `dropoff` is false for every app (none documents a drop-off link).
 - Highlight draft fields listed in `low` (confidence under 0.6). Show the "only what you submit goes to Google" note on the parse screen.
 - Instagram links do not give the server the flyer (Instagram returns an empty page), so for Instagram ask for a screenshot of the flyer.
+
+### UI requests: ideas card
+
+The web app already reads `GET /ideas` (`web/src/lib/api.js`, `normaliseIdeas`; `CrewHome.jsx`, `IdeasCard`). What the backend now sends, and what the card should do with it:
+
+- **Ask once per visit.** `GET /api/crews/:slug/ideas?when=weekend` (or `tonight` on a Friday, Saturday or Sunday afternoon, as now). The answer is cached for 3 hours, so asking again is cheap; do not poll. When `partial` is true, one quiet retry after about 3 minutes may bring the guides' events.
+- **Each idea:** `title`; `when` as sent (already in words); `place.name` when the title does not contain it; `why` (show as the reason; it is one sentence); the price as `price.text` when present (never write "free" unless `price.free` is true).
+- **Credit and link every event.** When `source` is present, show `source.credit` ("From Awe Lagos' weekly guide") as a link to `source.url` (the guide's post), on its own line under the reason. Required by the curators' terms as we read them; never drop it, never show the post's prose. When `ticketUrl` is present, a small "Tickets" link next to it (opens outside the app).
+- **One tap.** "Make it a plan" sends `{ plan: idea.draftPlan }` to `POST /api/crews/:slug/plans` as it is (a guest gets `members_only`: show "Join the crew first, then add plans."). Then open the new plan with `?posted=1` as now.
+- **Notes.** Show `notes` as small muted lines under the list (for example "Rain is forecast for the open-air hours, so outdoor places are left out."). With `ideas: []`, show the existing empty state plus the first note.
+- **Weather and trips** (`weather.text`, `travel.longestMinutes`) are optional extras; the reason usually carries the one that matters.
+- **Errors.** `503 ideas_off`, `429 slow_down` and network errors: hide the card, as for 404 now. `400 invalid` means a bad `when`.
+- **Privacy line**, once under the card: "The sloth asks Gemma to rank these. It sends neighbourhoods and minutes, never names."
 
 ### Requests from the web builder (21 Oct)
 
