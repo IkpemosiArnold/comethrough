@@ -27,6 +27,7 @@ import {
   CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
+import { HIGH_RISK, PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, osmTagsFor, tasteView } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
@@ -42,7 +43,7 @@ import { endpointId, safeEqual, slugify } from "./ids.mjs";
 
 /** A flyer thumbnail is kept only when it is this small (the browser sends a ~400 px copy). */
 export const FLYER_MAX_BYTES = 200 * 1024;
-export const LIMITS = { sentence: 500, planText: 2000, url: 2000, memberName: 40, crewName: 60, membersPerCrew: 60, areas: 8 };
+export const LIMITS = { sentence: 500, into: 300, planText: 2000, url: 2000, memberName: 40, crewName: 60, membersPerCrew: 60, areas: 8 };
 /** The ritual looks for places this far from the crew's middle, then wider if it finds too few. */
 export const SEARCH_RADII_M = [6000, 12000];
 const SPOT_RADIUS_KM = 15;
@@ -53,7 +54,8 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {import("../adapters/store.mjs").Store} deps.store
  * @param {import("../adapters/gemini.mjs").AiPort} deps.ai
  * @param {import("../adapters/geocode.mjs").Geocoder} deps.geocoder
- * @param {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<any[]> }} deps.places
+ * @param {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<any[]>, kindsNear?: (at: { lat: number, lon: number }, radiusM: number, tags: Record<string, string[]>) => Promise<any[]> }} deps.places
+ *   kindsNear: named places with any of these OpenStreetMap tags (a crew's taste: galleries, cafés)
  * @param {{ hourly(at: { lat: number, lon: number }, opts?: { tz?: string, days?: number }): Promise<any[]>, timezoneAt?: (at: { lat: number, lon: number }) => Promise<string|null> }} deps.weather
  * @param {{ spotsNear(at: { lat: number, lon: number }, radiusKm: number): Promise<any[]> }|null} [deps.wikidata]  parks and beaches for crews with no curated spots
  * @param {{ fetchPage(url: string): Promise<{ meta: any, image: any, note: string|null }> }} deps.pages
@@ -197,10 +199,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   // ------------------------------------------------------------ views
 
-  const crewView = (/** @type {Crew} */ c) => ({
+  /** The crew as the web app sees it. Its taste (what it is into and needs) only for its members. */
+  const crewView = (/** @type {Crew} */ c, /** @type {"member"|"guest"} */ role = "guest") => ({
     id: c.id, slug: c.slug, name: c.name, vibe: c.vibe, vibeTags: c.vibeTags || [], budget: c.budget || "any",
     rhythm: c.rhythm, areas: (c.areas || []).map((a) => ({ label: a.label })), tz: c.tz || regionOf(c).timezone, inviteToken: c.inviteToken, createdAt: c.createdAt,
     ...regionFields(c),
+    ...(role === "member" ? { taste: c.taste ?? null } : {}),
   });
   /** The crew's region and pack, as the web app sees them (for times, examples and the ride card). */
   function regionFields(/** @type {Crew} */ c) {
@@ -295,20 +299,23 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * areas decide where. The first area found anywhere fixes the centre, and the rest are
    * looked up near it, so "Westlands" after "Kilimani" is the one in Nairobi.
    */
-  async function draftCrew({ sentence, hint = null }) {
+  async function draftCrew({ sentence, into = null, hint = null }) {
     const s = clip(sentence, LIMITS.sentence);
     if (!s || s.length < 3) throw invalid([{ field: "sentence", message: "Describe the crew in a sentence." }]);
+    // the optional "what you're into" line; like the sentence, it is read here and never kept
+    const i = clip(into, LIMITS.into);
     const start = hintRegion(hint);
     const first = placeOf({ region: start });
-    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s }), CREW_SCHEMA);
-    const r = readCrewSetup(g.data, { sentence: s }, first.local);
+    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA);
+    const r = readCrewSetup(g.data, { sentence: s, into: i }, first.local);
     const notes = [...r.notes];
     if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
     const located = await locateAreas(r.draft.areaLabels, start, hint == null, notes);
     const region = (await regionFrom(located.found, start)) ?? start;
     const { areaLabels, ...rest } = r.draft;
     const { pack } = placeOf({ region });
-    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), confidence: r.confidence, low: r.low, notes, ai: !g.error };
+    const tv = tasteView(r.draft.taste, { areas: located.areas.map((a) => a.label) });
+    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error };
   }
 
   /**
@@ -413,6 +420,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const errors = [];
     const name = clip(c.name, LIMITS.crewName);
     if (!name) errors.push({ field: "name", message: "Give the crew a name." });
+    // a crew's name travels (WhatsApp previews, calendars, push): it never says who the crew is
+    else if (hasSensitive(name, HIGH_RISK)) errors.push({ field: "name", message: "Crew names show in WhatsApp previews and calendars. Pick one that is fine for anyone to see." });
     const rhythm = checkRhythm(c.rhythm, errors);
     const areas = (Array.isArray(c.areas) ? c.areas : []).slice(0, LIMITS.areas).map((/** @type {any} */ a) => ({ label: clip(a?.label, 60), lat: isLatLon(a) ? Number(a.lat) : null, lon: isLatLon(a) ? Number(a.lon) : null })).filter((/** @type {any} */ a) => a.label);
     if (errors.length) throw invalid(errors);
@@ -429,9 +438,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       id: ids.id("c"),
       slug: `${slugify(name)}-${ids.suffix()}`,
       name: /** @type {string} */ (name),
-      vibe: clip(c.vibe, 80),
+      vibe: hasSensitive(c.vibe) ? null : clip(c.vibe, 80),
       vibeTags: (Array.isArray(c.vibeTags) ? c.vibeTags : []).map((/** @type {any} */ v) => clip(v, 20)?.toLowerCase()).filter(Boolean).slice(0, 8),
       budget: ["free", "cheap", "any"].includes(c.budget) ? c.budget : "any",
+      // the edited chips, checked again: vocabularies, limits, and no word for who anyone is
+      taste: cleanTaste(c.taste),
       rhythm: rhythm ? { ...rhythm, anchor: localParts(t, tz).date } : null,
       areas: /** @type {any} */ (areas),
       tz,
@@ -440,8 +451,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       inviteToken: ids.token(),
     };
     await store.put("crews", crew);
-    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource });
-    const out = { crew: crewView(crew), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken };
+    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
+    const out = { crew: crewView(crew, "member"), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken };
     if (organiser && typeof organiser === "object" && clip(organiser.name, LIMITS.memberName)) {
       const joined = await addMember(crew, organiser);
       return { ...out, ...joined };
@@ -464,13 +475,38 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { every: r.every, day: r.day, window: { from, to } };
   }
 
+  /**
+   * "Tell the sloth what you're into": a member reads a line into a taste (`{ sentence }`,
+   * nothing saved), or saves the edited chips (`{ taste }`). The line is read once and never
+   * kept; who anyone is becomes needs (src/core/taste.mjs).
+   */
+  async function crewTaste({ slug, token, body }) {
+    const { crew, role } = await viewerOf(slug, token);
+    if (role !== "member") throw new AppError(403, "members_only", "Join the crew first.");
+    const b = body && typeof body === "object" ? body : {};
+    const labels = (crew.areas || []).map((a) => a.label);
+    if (b.taste && typeof b.taste === "object") {
+      const taste = cleanTaste(b.taste);
+      await store.put("crews", { ...crew, taste });
+      log("crew_taste", { crew: crew.id, taste: hasTaste(taste) });
+      return { taste, ...tasteView(taste, { areas: labels }), saved: true };
+    }
+    const s = clip(b.sentence, LIMITS.into);
+    if (!s || s.length < 3) throw invalid([{ field: "sentence", message: "Tell the sloth what the crew is into." }]);
+    const { local } = placeOf(crew);
+    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", local), { sentence: "(the crew is already set up)", into: s }), CREW_SCHEMA);
+    const r = readCrewSetup(g.data, { sentence: "", into: s }, local);
+    const taste = r.draft.taste;
+    return { taste, ...tasteView(taste, { areas: labels }), saved: false, ai: !g.error, notes: g.error ? [`${g.error} Pick the chips yourself.`] : [] };
+  }
+
   /** The crew page: the crew, its members (names and area labels), upcoming plans, and who you are. */
   async function getCrew({ slug, token }) {
     const { crew, role, member } = await viewerOf(slug, token);
     const members = await membersOf(crew.id);
     const plans = upcoming(await plansOf(crew.id), now());
     return {
-      crew: crewView(crew),
+      crew: crewView(crew, role),
       members: members.map(memberView),
       plans: plans.map((p) => planView(p, crew, members, role, member)),
       you: member ? { id: member.id, name: member.name, area: { label: member.area?.label ?? null } } : null,
@@ -576,7 +612,6 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     return { plan: view(r.plan), reason: "made" };
   }
-
 
   /**
    * Area type-ahead, biased to where the crew is: `near` and `country` from the crew's region
@@ -790,7 +825,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (!crew) throw notFound("That plan");
     const { role, member } = await viewerOf(crew.slug, token);
     const members = await membersOf(crew.id);
-    return { plan: planView(plan, crew, members, role, member), members: members.map(memberView), crew: crewView(crew), you: member ? memberView(member) : null };
+    return { plan: planView(plan, crew, members, role, member), members: members.map(memberView), crew: crewView(crew, role), you: member ? memberView(member) : null };
   }
 
   /** A stored flyer thumbnail. Its id is an unguessable capability, like the calendar token. */
@@ -925,10 +960,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * spots (Lagos), or with Wikidata's parks and beaches near the crew (anywhere else).
    * Overpass and Wikidata are asked at the same time, so the heartbeat stays inside its
    * 100 s.
+   * With a taste that names kinds of place beyond green ones (galleries, cafés, bookshops),
+   * those are asked for too, in one more cached Overpass query; each comes back marked
+   * `indoor` unless its kind is open-air.
    * @param {{ lat: number, lon: number }} center
    * @param {CityPack} [pack]
+   * @param {import("../core/taste.mjs").Taste|null} [taste]
    */
-  async function candidatesNear(center, pack = placeOf({}).pack) {
+  async function candidatesNear(center, pack = placeOf({}).pack, taste = null) {
     const fromWikidata = pack.wikidataSpots && wikidata
       ? wikidata.spotsNear(center, SEARCH_RADII_M[0] / 1000).catch((e) => {
         log("wikidata_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
@@ -953,12 +992,28 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const curated = (pack.curated ? spots : [])
       .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
       .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, ...(s.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(s.entry ? { entry: s.entry } : {}) }));
-    const out = [...live];
+    const out = [...live, ...(await tastePlaces(center, taste))];
     for (const c of [...curated, ...(await fromWikidata)]) {
       const dup = out.some((o) => placeKey(o) === placeKey(c) || (haversineKm(o, c) < 0.3 && o.name.toLowerCase() === c.name.toLowerCase()));
       if (!dup) out.push(c);
     }
     return out;
+  }
+
+  /** Places of the kinds a crew's taste names (beyond parks and gardens), from Overpass. Never throws. */
+  async function tastePlaces(/** @type {{ lat: number, lon: number }} */ center, /** @type {import("../core/taste.mjs").Taste|null} */ taste) {
+    const kinds = (taste?.placeKinds || []).filter((k) => !["park", "garden", "beach"].includes(k));
+    if (!kinds.length || !places.kindsNear) return [];
+    try {
+      const found = await places.kindsNear(center, SEARCH_RADII_M[0], osmTagsFor(kinds));
+      return found.map((c) => {
+        const kind = Object.entries(PLACE_KINDS).find(([, k]) => k.tags.some(([key, v]) => c.osm?.tags?.[key] === v));
+        return kind && kind[1].outdoor ? { ...c, outdoor: true } : { ...c, indoor: true };
+      });
+    } catch (e) {
+      log("overpass_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+      return [];
+    }
   }
 
   /**
@@ -971,7 +1026,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const center = centroid(points.map((p) => p.area));
     if (!center) return { made: false, reason: "no_location" };
     const { pack, local } = placeOf(crew);
-    const candidates = await candidatesNear(center, pack);
+    const taste = crew.taste ?? null;
+    const candidates = await candidatesNear(center, pack, taste);
     if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
     const tz = crew.tz || regionOf(crew).timezone;
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
@@ -991,7 +1047,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const open = candidates.filter((c) => c.covered !== true);
     let pool = open;
     if (rainPlan?.kind === "skip") {
-      const covered = candidates.filter((c) => c.covered === true);
+      // a source says it has a roof: a curated covered spot, or a gallery, museum or the like
+      // the crew is into (OpenStreetMap's tag says what it is)
+      const covered = candidates.filter((c) => c.covered === true || (c.indoor === true && kindIndoor(c)));
       if (covered.length) {
         pool = covered;
         window = clipToSocial(due.date, due.window, { outdoor: false, social: pack.social });
@@ -1001,7 +1059,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       }
     }
     const at = zonedToMs(date, window.from, tz);
-    const outdoor = pool === open;
+    let outdoor = pool === open;
+    // the fairest few by straight line go to OSRM (its table takes 100 points at most)
+    if (pool.length > 40) pool = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), model: pack.travel, taste }).ranked.slice(0, 40).map((r) => r.candidate);
     // road distances from every member's area to every candidate, in one OSRM table request
     /** @type {Map<string, any>} */
     const roads = new Map();
@@ -1014,9 +1074,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         if (km != null && min != null) roads.set(tripKey(p.area, c), { km, min });
       }));
     }
-    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null, model: pack.travel });
+    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null, model: pack.travel, taste });
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
+    // a gallery or café the crew is into is under a roof: no weather watch on it
+    if (pick.indoor === true) outdoor = false;
     if (rainPlan?.kind === "skip" && !outdoor) rainPlan = { ...rainPlan, kind: "covered", note: coveredNote(rainPlan, pick.name, window) };
     const skipped = rainPlan?.kind === "skip";
     const draft = ritualDraft({ date, window, place: { ...pick, address: pick.address }, tz, outdoor });
@@ -1029,7 +1091,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     } else {
       const ex = await gemma("explain-pick", explainMessages(promptFor("explain-pick", local), scored.explanation), EXPLAIN_SCHEMA);
       why = readExplain(ex.data, scored.explanation).why;
-      const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
+      const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why: crew.taste?.needs?.length ? null : why, vibe: crew.vibe };
+      // the invite travels (calendar, push, the plain page): with needs, the explanation stays in the app
       const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
       const inv = await gemma("write-invite", inviteMessages(promptFor("write-invite", local), facts), INVITE_SCHEMA);
       invite = readInvite(inv.data, facts, fallback).invite;
@@ -1117,7 +1180,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   return {
-    draftCrew, createCrew, getCrew, joinCrew, setMyArea, areaNear, firstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
+    draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, firstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
     // exposed for tests
     _internal: { makeRitual, candidatesNear, notify },
@@ -1134,6 +1197,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 }
 
 /** Where to read the weather for a place: its pin, or the neighbourhood it is near. */
+/** True when a place's OpenStreetMap tags say it is a kind that is under a roof (a gallery, a museum, a cinema). */
+function kindIndoor(/** @type {any} */ c) {
+  const tags = c?.osm?.tags || c?.tags || {};
+  return Object.values(PLACE_KINDS).some((k) => k.indoor && k.tags.some(([key, v]) => tags[key] === v));
+}
+
 function weatherSpot(place) {
   if (isLatLon(place)) return { lat: Number(place.lat), lon: Number(place.lon) };
   if (isLatLon(place?.near)) return { lat: Number(place.near.lat), lon: Number(place.near.lon) };

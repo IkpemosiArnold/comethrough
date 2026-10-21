@@ -20,6 +20,7 @@
 
 import { cleanConfidence, lowFields } from "./plans.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
+import { ENERGY, HIGH_RISK, NEEDS, PLACE_KIND_NAMES, UNSOURCED_CLAIM, cleanTaste, hasSensitive } from "./taste.mjs";
 import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -63,6 +64,7 @@ export function fill(template, vars) {
  * @property {string} [priceExample]    '"N5,000"'
  * @property {string} [localNotes]      language hints (Pidgin for Lagos, Nigeria and Ghana)
  * @property {string} [crewNotes]       short names for the crew sentence (' "VI" is Victoria Island.')
+ * @property {string} [tasteNotes]      cultural notes for reading a crew's taste (' In Lagos, "alte" is...')
  * @property {Record<string, string>} [areaFull]     a short name as the map knows it: { vi: "Victoria Island" }
  * @property {Record<string, string[]>} [areaShort]  the short names people write for an area
  * @property {string[]} [cityWords]     words that name the city itself, never an area ("lagos")
@@ -84,6 +86,7 @@ export const LOCALE_SLOTS = {
   priceExample: '"15 at the door"',
   localNotes: "",
   crewNotes: "",
+  tasteNotes: "",
 };
 
 /**
@@ -116,9 +119,24 @@ export const CREW_SCHEMA = {
     from: S("time words"),
     to: S("time words"),
     areas: words,
+    taste: {
+      type: "object",
+      properties: {
+        basis: words,
+        scenes: words,
+        likes: words,
+        placeKinds: { type: "array", items: { type: "string", enum: [...PLACE_KIND_NAMES] } },
+        eventKeywords: words,
+        avoid: words,
+        needs: { type: "array", items: { type: "string", enum: [...NEEDS] } },
+        ageBand: S("as said"),
+        energy: { type: ["string", "null"], enum: [...ENERGY, null] },
+      },
+      required: ["basis", "scenes", "likes", "placeKinds", "eventKeywords", "avoid", "needs", "ageBand", "energy"],
+    },
     confidence: conf(["name", "vibe", "rhythm", "areas"]),
   },
-  required: ["name", "vibe", "vibeTags", "budget", "every", "day", "from", "to", "areas", "confidence"],
+  required: ["name", "vibe", "vibeTags", "budget", "every", "day", "from", "to", "areas", "taste", "confidence"],
 };
 
 export const PLAN_SCHEMA = {
@@ -160,7 +178,7 @@ export const FEEDBACK_SCHEMA = {
 };
 
 /** Output budgets per task (tokens). */
-export const MAX_TOKENS = { "parse-crew": 400, "parse-plan": 600, "explain-pick": 200, "write-invite": 250, "parse-feedback": 250 };
+export const MAX_TOKENS = { "parse-crew": 900, "parse-plan": 600, "explain-pick": 200, "write-invite": 250, "parse-feedback": 250 };
 
 // ---------------------------------------------------------------- shared checks
 
@@ -212,9 +230,14 @@ export const noDashes = (/** @type {string} */ s) => s.replace(/\s*[—–]\s*/g
 
 // ---------------------------------------------------------------- crew setup
 
-/** @param {Prompt} prompt @param {{ sentence: string }} input @returns {Message[]} */
-export function crewSetupMessages(prompt, { sentence }) {
-  return [{ role: "system", content: prompt.system }, { role: "user", content: fill(prompt.user, { sentence: sentence.trim().slice(0, 500) }) }];
+/**
+ * @param {Prompt} prompt
+ * @param {{ sentence: string, into?: string|null }} input  into: the optional "what you're into" line
+ * @returns {Message[]}
+ */
+export function crewSetupMessages(prompt, { sentence, into = null }) {
+  const extra = typeof into === "string" && into.trim() ? into.trim().slice(0, 300) : "(nothing)";
+  return [{ role: "system", content: prompt.system }, { role: "user", content: fill(prompt.user, { sentence: sentence.trim().slice(0, 500), into: extra }) }];
 }
 
 /** Time-of-day words to a window. */
@@ -227,10 +250,13 @@ const AREA_FILLER = new Set(["phase", "estate", "road", "street", "area", "town"
 
 /**
  * @param {any} data  the parsed answer (or null)
- * @param {{ sentence: string }} input
+ * @param {{ sentence: string, into?: string|null }} input  into: the optional "what you're into" line
  * @param {Local} [local]  the city pack's knowledge: short area names, the city's own name, the window note
+ * The setup text is read here and never returned: who the crew is (docs/LOCAL-FACTS.md,
+ * "Sensitive attributes") becomes `taste.needs`, and the words are dropped from the name,
+ * the vibe and the taste.
  */
-export function readCrewSetup(data, { sentence }, local = {}) {
+export function readCrewSetup(data, { sentence, into = null }, local = {}) {
   const AREA_FULL = local.areaFull || {};
   const AREA_SHORT = local.areaShort || {};
   const cityWords = (local.cityWords || []).map((w) => norm(w));
@@ -240,16 +266,25 @@ export function readCrewSetup(data, { sentence }, local = {}) {
   const notes = [];
   /** @type {string[]} */
   const filled = [];
-  const name = text(d.name, 60);
-  const vibe = text(d.vibe, 80);
+  const said = [sentence, into].filter((x) => typeof x === "string" && x.trim()).join(". ");
+  let name = text(d.name, 60);
+  // names travel: WhatsApp previews, calendars, push. A word for who the crew is stays out.
+  if (name && hasSensitive(name, HIGH_RISK)) {
+    name = null;
+    notes.push("Pick a crew name that is fine for anyone to see: names show in WhatsApp previews and calendars.");
+  }
+  let vibe = text(d.vibe, 80);
+  // the vibe is what they like doing, in their words: never who they are, never invented
+  // (on 21 Oct 2026 "alte, mostly male, mid to late 20s" came back as "anything goes")
+  if (vibe && (hasSensitive(vibe) || groundedShare(vibe, said) < 0.5)) vibe = null;
   const vibeTags = Array.isArray(d.vibeTags) ? [...new Set(d.vibeTags.map((/** @type {any} */ t) => String(t).toLowerCase().trim()).filter((/** @type {string} */ t) => VIBE_MATCHERS[t] || t === "games"))].slice(0, 6) : [];
   const budget = ["free", "cheap", "any"].includes(d.budget) ? d.budget : null;
   let dayIdx = typeof d.day === "string" ? DAY_NAMES.findIndex((n) => n.toLowerCase().startsWith(d.day.toLowerCase().trim().slice(0, 3))) : -1;
   // what the sentence plainly says wins when the model misses it ("every Saturday morning"
   // came back with no "every" on 21 Oct 2026): code reads the rhythm words too
-  const said = everyIn(sentence);
-  const every = ["1w", "2w", "4w"].includes(d.every) ? d.every : said.every;
-  if (dayIdx < 0 && said.day != null) dayIdx = said.day;
+  const plain = everyIn(sentence);
+  const every = ["1w", "2w", "4w"].includes(d.every) ? d.every : plain.every;
+  if (dayIdx < 0 && plain.day != null) dayIdx = plain.day;
   let rhythm = null;
   if (every && dayIdx >= 0) {
     const part = (/** @type {any} */ w) => (typeof w === "string" ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (w.toLowerCase().trim())] : null);
@@ -282,8 +317,9 @@ export function readCrewSetup(data, { sentence }, local = {}) {
   };
   if (name && groundedShare(name, sentence) < 0.5) confidence.name = Math.min(confidence.name, 0.4);
   // the budget falls back to a plain reading of the sentence, then to "any"
-  const budgetOut = budget ?? (CHEAP_WORDS.test(sentence) ? "cheap" : /\bfree\b/i.test(sentence) ? "free" : "any");
-  return { draft: { name, vibe, vibeTags, budget: budgetOut, rhythm, areaLabels: areas }, confidence, low: lowFields(confidence, filled), notes };
+  const budgetOut = budget ?? (CHEAP_WORDS.test(said) ? "cheap" : /\bfree\b/i.test(said) ? "free" : "any");
+  const taste = cleanTaste({ ...(d.taste && typeof d.taste === "object" ? d.taste : {}), budget: budget ?? (budgetOut === "any" ? null : budgetOut) }, { sentence: said });
+  return { draft: { name, vibe, vibeTags, budget: budgetOut, rhythm, areaLabels: areas, taste }, confidence, low: lowFields(confidence, filled), notes };
 }
 
 /** Money words, in English and Pidgin, that mean the crew wants it cheap. */
@@ -552,8 +588,18 @@ export function explainFacts(explanation) {
     lastVisitedDaysAgo: explanation.lastUsedDaysAgo,
     reasons: explanation.reasons,
     alternatives: explanation.notChosen,
+    // what the crew is into that this place is (closed words from src/core/taste.mjs), and
+    // whether it is a quiet, low-key spot; never who the crew is
+    ...(explanation.taste ? { fitsTaste: explanation.taste.matched, lowKey: explanation.taste.lowKey } : {}),
   };
 }
+
+/** A reason or invite that names who people are, or says a venue is "friendly" or "safe" for someone without a source. */
+export const unsafeText = (/** @type {string} */ s, /** @type {(string|null|undefined)[]} */ names = []) => {
+  // a place's own name ("Church Street Garden") is a fact, not a claim about anyone
+  const t = names.filter(Boolean).reduce((acc, n) => acc.split(/** @type {string} */ (n)).join(" "), s);
+  return hasSensitive(t) || UNSOURCED_CLAIM.test(t);
+};
 
 /** @param {Prompt} prompt @param {any} explanation @returns {Message[]} */
 export function explainMessages(prompt, explanation) {
@@ -563,8 +609,14 @@ export function explainMessages(prompt, explanation) {
 /** A plain explanation built by code, used when Gemma is unavailable or strays from the facts. */
 export function explainFallback(explanation) {
   const e = explanation;
+  const fit = e.taste?.matched?.[0];
+  if (fit) {
+    const quiet = e.taste.lowKey ? ", quiet and easy to keep low-key" : "";
+    return `${e.pick.name} is ${fit}${quiet}, and it keeps everyone within about ${e.maxMinutes} minutes.`;
+  }
   const bits = [`${e.pick.name} keeps everyone within about ${e.maxMinutes} minutes`];
   const extras = [];
+  if (e.taste?.lowKey) extras.push("it is quiet and easy to keep low-key");
   if (e.pick.green) extras.push(`it is ${e.pick.kind === "beach" ? "by the water" : "green and outdoors"}`);
   if (e.pick.fee === "no") extras.push("it is free");
   if (e.lastUsedDaysAgo == null) extras.push("the crew has not been there lately");
@@ -577,7 +629,7 @@ export function explainFallback(explanation) {
  */
 export function readExplain(data, explanation) {
   const why = text(data?.why, 300);
-  if (why && numbersGrounded(why, explainFacts(explanation)) && why.includes(explanation.pick.name.split(" ")[0])) return { why: noDashes(why), by: "gemma" };
+  if (why && !unsafeText(why, [explanation.pick.name, ...(explanation.notChosen || []).map((/** @type {any} */ n) => n.name)]) && numbersGrounded(why, explainFacts(explanation)) && why.includes(explanation.pick.name.split(" ")[0])) return { why: noDashes(why), by: "gemma" };
   return { why: explainFallback(explanation), by: "code" };
 }
 
@@ -593,7 +645,8 @@ export function inviteMessages(prompt, facts) {
 /** @returns {{ invite: string, by: "gemma"|"code" }} */
 export function readInvite(data, facts, fallback) {
   const invite = text(data?.invite, 320);
-  if (invite && invite.length <= 320 && numbersGrounded(invite, facts)) return { invite: noDashes(invite), by: "gemma" };
+  // the invite travels (calendar, push, the plain page): no taste, no needs, no claims
+  if (invite && invite.length <= 320 && !unsafeText(invite, [facts.place, facts.title]) && !/\b(discreet|low-key|lowkey|private|safe)\b/i.test(invite) && numbersGrounded(invite, facts)) return { invite: noDashes(invite), by: "gemma" };
   return { invite: fallback, by: "code" };
 }
 

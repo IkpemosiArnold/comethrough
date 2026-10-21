@@ -22,6 +22,7 @@
  * @property {string|null} vibe
  * @property {string[]} [vibeTags]
  * @property {"free"|"cheap"|"any"} [budget]
+ * @property {import("./taste.mjs").Taste|null} [taste]  what the crew is into and needs (never who it is)
  * @property {Rhythm|null} rhythm
  * @property {Area[]} areas
  * @property {string} createdAt

@@ -51,6 +51,12 @@ export function nairaSign(s) {
   return s ? s.replace(/[‸⁁^ˆ](\s?)(?=\d)/g, "₦") : s;
 }
 
+/**
+ * What Gemma should know to read a Lagos crew's taste (docs/LOCAL-FACTS.md, "Taste"): "alte"
+ * (Dazed, 2019; i-D, 2023) and what money words mean for a crew.
+ */
+export const TASTE_NOTES = ' In Lagos, "alte" (alté) is the alternative scene: fashion, art, and indie, alternative and Afro-fusion music, a lifestyle as much as a sound. An alte crew usually likes galleries, art spaces, cafés, bookshops, thrift and live music, and chill creative spaces. Students and "broke" crews want free or cheap places.';
+
 /** Short names Lagosians write, as the place a map knows ("VI" is Victoria Island). */
 const AREA_FULL = { vi: "Victoria Island", "v i": "Victoria Island" };
 /** Short names Lagosians write for areas: "VI" is Victoria Island. */
@@ -67,6 +73,7 @@ export const LAGOS_LOCAL = Object.freeze({
   priceExample: '"N5,000"',
   localNotes: PIDGIN_NOTES,
   crewNotes: ' "VI" is Victoria Island.',
+  tasteNotes: TASTE_NOTES,
   areaFull: AREA_FULL,
   areaShort: AREA_SHORT,
   cityWords: ["lagos"],

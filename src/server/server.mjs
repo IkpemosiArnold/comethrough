@@ -90,7 +90,12 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
         return { status: 201, body: await service.createCrew({ confirm: body.confirm, organiser: body.organiser, hint: body.hint }) };
       }
       aiLimits(ip);
-      return service.draftCrew({ sentence: body.sentence, hint: body.hint });
+      return service.draftCrew({ sentence: body.sentence, into: body.into, hint: body.hint });
+    }],
+    ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/taste$/, async ({ m, token, req, ip }) => {
+      const body = await readJson(req, 8 * 1024);
+      if (!body?.taste) aiLimits(ip);
+      return service.crewTaste({ slug: m[1], token, body });
     }],
     ["GET", /^\/api\/crews\/([a-z0-9-]{1,64})$/, ({ m, token }) => service.getCrew({ slug: m[1], token })],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/members$/, async ({ m, token, req, ip }) => {

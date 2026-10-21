@@ -19,7 +19,7 @@ import { cached, fetchJson, userAgent } from "./http.mjs";
 /** @typedef {import("../core/places.mjs").Candidate} Candidate */
 
 const TTL = 7 * 24 * 3600_000;
-const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism", "fee", "access", "opening_hours", "addr:street", "addr:city", "website"];
+const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism", "shop", "fee", "access", "opening_hours", "outdoor_seating", "wheelchair", "addr:street", "addr:city", "website"];
 
 /**
  * The Overpass QL query for named green places within radiusM of a point.
@@ -30,6 +30,21 @@ const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism"
 export function greenQuery({ lat, lon }, radiusM, limit = 150) {
   const around = `(around:${Math.round(radiusM)},${lat.toFixed(5)},${lon.toFixed(5)})`;
   const lines = Object.entries(GREEN_TAGS).map(([k, vs]) => `  nwr${around}["${k}"~"^(${vs.join("|")})$"]["name"];`);
+  return `[out:json][timeout:25];\n(\n${lines.join("\n")}\n);\nout center tags ${limit};`;
+}
+
+/**
+ * The Overpass QL query for named places with any of these tags within radiusM: a crew's
+ * taste (src/core/taste.mjs, osmTagsFor), e.g. { tourism: ["gallery"], amenity: ["cafe"] }.
+ * @param {{ lat: number, lon: number }} at
+ * @param {number} radiusM
+ * @param {Record<string, string[]>} tags
+ * @param {number} [limit]
+ */
+export function kindsQuery({ lat, lon }, radiusM, tags, limit = 120) {
+  const around = `(around:${Math.round(radiusM)},${lat.toFixed(5)},${lon.toFixed(5)})`;
+  const safe = (/** @type {string} */ x) => x.replace(/[^a-z_:]/gi, "");
+  const lines = Object.entries(tags).filter(([, vs]) => vs.length).map(([k, vs]) => `  nwr${around}["${safe(k)}"~"^(${vs.map(safe).join("|")})$"]["name"];`);
   return `[out:json][timeout:25];\n(\n${lines.join("\n")}\n);\nout center tags ${limit};`;
 }
 
@@ -52,38 +67,45 @@ export function readOverpass(json) {
 
 /**
  * @param {{ urls: string[], contact: string, cache: Cache, fetchImpl?: typeof fetch, sleep?: (ms: number) => Promise<any>, attemptMs?: number, budgetMs?: number, now?: () => number }} cfg
- * @returns {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<Candidate[]> }}
+ * @returns {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<Candidate[]>, kindsNear(at: { lat: number, lon: number }, radiusM: number, tags: Record<string, string[]>): Promise<Candidate[]> }}
  */
 export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attemptMs = 25000, budgetMs = 40000, now = Date.now }) {
-  return {
-    async greenNear(at, radiusM) {
-      const key = `osm:green:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}`;
-      return cached(cache, key, TTL, async () => {
-        const body = `data=${encodeURIComponent(greenQuery(at, radiusM))}`;
-        const deadline = now() + budgetMs;
-        /** @type {any} */
-        let last = null;
-        for (const url of urls) {
-          const left = deadline - now();
-          if (left < 2000) break;
-          try {
-            const json = await fetchJson(url, {
-              method: "POST",
-              headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": userAgent(contact), accept: "application/json" },
-              body,
-              timeoutMs: Math.min(attemptMs, left),
-              retries: 0,
-              maxBytes: 3_000_000,
-              fetchImpl,
-              sleep,
-            });
-            return readOverpass(json);
-          } catch (e) {
-            last = e; // at capacity or slow: the next endpoint, at once
-          }
+  /** One query, cached a week, tried on each endpoint in turn. @param {string} key @param {string} query */
+  function ask(key, query) {
+    return cached(cache, key, TTL, async () => {
+      const body = `data=${encodeURIComponent(query)}`;
+      const deadline = now() + budgetMs;
+      /** @type {any} */
+      let last = null;
+      for (const url of urls) {
+        const left = deadline - now();
+        if (left < 2000) break;
+        try {
+          const json = await fetchJson(url, {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": userAgent(contact), accept: "application/json" },
+            body,
+            timeoutMs: Math.min(attemptMs, left),
+            retries: 0,
+            maxBytes: 3_000_000,
+            fetchImpl,
+            sleep,
+          });
+          return readOverpass(json);
+        } catch (e) {
+          last = e; // at capacity or slow: the next endpoint, at once
         }
-        throw last ?? new Error("Overpass: no endpoint answered in time");
-      });
+      }
+      throw last ?? new Error("Overpass: no endpoint answered in time");
+    });
+  }
+  return {
+    greenNear(at, radiusM) {
+      return ask(`osm:green:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}`, greenQuery(at, radiusM));
+    },
+    kindsNear(at, radiusM, tags) {
+      const sig = Object.entries(tags).map(([k, vs]) => `${k}=${[...vs].sort().join("|")}`).sort().join(";");
+      return ask(`osm:kinds:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}:${sig}`, kindsQuery(at, radiusM, tags));
     },
   };
 }

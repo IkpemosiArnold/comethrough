@@ -24,7 +24,8 @@ import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { placeKey, placeKind, scorePlaces } from "./places.mjs";
 import { DAY_NAMES, addDays, daysBetween, localParts, minutesOfDay, hhmm, parseInstant, toIsoLocal, zonedToMs } from "./time.mjs";
 import { GENERIC_SOCIAL_HOURS, RAIN_OK, bestWindow, clockWords, isWeekend, socialWindow } from "./weather.mjs";
-import { fill, noDashes, numbersGrounded } from "./tasks.mjs";
+import { fill, noDashes, numbersGrounded, unsafeText } from "./tasks.mjs";
+import { PLACE_KINDS, eventFit, hasTaste, kindOfTags, overBudget } from "./taste.mjs";
 import { upcomingDates } from "./feeds.mjs";
 
 /** @typedef {import("./tasks.mjs").Message} Message */
@@ -111,7 +112,7 @@ export function dayWords(/** @type {string} */ date, /** @type {string} */ today
  * One candidate idea before ranking.
  * @typedef {object} Candidate
  * @property {string} id         "e1", "p2", "u1": unique in one request
- * @property {"event"|"place"|"usual"} kind
+ * @property {"event"|"place"|"usual"|"home"} kind  home: a night in at a member's place, offered to a crew that needs discreet or safe
  * @property {string} title
  * @property {string} date
  * @property {TimeWindow} time   from is the start; to the end (an event with no end gets 3 hours)
@@ -125,6 +126,8 @@ export function dayWords(/** @type {string} */ date, /** @type {string} */ today
  * @property {string|null} [ticketUrl]
  * @property {string} [label]    the guide's own category, a place's kind
  * @property {{ visits: number, lastDaysAgo: number|null, going: number }} [history]
+ * @property {string[]} [fits]   what the crew is into that this idea is (taste words), for the facts
+ * @property {boolean} [lowKey]  a quiet, low-key place
  */
 
 /**
@@ -183,14 +186,19 @@ function weatherAt(/** @type {any[]} */ hours, /** @type {string} */ date, /** @
  * Event candidates: still to come inside the slot, starting in its hours, near enough,
  * and dry enough when the guide says it is outdoors.
  * @param {FeedEvent[]} events
- * @param {{ slot: Slot, center: { lat: number, lon: number }, points: Traveller[], hours: any[]|null, model?: import("./geo.mjs").TravelModel }} ctx
+ * @param {{ slot: Slot, center: { lat: number, lon: number }, points: Traveller[], hours: any[]|null, model?: import("./geo.mjs").TravelModel, taste?: import("./taste.mjs").Taste|null, budget?: "free"|"cheap"|"any", cheapMax?: number|null }} ctx
+ *   taste: events its needs rule out (drinks for a crew that needs no alcohol, late nights
+ *   with kids) are dropped, and events matching its keywords rank higher; budget and
+ *   cheapMax (the pack's ceiling for "cheap", in the local currency) drop events over budget
  * @returns {Candidate[]}
  */
-export function eventCandidates(events, { slot, center, points, hours, model }) {
+export function eventCandidates(events, { slot, center, points, hours, model, taste = null, budget = "any", cheapMax = null }) {
   /** @type {Candidate[]} */
   const out = [];
   for (const e of events) {
     if (!e.start) continue; // a plan needs a time; the guide's "times vary" is not one
+    const fit = eventFit(e, taste);
+    if (fit.blocked || overBudget(e.price, budget, cheapMax)) continue;
     const dates = upcomingDates(e, slot.today, slot.nowTime);
     const day = slot.days.find((d) => dates.includes(d.date) && (d.covered || d.outdoor) && /** @type {string} */ (e.start) >= (slot.when === "tonight" ? "16:00" : "00:00") && (d.date !== slot.today || /** @type {string} */ (e.start) >= hhmm(minutesOfDay(slot.nowTime) - 30)));
     if (!day) continue;
@@ -203,7 +211,7 @@ export function eventCandidates(events, { slot, center, points, hours, model }) 
     const time = { from: /** @type {string} */ (e.start), to: end };
     const weather = e.outdoor === true && hours ? weatherAt(hours, day.date, time) : null;
     if (weather && !weather.ok) continue;
-    const pre = 0.5 + (travel ? 0.3 * (1 - travel.maxMin / MAX_TRIP_MIN) : 0.1) + (e.price?.free ? 0.1 : 0) + 0.1 * e.confidence.time;
+    const pre = 0.5 + (travel ? 0.3 * (1 - travel.maxMin / MAX_TRIP_MIN) : 0.1) + (e.price?.free ? 0.1 : 0) + 0.1 * e.confidence.time + 0.4 * fit.score - (hasTaste(taste) && !fit.matched.length ? 0.1 : 0);
     out.push({
       id: "",
       kind: "event",
@@ -219,6 +227,7 @@ export function eventCandidates(events, { slot, center, points, hours, model }) 
       source: { name: e.source.name, url: e.source.url, title: e.source.title, published: e.source.published },
       ticketUrl: e.ticketUrl,
       label: e.category ?? undefined,
+      ...(fit.matched.length ? { fits: fit.matched } : {}),
     });
   }
   return out.sort((a, b) => b.pre - a.pre || a.date.localeCompare(b.date) || a.time.from.localeCompare(b.time.from)).slice(0, POOL.event * 2);
@@ -229,7 +238,8 @@ export function eventCandidates(events, { slot, center, points, hours, model }) 
  * window in the slot's outdoor hours), covered ones in the covered hours. Ranked by the
  * core's own fair-place scoring (travel fairness, green, vibe, budget, variety).
  * @param {any[]} places   candidates from the places pipeline (name, lat, lon, osm?, outdoor?, covered?, entry?)
- * @param {{ slot: Slot, center: { lat: number, lon: number }, points: Traveller[], hours: any[]|null, crew: { vibeTags?: string[], budget?: "free"|"cheap"|"any" }, recent: { key: string, at: number }[], now: number, model?: import("./geo.mjs").TravelModel }} ctx
+ * @param {{ slot: Slot, center: { lat: number, lon: number }, points: Traveller[], hours: any[]|null, crew: { vibeTags?: string[], budget?: "free"|"cheap"|"any", taste?: import("./taste.mjs").Taste|null }, recent: { key: string, at: number }[], now: number, model?: import("./geo.mjs").TravelModel }} ctx
+ *   places marked `indoor` (a gallery or café the crew's taste asked for) go with the covered ones
  * @returns {{ candidates: Candidate[], wet: boolean }}
  */
 export function placeCandidates(places, { slot, center, points, hours, crew, recent, now, model = FREE_FLOW }) {
@@ -268,13 +278,13 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
   /** @type {Candidate[]} */
   const out = [];
   const groups = [
-    { list: inCap.filter((p) => p.covered !== true), when: dry, outdoor: true },
-    { list: inCap.filter((p) => p.covered === true), when: coveredDay && coveredTime && minutesOfDay(coveredTime.to) - minutesOfDay(coveredTime.from) >= 60 ? { date: coveredDay.date, time: coveredTime, weather: null } : null, outdoor: false },
+    { list: inCap.filter((p) => p.covered !== true && p.indoor !== true), when: dry, outdoor: true },
+    { list: inCap.filter((p) => p.covered === true || p.indoor === true), when: coveredDay && coveredTime && minutesOfDay(coveredTime.to) - minutesOfDay(coveredTime.from) >= 60 ? { date: coveredDay.date, time: coveredTime, weather: null } : null, outdoor: false },
   ];
   for (const g of groups) {
     if (!g.when || !g.list.length) continue;
     const at = zonedToMs(g.when.date, g.when.time.from, slot.tz);
-    const scored = scorePlaces({ members: points, candidates: g.list, at, tz: slot.tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: g.outdoor, recent, now, model });
+    const scored = scorePlaces({ members: points, candidates: g.list, at, tz: slot.tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: g.outdoor, recent, now, model, taste: crew.taste ?? null });
     for (const r of scored.ranked) {
       if (r.maxMin > MAX_TRIP_MIN) continue;
       const c = r.candidate;
@@ -295,7 +305,8 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
         weather: g.outdoor ? g.when.weather : null,
         pre: Math.max(0, Math.min(1, r.score)),
         facts: {},
-        label: placeKind(tags) ?? (g.outdoor ? "open space" : "covered spot"),
+        label: (kindOfTags(tags) ? PLACE_KINDS[/** @type {string} */ (kindOfTags(tags))].label.replace(/^an? /, "") : null) ?? placeKind(tags) ?? (g.outdoor ? "open space" : "covered spot"),
+        ...(r.taste.matched.length || r.taste.lowKey ? { fits: r.taste.matched, lowKey: r.taste.lowKey } : {}),
       });
     }
   }
@@ -375,19 +386,51 @@ export function usualCandidates(plans, { slot, center, points, hours, now, model
 }
 
 /**
+ * A night in at one of the crew's homes: hosted and private. Offered only to a crew whose
+ * needs say safe or discreet (who it is stays unsaid). Its title is neutral, because a plan's
+ * title travels (calendars, WhatsApp). The host fills in the address on the confirm screen;
+ * members alone see it.
+ * @param {Slot} slot
+ * @param {import("./taste.mjs").Taste|null|undefined} taste
+ * @returns {Candidate|null}
+ */
+export function homeCandidate(slot, taste) {
+  if (!taste?.needs.some((n) => n === "discreet" || n === "safe")) return null;
+  const day = slot.days.find((d) => d.covered && minutesOfDay(d.covered.to) - minutesOfDay(d.covered.from) >= 120);
+  if (!day?.covered) return null;
+  const from = later(day.covered.from, "18:00") <= hhmm(minutesOfDay(day.covered.to) - 120) ? later(day.covered.from, "18:00") : day.covered.from;
+  const to = hhmm(Math.min(minutesOfDay(day.covered.to), minutesOfDay(from) + 180));
+  return {
+    id: "",
+    kind: "home",
+    title: "A night in at one of yours",
+    date: day.date,
+    time: { from, to },
+    place: { name: null, address: null, area: null, lat: null, lon: null, outdoor: false },
+    price: null,
+    travel: null,
+    weather: null,
+    pre: 0.75,
+    facts: {},
+    label: "hosted at home",
+    lowKey: true,
+  };
+}
+
+/**
  * The pool Gemma sees: the best few of each kind, with ids and facts. Facts hold only what
  * the idea is, when, where (neighbourhoods and minutes, never member names), the price as
  * stated, the weather and the crew's history with it.
- * @param {{ events: Candidate[], places: Candidate[], usual: Candidate[] }} lists
+ * @param {{ events: Candidate[], places: Candidate[], usual: Candidate[], home?: Candidate|null }} lists
  * @param {string} today
  * @returns {Candidate[]}
  */
-export function pool({ events, places, usual }, today) {
+export function pool({ events, places, usual, home = null }, today) {
   const take = (/** @type {Candidate[]} */ l, /** @type {string} */ p, /** @type {number} */ n) => l.slice(0, n).map((c, i) => ({ ...c, id: `${p}${i + 1}` }));
   // a place the crew already went to is offered once, as the usual
   const used = new Set(usual.map((u) => placeKey(u.place)));
   const fresh = places.filter((p) => !used.has(placeKey(p.place)));
-  const all = [...take(events, "e", POOL.event), ...take(fresh, "p", POOL.place), ...take(usual, "u", POOL.usual)];
+  const all = [...take(events, "e", POOL.event), ...take(fresh, "p", POOL.place), ...take(usual, "u", POOL.usual), ...(home ? [{ ...home, id: "h1" }] : [])];
   return all.map((c) => ({ ...c, facts: factsOf(c, today) }));
 }
 
@@ -409,6 +452,8 @@ function factsOf(c, today) {
     weather: c.weather?.text ?? null,
     guide: c.source?.name ?? null,
     crewHistory: c.history ? { visits: c.history.visits, lastDaysAgo: c.history.lastDaysAgo, goingLastTime: c.history.going } : null,
+    fitsCrewTaste: c.fits?.length ? c.fits : null,
+    lowKey: c.lowKey === true,
   };
 }
 
@@ -427,15 +472,32 @@ export const RANK_SCHEMA = {
 
 /**
  * @param {Prompt} prompt  rank-ideas, localised
- * @param {{ crew: { vibe?: string|null, vibeTags?: string[], budget?: string }, when: "tonight"|"weekend", candidates: Candidate[] }} input
+ * @param {{ crew: { vibe?: string|null, vibeTags?: string[], budget?: string, taste?: import("./taste.mjs").Taste|null }, when: "tonight"|"weekend", candidates: Candidate[] }} input
  * @returns {Message[]}
  */
 export function rankMessages(prompt, { crew, when, candidates }) {
-  const crewFacts = { vibe: crew.vibe ?? null, likes: crew.vibeTags ?? [], budget: crew.budget ?? "any", when };
+  const crewFacts = crewFactsOf(crew, when);
   return [
     { role: "system", content: prompt.system },
     { role: "user", content: fill(prompt.user, { crew: JSON.stringify(crewFacts), ideas: candidates.map((c) => JSON.stringify(c.facts)).join("\n") }) },
   ];
+}
+
+/**
+ * What Gemma may know about the crew when ranking: its vibe, likes, budget and taste (what
+ * it is into and what it needs). Needs are requirements, never who the crew is.
+ * @param {{ vibe?: string|null, vibeTags?: string[], budget?: string, taste?: import("./taste.mjs").Taste|null }} crew
+ * @param {"tonight"|"weekend"} when
+ */
+export function crewFactsOf(crew, when) {
+  const t = crew.taste;
+  return {
+    vibe: crew.vibe ?? null,
+    likes: [...new Set([...(crew.vibeTags ?? []), ...(t?.likes ?? [])])],
+    budget: crew.budget ?? "any",
+    when,
+    ...(hasTaste(t) ? { scenes: t?.scenes, placeKinds: t?.placeKinds, avoid: t?.avoid, needs: t?.needs, ageBand: t?.ageBand, energy: t?.energy } : {}),
+  };
 }
 
 /** Words of four letters or more from the idea's name and place, one of which the reason must use. */
@@ -454,6 +516,8 @@ export function groundedWhy(why, c, crewFacts = {}) {
   const s = noDashes(why.replace(/\s+/g, " ").trim());
   if (s.length < 12 || s.length > 220) return null;
   if (!numbersGrounded(s, { ...c.facts, crew: crewFacts })) return null;
+  // never who the crew is, and never "X-friendly" or "a safe space" about a venue nobody sourced
+  if (unsafeText(s, [c.title, c.place.name])) return null;
   const low = s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
   const words = nameWords(c);
   if (words.length && !words.some((w) => low.includes(w))) return null;
@@ -463,8 +527,9 @@ export function groundedWhy(why, c, crewFacts = {}) {
 /** The code's own reason for an idea: plain facts only. */
 export function fallbackWhy(/** @type {Candidate} */ c) {
   const trip = c.travel ? `nobody's trip is over about ${c.travel.maxMin} minutes` : null;
+  if (c.kind === "home") return "A night in at one of your places: private, easy to keep low-key, and nobody pays at a door.";
   if (c.kind === "event") {
-    const bits = [`${c.source?.name ?? "A local guide"} lists ${c.title}${c.price ? ` (${c.price.text})` : ""}`];
+    const bits = [`${c.source?.name ?? "A local guide"} lists ${c.title}${c.price ? ` (${c.price.text})` : ""}${c.fits?.length ? `, with ${c.fits.slice(0, 2).join(" and ")}` : ""}`];
     if (trip) bits.push(trip);
     return `${bits.join(", and ")}.`;
   }
@@ -474,6 +539,10 @@ export function fallbackWhy(/** @type {Candidate} */ c) {
     return `${first}${c.history.going >= 2 ? `, and ${c.history.going} people came last time` : ""}${trip ? `; ${trip}` : ""}.`;
   }
   const extra = c.place.outdoor ? (c.weather?.ok ? ", it is outdoors and the forecast is dry" : ", and it is outdoors") : ", and it has a roof";
+  if (c.fits?.length || c.lowKey) {
+    const what = c.fits?.[0] ?? (c.label ? `a ${c.label}` : "a quiet spot");
+    return `${c.title} is ${what}${c.lowKey ? ", quiet and low-key" : ""}${trip ? `, and ${trip}` : ""}.`;
+  }
   return `${c.title} keeps ${trip ? trip.replace(/^nobody's trip is over/, "everyone's trip under") : "the crew close"}${extra}.`;
 }
 
@@ -484,7 +553,7 @@ export function fallbackWhy(/** @type {Candidate} */ c) {
  */
 export function fallbackOrder(cands) {
   const best = (/** @type {string} */ k) => cands.filter((c) => c.kind === k).sort((a, b) => b.pre - a.pre)[0];
-  const first = /** @type {Candidate[]} */ (["event", "place", "usual"].map(best).filter(Boolean));
+  const first = /** @type {Candidate[]} */ (["home", "event", "place", "usual"].map(best).filter(Boolean));
   const rest = cands.filter((c) => !first.includes(c)).sort((a, b) => b.pre - a.pre);
   return [...first, ...rest];
 }
@@ -532,7 +601,7 @@ export function draftFor(c, tz) {
   const endMs = zonedToMs(c.date, c.time.to, tz);
   const end = endMs > parseInstant(start) ? toIsoLocal(endMs, tz) : null;
   return {
-    kind: c.kind === "event" ? "found" : "quick",
+    kind: c.kind === "event" ? "found" : c.kind === "home" ? "hosted" : "quick",
     title: c.kind === "place" ? `${DAY_NAMES[new Date(`${c.date}T12:00:00Z`).getUTCDay()]} at ${c.title}` : c.title,
     start,
     end,
@@ -543,7 +612,7 @@ export function draftFor(c, tz) {
       lat: c.place.lat,
       lon: c.place.lon,
       outdoor: c.place.outdoor,
-      private: false,
+      private: c.kind === "home",
       ...(c.place.osm ? { osm: c.place.osm } : {}),
     },
     price: c.price,

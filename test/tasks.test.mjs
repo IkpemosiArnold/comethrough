@@ -49,7 +49,8 @@ test("crew setup: the sentence's rhythm, vibe and areas; invented areas dropped"
   const sentence = "the uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki";
   const msgs = crewSetupMessages(prompt("parse-crew"), { sentence });
   assert.equal(msgs.length, 2);
-  assert.ok(msgs[1].content.endsWith(sentence));
+  assert.ok(msgs[1].content.includes(`Sentence: ${sentence}\n`));
+  assert.ok(msgs[1].content.endsWith("What they are into: (nothing)"));
   const r = readCrewSetup({ name: "the uni guys", vibe: "outside and cheap", vibeTags: ["outside", "cheap", "chill"], budget: "cheap", every: "2w", day: "Saturday", from: null, to: null, areas: ["Yaba", "Lekki Phase 1", "Ikeja"], confidence: { name: 0.9, vibe: 0.9, rhythm: 0.9, areas: 0.9 } }, { sentence });
   assert.deepEqual(r.draft.rhythm, { every: "2w", day: 6, window: { from: "15:00", to: "19:00" } });
   assert.deepEqual(r.draft.areaLabels, ["Yaba", "Lekki Phase 1"]);
@@ -60,7 +61,7 @@ test("crew setup: the sentence's rhythm, vibe and areas; invented areas dropped"
   const evening = readCrewSetup({ every: "1w", day: "fri", from: "evening", areas: [], confidence: {} }, { sentence: "every friday evening" });
   assert.deepEqual(evening.draft.rhythm?.window, { from: "17:00", to: "21:00" });
   const none = readCrewSetup(null, { sentence: "hello" });
-  assert.deepEqual(none.draft, { name: null, vibe: null, vibeTags: [], budget: "any", rhythm: null, areaLabels: [] });
+  assert.deepEqual(none.draft, { name: null, vibe: null, vibeTags: [], budget: "any", rhythm: null, areaLabels: [], taste: { scenes: [], likes: [], placeKinds: [], eventKeywords: [], avoid: [], needs: [], budget: null, ageBand: null, energy: null } });
 });
 
 test("plan from one sentence: code resolves Friday and reads 7 as 7 pm, flagged", () => {

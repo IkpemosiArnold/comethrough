@@ -14,6 +14,7 @@
 
 import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { DEFAULT_TZ, DAY } from "./time.mjs";
+import { PLACE_KINDS, hasTaste, tasteFit } from "./taste.mjs";
 
 /** @typedef {import("./types.mjs").LatLon} LatLon */
 /**
@@ -25,6 +26,8 @@ import { DEFAULT_TZ, DAY } from "./time.mjs";
  * @property {{ type: "node"|"way"|"relation", id: number, tags: Record<string,string> }} [osm]
  * @property {Record<string,string>} [tags]  OSM-style tags for a place that is not from OpenStreetMap (a Wikidata park gets { leisure: "park" })
  * @property {boolean} [outdoor]  known to be an outdoor spot (the curated list says so) even if its OSM tags do not
+ * @property {boolean} [indoor]   a place of a kind the crew's taste asked for that is not open-air (a gallery, a café)
+ * @property {boolean} [covered]  a source says it has a roof (offered when it rains)
  * @property {{ free: boolean|null }} [entry]  a sourced entry fee from the curated list
  * @property {string} [wikidata]   the Wikidata item, for a place found there
  * @property {{ url: string, publisher?: string, says?: string, checkedAt?: string }} [source]  where the place comes from, when not OpenStreetMap
@@ -43,6 +46,11 @@ import { DEFAULT_TZ, DAY } from "./time.mjs";
  * default green bonus.
  */
 export const WEIGHTS = { fairness: 0.55, green: 0.1, vibe: 0.2, budget: 0.15 };
+/**
+ * The weight of the crew's taste (src/core/taste.mjs) when it has one: what it is into and
+ * what it needs. A crew with no taste is scored exactly as before.
+ */
+export const TASTE_WEIGHT = 0.35;
 /** A place used yesterday loses this much; the penalty fades to nothing over VARIETY_DAYS. */
 export const VARIETY_PENALTY = 0.3;
 export const VARIETY_DAYS = 56;
@@ -163,8 +171,12 @@ export function varietyPenalty(key, recent = [], now = 0) {
  * @param {number} [input.now]
  * @param {(from: LatLon, to: LatLon) => import("./geo.mjs").Route|null} [input.route]  road distances the caller fetched (OSRM's table); null falls back to the straight line
  * @param {import("./geo.mjs").TravelModel} [input.model]  the city pack's traffic model; FREE_FLOW when there is none
+ * @param {import("./taste.mjs").Taste|null} [input.taste]  the crew's taste: places its needs rule out are dropped,
+ *   the kinds it is into score higher, and the outdoor bonus doubles only when the taste
+ *   leans outdoors (or names no kinds at all)
  */
-export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0, route, model = FREE_FLOW }) {
+export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags = [], budget = "any", outdoor = false, recent = [], now = at ?? 0, route, model = FREE_FLOW, taste = null }) {
+  const tasted = hasTaste(taste);
   const located = members.filter((m) => m.area && Number.isFinite(m.area.lat) && Number.isFinite(m.area.lon));
   const scored = candidates
     .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon))
@@ -180,31 +192,38 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
       const meanMin = mins.length ? Math.round(mins.reduce((a, b) => a + b, 0) / mins.length) : 0;
       const tags = c.osm?.tags || c.tags || {};
       const key = placeKey(c);
+      const green = isGreen(tags) || c.outdoor === true;
       return {
         candidate: c, key, travel, maxMin, spreadMin, meanMin,
         cost: maxMin + SPREAD_WEIGHT * spreadMin,
-        green: isGreen(tags) || c.outdoor === true,
+        green,
+        taste: tasteFit(tags, taste, { green }),
         vibe: vibeFit(tags, vibeTags),
         // a sourced entry fee on a curated spot counts like an OpenStreetMap fee tag
         budget: budgetFit(c.entry?.free === true ? { ...tags, fee: "no" } : c.entry?.free === false ? { ...tags, fee: "yes" } : tags, budget),
         variety: varietyPenalty(key, recent, now),
       };
     });
-  if (!scored.length) return { ranked: [], pick: null, explanation: null };
+  // a place the crew's needs rule out (a bar for a crew that needs no alcohol) is never picked
+  const allowed = scored.filter((s) => !s.taste.blocked);
+  if (!allowed.length) return { ranked: [], pick: null, explanation: null };
 
-  const bestCost = Math.min(...scored.map((s) => s.cost));
-  const wGreen = outdoor ? WEIGHTS.green * 2 : WEIGHTS.green;
-  const total = WEIGHTS.fairness + wGreen + WEIGHTS.vibe + WEIGHTS.budget;
-  const ranked = scored
+  const bestCost = Math.min(...allowed.map((s) => s.cost));
+  const leansOutdoor = !tasted || !taste?.placeKinds.length || taste.placeKinds.some((k) => PLACE_KINDS[k]?.outdoor);
+  const wGreen = outdoor && leansOutdoor ? WEIGHTS.green * 2 : WEIGHTS.green;
+  const wTaste = tasted ? TASTE_WEIGHT : 0;
+  const total = WEIGHTS.fairness + wGreen + WEIGHTS.vibe + WEIGHTS.budget + wTaste;
+  const ranked = allowed
     .map((s) => {
       const parts = {
         fairness: s.cost > 0 ? Math.min(1, Math.max(bestCost, 1) / Math.max(s.cost, 1)) : 1,
-        green: s.green ? 1 : 0,
+        green: s.green ? 1 : s.taste.green,
         vibe: s.vibe.score,
         budget: s.budget.score,
+        taste: s.taste.score,
         variety: -s.variety.penalty,
       };
-      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget) / total - s.variety.penalty;
+      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget + wTaste * parts.taste) / total - s.variety.penalty;
       return { ...s, parts, score: Math.round(score * 1000) / 1000 };
     })
     // ties go to the fairer place, then to the name, so the order never depends on input order
@@ -229,6 +248,7 @@ function explain(pick, ranked, { members, bestCost, at }) {
   if (pick.vibe.matched.length) reasons.push("vibe");
   if (pick.budget.fee === "no") reasons.push("free");
   if (pick.variety.daysAgo == null) reasons.push("fresh");
+  if (pick.taste.matched.length) reasons.push("taste");
   const longest = pick.travel.reduce((a, t) => (!a || t.minutes > a.minutes ? t : a), null);
   return {
     pick: { name: pick.candidate.name, key: pick.key, kind: placeKind(tags), green: pick.green, fee: pick.budget.fee },
@@ -241,6 +261,7 @@ function explain(pick, ranked, { members, bestCost, at }) {
     vibeMatched: pick.vibe.matched,
     lastUsedDaysAgo: pick.variety.daysAgo,
     reasons,
+    taste: pick.taste.matched.length || pick.taste.lowKey ? { matched: pick.taste.matched, lowKey: pick.taste.lowKey } : null,
     estimate: `${at == null ? "daytime traffic" : "traffic at the plan's time"}, ${pick.travel.every((t) => t.source === "road") ? "road distances" : "straight-line distances"}, rough`,
     notChosen: ranked.slice(1, 3).map((r) => ({ name: r.candidate.name, why: whyNot(r, pick) })),
   };
@@ -253,6 +274,7 @@ function whyNot(r, pick) {
     const worst = r.travel.reduce((a, t) => (!a || t.minutes > a.minutes ? t : a), null);
     return worst ? `about ${worst.minutes} minutes for ${worst.name}` : "less fair";
   }
+  if (pick.taste.matched.length && !r.taste.matched.length && r.taste.score < pick.taste.score) return "less the crew's thing";
   if (!r.green && pick.green) return "not outdoors";
   if (r.budget.score < pick.budget.score) return r.budget.fee === "yes" ? "charges a fee" : "may charge a fee";
   return "a close second";

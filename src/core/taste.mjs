@@ -1,0 +1,423 @@
+// @ts-check
+// The crew's taste: what the crew is into and what makes a place feel right for it, so that
+// describing the crew changes what the sloth suggests. Pure and city-free.
+//
+//   taste = { scenes: ["alte"], likes: ["art", "live music"], placeKinds: ["gallery", "cafe"],
+//             eventKeywords: ["art", "exhibition", "indie"], avoid: ["clubs"],
+//             needs: ["discreet", "women-friendly"], budget: "cheap"|"free"|"any"|null,
+//             ageBand: "late 20s"|null, energy: "chill"|"lively"|"mixed"|null }
+//
+// Gemma reads the setup sentence (and the optional "what you're into" line) into a taste,
+// with cultural knowledge applied ("alte" is Lagos's alternative scene: docs/LOCAL-FACTS.md).
+// This module checks the answer: list values come from closed vocabularies where they drive
+// code (placeKinds, needs, energy), free words are short and few, and a taste must rest on
+// words the sentence actually says, so nothing is invented for a crew that said nothing.
+//
+// Sensitive attributes (a safety requirement, docs/LOCAL-FACTS.md, "Sensitive attributes"):
+// same-sex relationships are criminalised in Nigeria, so who a crew is never gets stored.
+// Sexual orientation, gender identity, religion, health and ethnicity are turned into NEEDS
+// (safe, discreet, women-friendly, no alcohol, step-free...) and the words themselves are
+// dropped from every stored field. The raw sentence is read once and never kept.
+//
+// placeKinds map to OpenStreetMap tags here, deterministically (PLACE_KINDS), so the places
+// pipeline can ask Overpass for them and the scorer can tell a gallery from a bar.
+
+// ---------------------------------------------------------------- vocabularies
+
+/** What a crew may need from a place. Closed: code acts on each one. */
+export const NEEDS = Object.freeze(["safe", "discreet", "women-friendly", "inclusive", "no alcohol", "kid-friendly", "step-free", "quiet", "daytime"]);
+export const ENERGY = Object.freeze(["chill", "lively", "mixed"]);
+
+/** How each need reads on the organiser's own setup screen (never shown to anyone else). */
+export const NEED_LABELS = Object.freeze({
+  safe: "Feels safe",
+  discreet: "Low-key places",
+  "women-friendly": "Women-friendly",
+  inclusive: "Welcoming",
+  "no alcohol": "No alcohol",
+  "kid-friendly": "Kid-friendly",
+  "step-free": "Step-free",
+  quiet: "Quiet",
+  daytime: "Daytime",
+});
+
+/**
+ * @typedef {object} PlaceKind
+ * @property {[string, string][]} tags   OpenStreetMap key=value pairs that make a place this kind
+ * @property {string} label              how an explanation names it ("an art gallery")
+ * @property {boolean} [outdoor]         open-air
+ * @property {boolean} [indoor]          under a roof by its nature (a gallery, a cinema)
+ * @property {boolean} [alcohol]         its main trade is drink
+ * @property {boolean} [nightlife]       mostly a late-night place
+ * @property {boolean} [lowKey]          quiet, seated, unhurried: suits a crew that wants discreet
+ * @property {boolean} [kids]            made for children
+ */
+
+/**
+ * The place kinds a taste may name, and their OpenStreetMap tags (wiki.openstreetmap.org,
+ * "Map features"). Deterministic: Gemma picks names from this list, code does the rest.
+ * @type {Readonly<Record<string, PlaceKind>>}
+ */
+export const PLACE_KINDS = Object.freeze({
+  park: { tags: [["leisure", "park"]], label: "a park", outdoor: true, lowKey: true },
+  garden: { tags: [["leisure", "garden"]], label: "a garden", outdoor: true, lowKey: true },
+  beach: { tags: [["natural", "beach"]], label: "a beach", outdoor: true },
+  playground: { tags: [["leisure", "playground"]], label: "a playground", outdoor: true, kids: true },
+  gallery: { tags: [["tourism", "gallery"]], label: "an art gallery", indoor: true, lowKey: true },
+  museum: { tags: [["tourism", "museum"]], label: "a museum", indoor: true, lowKey: true },
+  "arts centre": { tags: [["amenity", "arts_centre"]], label: "an art space", indoor: true, lowKey: true },
+  cafe: { tags: [["amenity", "cafe"]], label: "a café", lowKey: true },
+  restaurant: { tags: [["amenity", "restaurant"]], label: "a restaurant" },
+  "street food": { tags: [["amenity", "fast_food"]], label: "a food spot" },
+  "ice cream": { tags: [["amenity", "ice_cream"]], label: "an ice cream spot", kids: true },
+  bar: { tags: [["amenity", "bar"]], label: "a bar", alcohol: true, nightlife: true },
+  pub: { tags: [["amenity", "pub"], ["amenity", "biergarten"]], label: "a pub", alcohol: true },
+  nightclub: { tags: [["amenity", "nightclub"]], label: "a club", alcohol: true, nightlife: true },
+  "live music": { tags: [["amenity", "music_venue"]], label: "a live music venue", nightlife: true },
+  cinema: { tags: [["amenity", "cinema"]], label: "a cinema", indoor: true },
+  theatre: { tags: [["amenity", "theatre"]], label: "a theatre", indoor: true },
+  bookshop: { tags: [["shop", "books"]], label: "a bookshop", indoor: true, lowKey: true },
+  thrift: { tags: [["shop", "second_hand"], ["shop", "charity"]], label: "a thrift shop", indoor: true },
+  market: { tags: [["amenity", "marketplace"]], label: "a market" },
+  library: { tags: [["amenity", "library"]], label: "a library", indoor: true, lowKey: true },
+  "community centre": { tags: [["amenity", "community_centre"]], label: "a community centre", indoor: true },
+  sports: { tags: [["leisure", "sports_centre"], ["leisure", "pitch"]], label: "a sports ground" },
+  bowling: { tags: [["leisure", "bowling_alley"]], label: "a bowling alley", indoor: true },
+  arcade: { tags: [["leisure", "amusement_arcade"]], label: "an arcade", indoor: true },
+  "theme park": { tags: [["tourism", "theme_park"]], label: "a theme park", outdoor: true, kids: true },
+  zoo: { tags: [["tourism", "zoo"]], label: "a zoo", outdoor: true, kids: true },
+});
+export const PLACE_KIND_NAMES = Object.freeze(Object.keys(PLACE_KINDS));
+
+/** The place kind a set of OpenStreetMap tags is, or null. */
+export function kindOfTags(/** @type {Record<string,string>} */ tags = {}) {
+  for (const [name, k] of Object.entries(PLACE_KINDS)) if (k.tags.some(([key, v]) => tags[key] === v)) return name;
+  return null;
+}
+
+/** The OpenStreetMap tags to ask for, by key, for a list of place kinds: { amenity: ["cafe", "bar"], tourism: ["gallery"] }. */
+export function osmTagsFor(/** @type {string[]} */ kinds = []) {
+  /** @type {Record<string, string[]>} */
+  const out = {};
+  for (const n of kinds) for (const [k, v] of PLACE_KINDS[n]?.tags || []) (out[k] ||= []).includes(v) || out[k].push(v);
+  return out;
+}
+
+// ---------------------------------------------------------------- sensitive attributes
+
+/**
+ * Words that say who people are rather than what they like. High-risk categories are never
+ * stored anywhere, the crew's name included; religion and ethnicity are kept out of the taste
+ * and the vibe (a name the organiser chose, like "St Paul's youth", stays theirs).
+ * Cuisines ("Lebanese food") are likes, not ethnicity.
+ */
+export const SENSITIVE = Object.freeze({
+  orientation: /\b(queer|queers|gay|gays|lesbians?|bisexuals?|bi(?![-\w])|homosexuals?|lgbt\w*\+?|sapphics?|wlw|mlm|pansexuals?|asexuals?|same[- ]sex|same[- ]gender)\b/i,
+  genderIdentity: /\b(trans(?![- ](?:amadi|ekulu))|transgender|trans women|trans men|transfem\w*|transmasc\w*|non-?binary|enby|genderqueer|gender[- ]?fluid|intersex|two[- ]spirit)\b/i,
+  religion: /\b(church|churches|christians?|catholics?|pentecostals?|anglicans?|methodists?|baptists?|rccg|deeper life|mfm|muslims?|islam|islamic|mosque|masjid|jumu?['’]?ah|jummah|ramadan|hindus?|jewish|jews|synagogue|buddhists?|fellowship|born again|adventists?|hijabis?|imams?|pastors?|chaplaincy|parish)\b/i,
+  health: /\b(hiv|aids|diabetic|diabetes|cancer|wheelchairs?|disabled|disability|deaf|blind|autistic|autism|adhd|pregnant|sober|recovering|in recovery|alcoholics?|mental health|depression|anxiety|epileptic|epilepsy|sickle[- ]cell|chronic(?:ally)? ill)\b/i,
+  ethnicity: /\b(yoruba|igbo|ibo|hausa|fulani|ijaw|efik|ibibio|tiv|urhobo|itsekiri|kanuri|nupe|black|white|asian|arab|indian|chinese|lebanese|ethnic)\b(?!\s+(?:food|cuisine|restaurant|spot|music|dishes|meals?))/i,
+});
+/** The categories whose words never reach any stored field, the crew's name included. */
+export const HIGH_RISK = Object.freeze(["orientation", "genderIdentity", "health"]);
+
+/** The sensitive categories a text touches. */
+export function sensitiveIn(/** @type {any} */ s) {
+  const t = String(s ?? "");
+  return /** @type {(keyof typeof SENSITIVE)[]} */ (Object.keys(SENSITIVE)).filter((k) => SENSITIVE[k].test(t));
+}
+/** True when a text names who people are (any sensitive category, or only `only`). */
+export function hasSensitive(/** @type {any} */ s, /** @type {readonly string[]} */ only = []) {
+  const hit = sensitiveIn(s);
+  return only.length ? hit.some((k) => only.includes(k)) : hit.length > 0;
+}
+
+/** A text with every sensitive word taken out, tidied ("queer and mostly female" gives "mostly female"). */
+export function scrubSensitive(/** @type {string} */ s) {
+  let t = String(s ?? "");
+  for (const re of Object.values(SENSITIVE)) t = t.replace(new RegExp(re.source, "gi"), " ");
+  return t.replace(/\s+/g, " ").replace(/^\s*(and|or|&|,)\s+/i, "").replace(/\s+(and|or|&|,)\s*$/i, "").replace(/\s+,/g, ",").replace(/\(\s*\)/g, "").trim();
+}
+
+/** Every string in a JSON value with sensitive words scrubbed (for anything that is kept, like a cache). */
+export function scrubDeep(/** @type {any} */ v) {
+  if (typeof v === "string") return scrubSensitive(v);
+  if (Array.isArray(v)) return v.map(scrubDeep);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrubDeep(x)]));
+  return v;
+}
+
+const WOMEN = /\b(women|woman|female|females|girls|ladies|sisters|babes|sapphics?|lesbians?|wlw)\b/i;
+const KIDS = /\b(kids|children|child|toddlers?|babies|baby|little ones|young ones|family|families|parents|mums|moms|dads)\b/i;
+const YOUNG_KIDS = /\b(toddlers?|babies|baby|little ones|young (?:kids|children)|small (?:kids|children|pikin))\b/i;
+const ABSTAIN = /\b(muslims?|islam|islamic|mosque|masjid|jumu?['’]?ah|jummah|pentecostals?|rccg|deeper life|mfm|sober|recovering|in recovery|alcoholics?|no (?:alcohol|drinks?|booze))\b/i;
+const YOUTH = /\b(youth|youths|teens?|teenagers?|fellowship|choir|students?)\b/i;
+
+/**
+ * The needs a sentence implies on its own, whatever Gemma says: code's floor, so a safety
+ * need never depends on the model. Who the crew is becomes what it needs; the words go.
+ * @param {string} sentence
+ * @returns {string[]}
+ */
+export function impliedNeeds(sentence) {
+  const s = String(sentence ?? "");
+  const cats = sensitiveIn(s);
+  /** @type {Set<string>} */
+  const out = new Set();
+  if (cats.includes("orientation") || cats.includes("genderIdentity")) ["safe", "discreet", "inclusive"].forEach((n) => out.add(n));
+  if (WOMEN.test(s)) out.add("women-friendly");
+  if (KIDS.test(s)) out.add("kid-friendly");
+  if (YOUNG_KIDS.test(s)) out.add("daytime");
+  if (ABSTAIN.test(s) || (cats.includes("religion") && YOUTH.test(s))) out.add("no alcohol");
+  if (/\b(wheelchairs?|step[- ]free|mobility)\b/i.test(s)) out.add("step-free");
+  return NEEDS.filter((n) => out.has(n));
+}
+
+// ---------------------------------------------------------------- reading a taste
+
+/** @typedef {{ scenes: string[], likes: string[], placeKinds: string[], eventKeywords: string[], avoid: string[], needs: string[], budget: "free"|"cheap"|"any"|null, ageBand: string|null, energy: "chill"|"lively"|"mixed"|null }} Taste */
+
+/** A taste with nothing in it. */
+export const EMPTY_TASTE = Object.freeze({ scenes: [], likes: [], placeKinds: [], eventKeywords: [], avoid: [], needs: [], budget: null, ageBand: null, energy: null });
+
+const norm = (/** @type {string} */ s) => String(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9+]+/g, " ").trim();
+const STOP = new Set(["the", "and", "for", "with", "our", "we", "are", "who", "into", "like", "likes", "love", "mostly", "some", "lot", "lots", "crew", "group", "guys", "people", "friends", "gang"]);
+
+/** True when a word or phrase is said in the source: one of its distinctive words, as a whole word. */
+function said(/** @type {string} */ v, /** @type {string} */ source) {
+  const src = ` ${norm(source)} `;
+  const toks = norm(v).split(" ").filter((t) => (t.length >= 3 || /\d/.test(t)) && !STOP.has(t));
+  return toks.length > 0 && toks.some((t) => src.includes(` ${t} `) || (t.length >= 5 && src.includes(` ${t.replace(/s$/, "")}`)));
+}
+
+/** A clean list of short lower-case words: no sensitive words, no dashes, deduplicated. */
+function words(/** @type {any} */ xs, max = 6, len = 30) {
+  if (!Array.isArray(xs)) return [];
+  /** @type {string[]} */
+  const out = [];
+  for (const x of xs) {
+    if (typeof x !== "string") continue;
+    const w = x.toLowerCase().replace(/[—–]/g, " ").replace(/\s+/g, " ").trim().slice(0, len);
+    if (!w || /^(null|none|n\/a|unknown|anything|everything)$/.test(w) || hasSensitive(w) || out.includes(w)) continue;
+    out.push(w);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+const AGE_WORDS = /\b(\d{2}s?|teens?|teenagers?|twenties|thirties|forties|fifties|students?|uni|university|undergrads?|youth|young|retired|retirees|parents|grown)\b/i;
+
+/** An age band as people say it ("late 20s", "30s", "students"), or null. */
+function ageBand(/** @type {any} */ v) {
+  if (typeof v !== "string") return null;
+  const t = v.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 24);
+  if (!/(\d{2}|teen|twent|thirt|fort|fift|student|young|retire|kids)/.test(t) || hasSensitive(t)) return null;
+  return t;
+}
+
+/**
+ * Check a taste. From Gemma (with `sentence`): every list rests on words the sentence says
+ * (`basis`, or the scenes and likes themselves), scenes must be said outright, and code's own
+ * needs are added. From the organiser's edits (no sentence): only the vocabularies and limits.
+ * Either way, nothing that names who people are survives.
+ * @param {any} raw
+ * @param {{ sentence?: string|null }} [opts]
+ * @returns {Taste}
+ */
+export function cleanTaste(raw, { sentence = null } = {}) {
+  const d = raw && typeof raw === "object" ? raw : {};
+  const fromModel = typeof sentence === "string";
+  const src = fromModel ? /** @type {string} */ (sentence) : "";
+  let scenes = words(d.scenes, 4, 24);
+  let likes = words(d.likes, 6);
+  let placeKinds = (Array.isArray(d.placeKinds) ? d.placeKinds : []).map((k) => String(k).toLowerCase().trim()).filter((k, i, a) => PLACE_KINDS[k] && a.indexOf(k) === i).slice(0, 6);
+  let eventKeywords = words(d.eventKeywords, 8, 24);
+  let avoid = words(d.avoid, 6);
+  let needs = (Array.isArray(d.needs) ? d.needs : []).map((n) => String(n).toLowerCase().trim()).filter((n) => NEEDS.includes(n));
+  let energy = ENERGY.includes(d.energy) ? d.energy : null;
+  let age = ageBand(d.ageBand);
+  const budget = ["free", "cheap", "any"].includes(d.budget) ? d.budget : null;
+  if (fromModel) {
+    // a scene is a name people use for themselves ("alte"): it has to be in the sentence
+    scenes = scenes.filter((s) => said(s, src));
+    // the rest may be inferred (cultural knowledge), but only from something the sentence says
+    const basis = (Array.isArray(d.basis) ? d.basis : []).filter((b) => typeof b === "string" && said(b, src));
+    const anchored = basis.length > 0 || scenes.length > 0 || likes.some((l) => said(l, src));
+    if (!anchored) {
+      likes = likes.filter((l) => said(l, src));
+      placeKinds = placeKinds.filter((k) => said(k, src));
+      eventKeywords = eventKeywords.filter((k) => said(k, src));
+      avoid = avoid.filter((a) => said(a, src));
+      needs = [];
+      energy = null;
+    }
+    if (age && !AGE_WORDS.test(src)) age = null;
+    needs = [...new Set([...needs, ...impliedNeeds(src)])];
+  }
+  // a need that rules out drink rules out the kinds that sell it
+  if (needs.includes("no alcohol") || needs.includes("kid-friendly")) placeKinds = placeKinds.filter((k) => !PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife);
+  return { scenes, likes, placeKinds, eventKeywords, avoid, needs: NEEDS.filter((n) => needs.includes(n)), budget, ageBand: age, energy };
+}
+
+/** True when a taste says anything at all. */
+export function hasTaste(/** @type {Taste|null|undefined} */ t) {
+  return !!t && (t.scenes.length + t.likes.length + t.placeKinds.length + t.eventKeywords.length + t.avoid.length + t.needs.length > 0 || !!t.ageBand || !!t.energy);
+}
+
+/** A short stable key for a taste (for caches): the taste's own words, never the sentence. */
+export function tasteKey(/** @type {Taste|null|undefined} */ t) {
+  if (!hasTaste(t)) return "none";
+  const s = JSON.stringify(t);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * The taste as editable chips for the setup screen, and one line that shows the sloth
+ * understood: "Got it: alte, art and live music, late 20s, around Yaba and Lekki."
+ * Needs are chips too, worded for the organiser; who the crew is never appears.
+ * @param {Taste} t
+ * @param {{ areas?: string[] }} [opts]
+ */
+export function tasteView(t, { areas = [] } = {}) {
+  /** @type {{ field: string, value: string, label: string }[]} */
+  const chips = [];
+  for (const v of t.scenes) chips.push({ field: "scenes", value: v, label: v });
+  for (const v of t.likes) chips.push({ field: "likes", value: v, label: v });
+  for (const v of t.placeKinds) chips.push({ field: "placeKinds", value: v, label: v });
+  for (const v of t.avoid) chips.push({ field: "avoid", value: v, label: `not ${v}` });
+  for (const v of t.needs) chips.push({ field: "needs", value: v, label: NEED_LABELS[/** @type {keyof typeof NEED_LABELS} */ (v)] });
+  if (t.ageBand) chips.push({ field: "ageBand", value: t.ageBand, label: t.ageBand });
+  if (t.energy) chips.push({ field: "energy", value: t.energy, label: t.energy });
+  const and = (/** @type {string[]} */ xs) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+  const bits = [
+    ...t.scenes.slice(0, 2),
+    t.likes.length ? and(t.likes.slice(0, 2)) : t.placeKinds.length ? and(t.placeKinds.slice(0, 2)) : null,
+    t.ageBand,
+    areas.length ? `around ${and(areas.slice(0, 2))}` : null,
+  ].filter(Boolean);
+  return { chips, summary: bits.length ? `Got it: ${bits.join(", ")}.` : null };
+}
+
+// ---------------------------------------------------------------- judging places and events
+
+/**
+ * @typedef {object} TasteFit
+ * @property {number} score        0 to 1; 0.5 when the crew has no taste
+ * @property {string|null} kind    the place kind (PLACE_KINDS), or null
+ * @property {string[]} matched    plain words for why it fits ("an art gallery")
+ * @property {string|null} blocked why it is ruled out for this crew, or null
+ * @property {boolean} lowKey      quiet and seated, said when the crew wants discreet or quiet
+ * @property {number} green        how much it counts as outdoors: 1 green, 0.5 a café with outdoor seating, else 0
+ */
+
+/**
+ * How a place fits a crew's taste and needs, from its OpenStreetMap tags.
+ * @param {Record<string,string>} tags
+ * @param {Taste|null|undefined} taste
+ * @param {{ green?: boolean }} [opts]  green: the caller already knows it is outdoor green
+ * @returns {TasteFit}
+ */
+export function tasteFit(tags = {}, taste, { green = false } = {}) {
+  const kind = kindOfTags(tags);
+  const k = kind ? PLACE_KINDS[kind] : null;
+  const seating = tags.outdoor_seating === "yes" || /garden/i.test(tags.name || "");
+  const greenness = green || k?.outdoor ? 1 : kind === "cafe" && seating ? 0.5 : 0;
+  if (!hasTaste(taste)) return { score: 0.5, kind, matched: [], blocked: null, lowKey: false, green: greenness };
+  const t = /** @type {Taste} */ (taste);
+  const needs = new Set(t.needs);
+  /** @type {string|null} */
+  let blocked = null;
+  if (k?.alcohol && needs.has("no alcohol")) blocked = "serves alcohol";
+  else if ((k?.alcohol || k?.nightlife) && needs.has("kid-friendly")) blocked = "not for kids";
+  else if (k?.nightlife && needs.has("daytime")) blocked = "a night-time place";
+  else if (needs.has("step-free") && tags.wheelchair === "no") blocked = "not step-free";
+  else if (kind && t.avoid.some((a) => avoidHits(a, kind))) blocked = "the crew would rather not";
+  const wantsOutdoor = t.placeKinds.some((n) => PLACE_KINDS[n].outdoor);
+  let score = 0.3;
+  /** @type {string[]} */
+  const matched = [];
+  if (kind && t.placeKinds.includes(kind)) {
+    score = 1;
+    matched.push(kind === "cafe" && seating ? "a garden café" : /** @type {PlaceKind} */ (k).label);
+  } else if (greenness === 1 && (wantsOutdoor || !t.placeKinds.length)) score = 0.6;
+  else if (greenness === 1) score = 0.4;
+  const quietish = needs.has("discreet") || needs.has("safe") || needs.has("quiet");
+  const lowKey = quietish && (!!k?.lowKey || (greenness === 1 && kind !== "beach"));
+  if (quietish) score += lowKey ? 0.15 : k?.nightlife || kind === "beach" ? -0.2 : 0;
+  if (needs.has("kid-friendly") && (k?.kids || kind === "park")) score += 0.2;
+  if (needs.has("step-free") && tags.wheelchair === "yes") score += 0.15;
+  if (t.energy === "chill" && (k?.lowKey || greenness)) score += 0.1;
+  if (t.energy === "lively" && (k?.nightlife || kind === "beach" || kind === "live music")) score += 0.1;
+  return { score: Math.max(0, Math.min(1, Math.round(score * 100) / 100)), kind, matched, blocked, lowKey, green: greenness };
+}
+
+/** Words people use for what to avoid, matched to place kinds ("clubs" is a nightclub). */
+function avoidHits(/** @type {string} */ a, /** @type {string} */ kind) {
+  const w = norm(a);
+  if (w.includes(kind) || kind.includes(w)) return true;
+  const map = /** @type {Record<string, RegExp>} */ ({
+    nightclub: /\b(club|clubs|clubbing|nightlife|loud)\b/,
+    bar: /\b(bar|bars|drinking|alcohol|booze|nightlife)\b/,
+    pub: /\b(pub|pubs|drinking|alcohol|booze)\b/,
+    beach: /\b(beach|beaches|sand)\b/,
+    "live music": /\b(loud|concerts?)\b/,
+  });
+  return !!map[kind]?.test(w);
+}
+
+/** Words in an event that mean drink or a late night: out for crews that need no alcohol, or bring kids. */
+const DRINKY = /\b(wine|beer|cocktails?|bar crawl|bottomless|open bar|drinks?|rave|club night|nightclub|turn ?up|party|after ?party|18\+|21\+|hookah|shisha|tequila|brewery|whisky|whiskey|gin)\b/i;
+
+/**
+ * How an event from a curated guide fits the crew: keyword hits on its title, category and
+ * venue, and whether a need rules it out.
+ * @param {{ title: string, category?: string|null, venue?: string|null, start?: string|null }} e
+ * @param {Taste|null|undefined} taste
+ * @returns {{ score: number, matched: string[], blocked: string|null }}
+ */
+export function eventFit(e, taste) {
+  if (!hasTaste(taste)) return { score: 0, matched: [], blocked: null };
+  const t = /** @type {Taste} */ (taste);
+  const text = ` ${norm(`${e.title} ${e.category || ""} ${e.venue || ""}`)} `;
+  const needs = new Set(t.needs);
+  /** @type {string|null} */
+  let blocked = null;
+  if ((needs.has("no alcohol") || needs.has("kid-friendly")) && DRINKY.test(text)) blocked = "drinks or a party";
+  else if ((needs.has("kid-friendly") || needs.has("daytime")) && e.start && e.start >= "20:00") blocked = "too late";
+  else if (t.avoid.some((a) => { const w = norm(a); return w.length >= 3 && (text.includes(` ${w} `) || text.includes(` ${w.replace(/s$/, "")} `)); })) blocked = "the crew would rather not";
+  const keys = [...new Set([...t.eventKeywords, ...t.scenes, ...t.likes].map(norm).filter((w) => w.length >= 3))];
+  const matched = keys.filter((w) => text.includes(` ${w} `) || (w.length >= 5 && text.includes(` ${w.replace(/s$/, "")}`)));
+  return { score: keys.length ? Math.min(1, matched.length / Math.min(3, keys.length)) : 0, matched, blocked };
+}
+
+/**
+ * The amount in a price as written ("₦5,000", "5k", "N3000 at the gate"), or null when it
+ * has no number. Free is 0.
+ * @param {{ text: string, free: boolean }|null|undefined} price
+ */
+export function priceAmount(price) {
+  if (!price) return null;
+  if (price.free) return 0;
+  const m = String(price.text).replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*(k)?\b/i);
+  if (!m) return /\bfree\b/i.test(price.text) ? 0 : null;
+  return Number(m[1]) * (m[2] ? 1000 : 1);
+}
+
+/**
+ * True when a price is over what the crew's budget allows: anything paid for "free"; over
+ * the pack's cheap ceiling for "cheap" (no ceiling known: nothing is over it).
+ * @param {{ text: string, free: boolean }|null|undefined} price
+ * @param {"free"|"cheap"|"any"|null|undefined} budget
+ * @param {number|null} [cheapMax]
+ */
+export function overBudget(price, budget, cheapMax = null) {
+  const a = priceAmount(price);
+  if (a == null || budget == null || budget === "any") return false;
+  if (budget === "free") return a > 0;
+  return cheapMax != null && a > cheapMax;
+}
+
+/** Words in a reason that would make a claim about a venue nobody sourced ("queer-friendly", "a safe space"). */
+export const UNSOURCED_CLAIM = /\b[\w]+-friendly\b|\bsafe (?:space|place|spot) for\b|\bsafe space\b|\binclusive (?:space|venue)\b/i;

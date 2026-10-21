@@ -129,12 +129,22 @@ export function fakeWikidata(spots = []) {
   } };
 }
 
-/** @param {any[]} [candidates] */
-export function fakeOverpass(candidates = []) {
-  return { calls: /** @type {any[]} */ ([]), async greenNear(at, radiusM) {
-    this.calls.push({ at, radiusM });
-    return candidates;
-  } };
+/**
+ * @param {any[]} [candidates]  green places
+ * @param {any[]} [kinds]       places for a crew's taste (kindsNear): only those whose tags were asked for come back
+ */
+export function fakeOverpass(candidates = [], kinds = []) {
+  return {
+    calls: /** @type {any[]} */ ([]),
+    async greenNear(at, radiusM) {
+      this.calls.push({ at, radiusM });
+      return candidates;
+    },
+    async kindsNear(/** @type {any} */ at, /** @type {number} */ radiusM, /** @type {Record<string, string[]>} */ tags) {
+      this.calls.push({ at, radiusM, tags });
+      return kinds.filter((c) => Object.entries(tags).some(([k, vs]) => vs.includes(c.osm?.tags?.[k])));
+    },
+  };
 }
 
 /**
