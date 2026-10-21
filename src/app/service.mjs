@@ -13,6 +13,7 @@ import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
 import { podsForPlan } from "../core/pods.mjs";
+import { ridesForApi } from "../core/rides.mjs";
 import { fallbackInvite, ritualDraft, ritualDue } from "../core/ritual.mjs";
 import {
   CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, planMessages,
@@ -50,7 +51,7 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {Record<string, import("../core/tasks.mjs").Prompt>} deps.prompts
  * @param {import("./ids.mjs").Ids} deps.ids
  * @param {() => number} deps.now
- * @param {{ publicUrl: string, webUrl: string, uidDomain: string, uberLinkStyle: "looking"|"legacy" }} deps.cfg
+ * @param {{ publicUrl: string, webUrl: string, uidDomain: string }} deps.cfg
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
  */
 export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {} }) {
@@ -445,7 +446,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return host && isLatLon(host.area) ? { label: /** @type {string} */ (host.area.label), lat: /** @type {number} */ (host.area.lat), lon: /** @type {number} */ (host.area.lon) } : null;
   }
 
-  const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { uberStyle: cfg.uberLinkStyle, near: nearOf(plan, members) });
+  const computePods = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => podsForPlan(plan, riders(plan, members), { near: nearOf(plan, members) });
 
   /** Pod memberships as keys, to tell when a new pod of two or more has formed. */
   function podKeys(plan, members) {
@@ -484,7 +485,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function getPods({ id, token }) {
     const { crew, plan } = await planFor(id, token);
     const members = await membersOf(crew.id);
-    return computePods(plan, members);
+    // the ride apps that work in Lagos, Bolt first; none takes a drop-off from a link
+    return { ...computePods(plan, members), rides: ridesForApi() };
   }
 
   /** The member's pod line and leave-by for a plan, for the calendar. */

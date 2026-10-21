@@ -124,9 +124,10 @@ The server side of each is tested (see docs/NOTES.md). These need a phone in Lag
   someone else post a plan: the nudge arrives, and tapping it opens the plan.
 - **Push on iPhone** (iOS 16.4 or later): Share, Add to Home Screen, open Come Through from
   the Home Screen, tap "Yes, nudge me". Same test.
-- **Uber**: on a plan with a map pin, "Book Uber" opens the Uber app with the drop-off
-  filled in (Android and iPhone). If it does not, set `UBER_LINK_STYLE=legacy` and try again.
-- **Bolt**: "Open Bolt" opens the app on Android; "Copy address" pastes into Bolt.
+- **Rides**: "Copy address", then "Bolt" or "inDrive": on Android the button opens the
+  app's Play Store page and on iPhone its App Store page, each showing "Open" when the app is
+  installed; the copied address pastes into "Where to?". No ride app in Lagos documents a
+  link that fills in the drop-off (docs/LOCAL-FACTS.md, "Rides").
 - **Add to my calendar**: the `.ics` download opens the calendar app on Android and iPhone.
 - **Calendar subscription**: the webcal link subscribes on iPhone; on Android it works only
   from calendar.google.com on a computer.

@@ -189,19 +189,15 @@ if (wine) {
   });
 }
 if (flyer) {
-  await check("pods for the flyer plan: Uber link and leave-by", async () => {
+  await check("pods for the flyer plan: drop-off text, ride apps and leave-by", async () => {
     for (const n of ["Tolu", "Amaka", "Seyi", "Bayo"]) await rsvp(n, flyer.id, n === "Bayo" ? "maybe" : "going");
     const r = await call("GET", `/api/plans/${flyer.id}/pods`, { token: who.Tolu.token });
     must(r.status === 200, `status ${r.status}`);
     for (const p of r.data.pods) {
-      if (p.uberUrl) {
-        const u = new URL(p.uberUrl);
-        must(u.origin === "https://m.uber.com" && u.pathname === "/looking", `uber link ${p.uberUrl}`);
-        const drop = JSON.parse(/** @type {string} */ (u.searchParams.get("drop[0]")));
-        must(Number.isFinite(drop.latitude) && Number.isFinite(drop.longitude) && drop.addressLine1, `drop ${JSON.stringify(drop)}`);
-      }
+      must(typeof p.destinationText === "string" && p.destinationText.length > 3, `drop-off ${p.destinationText}`);
       if (p.leaveBy) must(/^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?\+01:00$/.test(p.leaveBy), `leaveBy ${p.leaveBy}`);
     }
+    must(r.data.rides?.[0]?.name === "Bolt" && r.data.rides?.[1]?.name === "inDrive", `rides ${JSON.stringify(r.data.rides)}`);
     return r.data;
   });
 }

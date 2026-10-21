@@ -6,7 +6,7 @@ import { api, MOCK } from '../lib/api.js';
 import { getCrew } from '../lib/store.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
-import { copyText, whatsappUrl, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
+import { copyText, whatsappUrl, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
 import { haptic, prefersReducedMotion, springAnimate } from '../lib/spring.js';
 import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
@@ -23,6 +23,7 @@ export function PlanPage({ params, query }) {
   const meId = mine?.memberId || null;
   const [plan, setPlan] = useState(null);
   const [pods, setPods] = useState(null);
+  const [rides, setRides] = useState(FALLBACK_RIDES);
   const [error, setError] = useState(null);
   const [swingId, setSwingId] = useState(null);
   const [menu, setMenu] = useState(false);
@@ -32,7 +33,7 @@ export function PlanPage({ params, query }) {
   function load() {
     setError(null);
     api.getPlan(slug, id).then(setPlan).catch(setError);
-    api.pods(slug, id).then((r) => setPods(r.pods)).catch(() => setPods([]));
+    api.pods(slug, id).then((r) => { setPods(r.pods); if (r.rides?.length) setRides(r.rides); }).catch(() => setPods([]));
   }
   useEffect(load, [slug, id]);
   useEffect(() => {
@@ -96,9 +97,9 @@ export function PlanPage({ params, query }) {
     }
   }
 
-  async function copyBolt(text) {
+  async function copyAddress(text) {
     const ok = await copyText(text);
-    toast(ok ? 'Address copied. Paste it in Bolt.' : "Couldn't copy the address");
+    toast(ok ? 'Address copied. Paste it as your drop-off.' : "Couldn't copy the address");
   }
 
   const myPod = pods && pods.find((p) => p.memberIds.includes(meId));
@@ -210,7 +211,7 @@ export function PlanPage({ params, query }) {
         <section class="rides" aria-labelledby="rides-title">
           <h2 id="rides-title" class="section-label">Rides</h2>
           {my === 'going' && myPod && (
-            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onBolt={copyBolt} canCopy={!!(plan.place?.address || plan.place?.lat != null)} host={host} />
+            <PodCard pod={myPod} byId={byId} meId={meId} fresh={freshPod} onCopy={copyAddress} rides={rides} host={host} />
           )}
           {my === 'going' && pods && !myPod && (
             <div class="pod pod-solo">
@@ -286,10 +287,15 @@ export function PlanPage({ params, query }) {
   );
 }
 
-// Bolt documents no deep link with a destination, so we only open the app (Android) or its site.
-const BOLT_URL = /Android/i.test(navigator.userAgent)
-  ? 'intent://#Intent;scheme=bolt;package=ee.mtakso.client;S.browser_fallback_url=https%3A%2F%2Fbolt.eu;end'
-  : 'https://bolt.eu';
+// The ride apps that work in Lagos, Bolt first (the server sends the same list with the pods;
+// src/core/rides.mjs has the sources). None documents a link that fills in the drop-off, so a
+// button opens the app's store page on a phone (it says "Open" when the app is installed) and
+// the Lagos web page elsewhere, and "Copy address" does the rest.
+const FALLBACK_RIDES = [
+  { id: 'bolt', name: 'Bolt', blurb: '', links: { android: 'https://play.google.com/store/apps/details?id=ee.mtakso.client', ios: 'https://apps.apple.com/ng/app/bolt-request-a-ride/id675033630', web: 'https://bolt.eu/en-ng/cities/lagos/' } },
+  { id: 'indrive', name: 'inDrive', blurb: 'You name the fare.', links: { android: 'https://play.google.com/store/apps/details?id=sinet.startup.inDriver', ios: 'https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801', web: 'https://indrive.com/en-ng/' } },
+];
+const rideHref = (r) => (isAndroid ? r.links.android : isIOS ? r.links.ios : r.links.web);
 
 // Once per device, right after the first "I'm going": the push opt-in, or the iPhone install hint.
 function NudgeAsk({ slug }) {
@@ -325,7 +331,7 @@ function NudgeAsk({ slug }) {
   );
 }
 
-function PodCard({ pod, byId, meId, fresh, onBolt, canCopy = true, host = null }) {
+function PodCard({ pod, byId, meId, fresh, onCopy, rides, host = null }) {
   const ref = useRef(null);
   const [how, setHow] = useState(false);
   const people = pod.memberIds.map((m, i) => byId[m] || { id: m, name: pod.names?.[i] || '?' });
@@ -356,12 +362,19 @@ function PodCard({ pod, byId, meId, fresh, onBolt, canCopy = true, host = null }
       </p>
       {how && pod.estimate?.text && <p class="small how-text">{pod.estimate.text}</p>}
       <div class="pod-actions">
-        {pod.uberUrl && <a class="btn secondary" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>}
-        {!canCopy && host && host.id !== meId && <p class="small muted">Ask {firstName(host.name)} for the address, then book your ride.</p>}
-        <div class="bolt-pair">
-          {canCopy && <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy address</button>}
-          <a class="btn ghost" href={BOLT_URL} target="_blank" rel="noopener" data-external>Open Bolt</a>
+        {!pod.destinationText && host && host.id !== meId && <p class="small muted">Ask {firstName(host.name)} for the address, then book your ride.</p>}
+        {pod.destinationText && (
+          <button class="btn secondary block" onClick={() => onCopy(pod.destinationText)}><Icon name="copy" size={20} /> Copy address</button>
+        )}
+        <div class="ride-apps">
+          {rides.slice(0, 2).map((r) => (
+            <a key={r.id} class="btn ghost grow" href={rideHref(r)} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> {r.name}</a>
+          ))}
         </div>
+        <p class="fine ride-fine">
+          No ride app here takes a drop-off from a link yet, so paste the address in.
+          {rides.length > 2 && <> Also: {rides.slice(2).map((r, i) => <span key={r.id}>{i ? ', ' : ''}<a href={rideHref(r)} target="_blank" rel="noopener" data-external>{r.name}</a></span>)}.</>}
+        </p>
       </div>
     </div>
   );

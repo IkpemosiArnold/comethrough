@@ -200,9 +200,11 @@ test("RSVP, ride pods, the one-event file and the feed", async () => {
   const pods = await call("GET", `/api/plans/${S.wine}/pods`, { token: S.kene });
   assert.equal(pods.status, 200);
   assert.deepEqual(pods.json.unplaced, []);
-  // the host is already there, so only Ada rides; the home has no pin, so no ride link yet
+  // the host is already there, so only Ada rides; the home's address is the drop-off text
   assert.deepEqual(pods.json.pods.map((/** @type {any} */ p) => p.names), [["Ada"]]);
-  assert.equal(pods.json.pods[0].uberUrl, null);
+  assert.match(pods.json.pods[0].destinationText, /12 Herbert Macaulay Way, Yaba$/);
+  assert.deepEqual(pods.json.rides.map((/** @type {any} */ r) => r.name), ["Bolt", "inDrive", "LagRide"]);
+  assert.ok(!JSON.stringify(pods.json).toLowerCase().includes("uber"));
   assert.deepEqual(r.json.plan.rsvps, { [S.toluId]: "going", [S.adaId]: "going" }, "rsvps by member id, for faces");
   // one plan by id, for a member and for a guest
   const one = await call("GET", `/api/plans/${S.wine}`, { token: S.invite });
@@ -211,13 +213,13 @@ test("RSVP, ride pods, the one-event file and the feed", async () => {
   assert.equal(one.json.you, null);
   assert.equal((await call("GET", `/api/plans/${S.wine}`, { token: S.kene })).json.plan.place.address, "12 Herbert Macaulay Way, Yaba");
   assert.equal((await call("GET", `/api/plans/${S.wine}`)).status, 401);
-  // the beach plan has a pin: pods get a leave-by and the Uber link
+  // the beach plan has a pin: pods get a leave-by and the drop-off text
   await call("PATCH", `/api/plans/${S.beach}`, { token: S.ada, body: { rsvp: "going" } });
   await call("PATCH", `/api/plans/${S.beach}`, { token: S.kene, body: { rsvp: "going" } });
   const bp = await call("GET", `/api/plans/${S.beach}/pods`, { token: S.kene });
   assert.equal(bp.json.pods.length, 2, "Yaba and Lekki ride separately");
   const yaba = bp.json.pods.find((/** @type {any} */ p) => p.fromLabel === "Yaba");
-  assert.match(yaba.uberUrl, /^https:\/\/m\.uber\.com\/looking\?drop%5B0%5D=/);
+  assert.ok(yaba.destinationText);
   assert.match(yaba.leaveBy, /^2026-10-24T1[23]:\d\d:00\+01:00$/);
   assert.ok(push.sent.some((m) => m.title === "Ride pod for Beach day"), "the pod that formed is told");
   const n = push.sent.length;

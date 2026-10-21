@@ -143,7 +143,7 @@ try {
   await shot(seyiPage, "14-plan-hosted-rides");
 
   if (linkId) {
-    // Tolu taps I'm going on Amaka's link plan: the face swings on, the pod forms, Uber is one tap
+    // Tolu taps I'm going on Amaka's link plan: the face swings on, the pod forms, Bolt and inDrive are one tap
     await tolu.go(`${BASE}/c/${slug}/p/${linkId}`, 2500);
     await shot(tolu, "15-plan-link");
     await tolu.click("button", "I'm going");
@@ -152,7 +152,7 @@ try {
     await tolu.click("button", "How we guess");
     await sleep(500);
     await tolu.scrollTo(".rides");
-    await shot(tolu, "16-plan-going-uber-estimate");
+    await shot(tolu, "16-plan-going-rides-estimate");
   }
 
   // ---------------------------------------------------------------- the heartbeat makes the ritual

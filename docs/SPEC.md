@@ -29,7 +29,7 @@ Friend groups don't fail to meet for lack of wanting to. They fail on the **orga
 2. **Join (once):** open the link, type your name and area ("Yaba"), done. You get your personal calendar link: subscribe once and every plan appears in your calendar from then on.
 3. **Add a plan (seconds):** share, paste or upload. Gemma extracts the title, start and end, venue, price and host from the flyer image, the page text or the sentence. One confirm screen (everything editable, nothing silently guessed: low-confidence fields are highlighted).
 4. **Tap once:** "I'm going" or "Maybe". The crew sees who's going. No polls, no threads.
-5. **Rides sort themselves:** when two or more members are going, Come Through groups them into **ride pods** by area and gives each pod a leave-by time, plus a one-tap Uber link with the destination filled in (Bolt: address copied).
+5. **Rides sort themselves:** when two or more members are going, Come Through groups them into **ride pods** by area and gives each pod a leave-by time, the drop-off address to copy, and buttons for Bolt, then inDrive (then LagRide). No ride app in Lagos documents a link that fills in the drop-off, so each button opens the app's store page on a phone or its web page elsewhere (src/core/rides.mjs; docs/LOCAL-FACTS.md, "Rides").
 6. **The ritual:** if the crew has a rhythm and nothing is planned in the window, Come Through creates a `ritual` plan 2 to 3 days ahead: it finds actual green space near the crew's middle (OpenStreetMap), rotates places, picks the best weather window (Open-Meteo: no rain, after the worst heat), and Gemma writes the invite in the crew's voice and explains the pick. "Come through if you can": no RSVP needed. "Nothing planned" means no plan in the slot's own hours and no outdoor plan within half a cycle: an indoor wine night on the Friday does not cancel Saturday in the park. Every window stays inside the **social hours** (weekend outdoor 11:00 to 18:30; weekday evenings 17:30 to 21:00 under a roof; see docs/LOCAL-FACTS.md). **When the window is wet**, the sloth moves to a dry stretch of at least two hours inside that day's social hours (`moved`), else the next day of the same kind in the crew's window (`next_day`), else a place a source says is covered (`covered`), else it skips the slot (`skip`: the plan is stored with `status: "cancelled"`, stays out of calendars, and no Gemma call is made); each case carries an honest `rainPlan.note` built from the forecast numbers. It never moves a hangout to 8 am.
 7. **Weather watch:** outdoor plans are rechecked; if rain moves in, the plan is marked and a one-tap WhatsApp heads-up is offered.
 
@@ -80,10 +80,10 @@ Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end,
          ritualFor?: "YYYY-MM-DD", rainPlan?: { kind: "moved"|"next_day"|"covered"|"skip", note, wanted: { date, from, to, rainProb } } }
          // place.near?: { label, lat, lon }: an unpinned place's neighbourhood (from its address, or the host's area), for ride times and weather only
 Push   { id, memberId, crewId, endpoint, keys: { p256dh, auth }, createdAt }
-Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, uberUrl, boltText, shareText,
+Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, destinationText, shareText,
          estimate: { band, roadKm, speedKmh, lagoonMin, pickupMin, bufferMin, judgedAt, approxTo, text } | null }
          // travelMin is an estimate from the map, never live traffic; estimate.text says what was assumed.
-         // A place with no pin uses place.near (or the host's area) for times; uberUrl stays null.
+         // A place with no pin uses place.near (or the host's area) for times, never as the drop-off.
 ```
 
 Times are ISO 8601 with an offset (`2026-10-24T16:00:00+01:00`). Plans expire 30 days after they end. A hosted place marked `private` (a home address) is visible only to crew members. `seq` goes up on every change (it is the calendar SEQUENCE). `token` is the member's own link secret (read and write as that member); `calToken` only reads the calendar feed, because calendar apps and Google's servers see that URL.
@@ -105,7 +105,7 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 | POST | `/api/crews/:slug/plans` | member | `{ plan: PlanDraft }` (the confirmed, possibly edited draft) | `201 { plan: PlanView }` |
 | PATCH | `/api/plans/:id` | member | `{ rsvp: "going"\|"maybe"\|null }` and/or edits `{ title, start, end, place, price, bring, status }` (edits: the creator, the host, or anyone for a ritual) | `{ plan: PlanView }` |
 | GET | `/api/plans/:id` | invite or member | | `{ plan: PlanView, members, crew, you }` (one plan, same visibility rules) |
-| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }] }` (the host of a hosted plan is not in a pod) |
+| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }], rides: [{ id, name, blurb, links: { android, ios, web }, dropoff: false }] }` (the host of a hosted plan is not in a pod; `rides` lists Bolt, inDrive and LagRide in that order) |
 | GET | `/api/flyers/:flyerId` | none (the id is an unguessable capability) | | the flyer thumbnail image, cached for a year |
 | GET | `/api/plans/:id/event.ics?t=<member token>` | member | | one-event calendar file (`text/calendar`, download) for "add to my calendar" after "I'm going" |
 | GET | `/cal/:calToken.ics` | calendar | | the member's subscribed feed (all crew plans; going ones marked) |
@@ -145,7 +145,7 @@ Render web service and MongoDB Atlas (Free tier), both in **Frankfurt** (eu-cent
 - Area inputs: type-ahead from `GET /api/areas?q=` (debounce 300 ms, at least 2 characters); send the chosen `{ label, lat, lon }` when joining. Free text still works.
 - After "I'm going": offer "Add to calendar" (`eventIcsUrl`), and once per device ask for push ("Get a nudge when plans change"). On iPhone outside an installed app, show "Add to Home Screen to get nudges" instead of the push prompt.
 - On the join success screen, show the calendar subscription as optional, with "open on a computer" wording for Android users.
-- Uber button: `pod.uberUrl` (m.uber.com/looking with the dropoff filled). Bolt: "Copy address" (`pod.boltText`) plus an "Open Bolt" link.
+- Rides: "Copy address" (`pod.destinationText`), then a button per ride app from `rides` (Bolt, then inDrive), going to `links.android`, `links.ios` or `links.web` by platform. `dropoff` is false for every app (none documents a drop-off link).
 - Highlight draft fields listed in `low` (confidence under 0.6). Show the "only what you submit goes to Google" note on the parse screen.
 - Instagram links do not give the server the flyer (Instagram returns an empty page), so for Instagram ask for a screenshot of the flyer.
 
@@ -159,7 +159,7 @@ Status (backend, 21 Oct): all done. The app is served with those cache rules; `r
 - **Keep `rsvps` in `PlanView`.** The branch and the ride pods match faces to member ids, so the UI reads `plan.rsvps` (`{ memberId: "going"|"maybe" }`) together with `members`. The name lists `going` and `maybe` are not enough on their own.
 - **`memberUrl`** works as built (`/c/<slug>?t=<memberToken>`): the join screen sees `you` in the crew read, saves the member, and opens the crew. No change needed.
 - **A flyer thumbnail.** Please add `source.imageUrl` to `PlanView` for plans read from a flyer: a small stored copy (about 400 px wide JPEG) or a data URL. The crew list shows the flyer as a pasted poster, and the plan page shows it under "Gemma read this from a flyer". Without it, the UI shows neither.
-- **Pod fields used:** `memberIds`, `names`, `fromLabel`, `solo`, `leaveBy` (ISO), `travelMin`, `crossesLagoon`, `uberUrl` and `boltText`. The host of a hosted plan should not be put in a pod.
+- **Pod fields used:** `memberIds`, `names`, `fromLabel`, `solo`, `leaveBy` (ISO), `travelMin`, `crossesLagoon` and `destinationText`. The host of a hosted plan should not be put in a pod.
 - **Optional:** `GET /api/plans/:id` with member or invite auth would let the plan page load one plan instead of the whole crew. Today the UI reads the crew and finds the plan.
 
 ## Partner categories (genuine uses only)

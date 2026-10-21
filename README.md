@@ -31,8 +31,10 @@ More in [docs/screens/real](docs/screens/real).
   details and highlights what it guessed.
 - **Tap once.** "I'm going" or "Maybe". Saying nothing is a fine answer.
 - **Rides sort themselves.** People going from nearby areas are grouped into ride pods with a
-  leave-by time, an Uber link with the drop-off filled in, and the address to paste into
-  Bolt. Ride times are labelled as estimates, and "How we guess" shows the assumption.
+  leave-by time, the address to copy, and buttons for Bolt and inDrive (the apps people use in
+  Lagos since Uber left Nigeria in September 2026). No ride app here takes a drop-off from a
+  link, so the app says so and you paste it. Ride times are labelled as estimates, and "How
+  we guess" shows the assumption.
 - **The sloth's ritual.** If the crew has a regular day and nobody planned anything, Come
   Through picks a green spot near the middle of the crew from OpenStreetMap, checks the
   weather, and posts the plan two or three days ahead. If rain is coming, it moves to a

@@ -93,8 +93,6 @@ export function config(env = process.env) {
     vapid: { publicKey: env.VAPID_PUBLIC_KEY || "", privateKey: env.VAPID_PRIVATE_KEY || "", subject: env.VAPID_SUBJECT || "mailto:hello@comethrough.tech" },
     /** OFFLINE=1: fake geocoding, places, weather, links and a regex stand-in for Gemma (UI work with no keys or network) */
     offline: env.OFFLINE === "1" || env.OFFLINE === "true",
-    /** "looking" (m.uber.com/looking, the documented link) or "legacy" (m.uber.com/ul) */
-    uberLinkStyle: /** @type {"looking"|"legacy"} */ (env.UBER_LINK_STYLE === "legacy" ? "legacy" : "looking"),
   };
 }
 

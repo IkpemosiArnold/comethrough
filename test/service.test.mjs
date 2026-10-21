@@ -11,7 +11,7 @@ import { AREAS, PLACES } from "./fixtures/lagos.mjs";
 import { CREW } from "./fixtures/plans.mjs";
 
 const now = () => Date.parse("2026-10-21T09:00:00Z");
-const cfg = { publicUrl: "https://x.test", webUrl: "https://x.test", uidDomain: "x.test", uberLinkStyle: /** @type {"looking"} */ ("looking") };
+const cfg = { publicUrl: "https://x.test", webUrl: "https://x.test", uidDomain: "x.test" };
 const make = (/** @type {any} */ over = {}) => {
   const store = memoryStore();
   return {
@@ -93,7 +93,7 @@ test("an address that is not on the map keeps its neighbourhood for ride times a
   await svc.patchPlan({ id: created.plan.id, token: "t1", body: { rsvp: "going" } });
   const { pods } = await svc.getPods({ id: created.plan.id, token: "t1" });
   assert.ok(pods[0].travelMin != null && pods[0].estimate.approxTo === "Surulere");
-  assert.equal(pods[0].uberUrl, null);
+  assert.ok(!("uberUrl" in pods[0]));
 });
 
 test("the ritual explanation sent to Gemma has neighbourhoods and minutes, never member names", async () => {

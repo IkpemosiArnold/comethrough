@@ -728,8 +728,9 @@ a.ritual:active { transform: scale(0.98); }
 }
 .confirm-you { margin-top: var(--s-4); }
 .pod-actions { display: grid; gap: var(--s-2); }
-.bolt-pair { display: flex; gap: var(--s-2); }
-.bolt-pair .btn.ghost { flex: none; }
+.ride-apps { display: flex; gap: var(--s-2); }
+.ride-apps .btn { min-width: 0; }
+.ride-fine { margin: 0; }
 .nudge-inline {
   display: flex;
   gap: var(--s-3);

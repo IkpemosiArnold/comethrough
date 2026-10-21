@@ -1,7 +1,8 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { boltText, clusterRiders, podsForPlan, uberLink } from "../src/core/pods.mjs";
+import { clusterRiders, podsForPlan } from "../src/core/pods.mjs";
+import { RIDE_PROVIDERS, destinationText, rideLink, ridesForApi } from "../src/core/rides.mjs";
 import { parseInstant } from "../src/core/time.mjs";
 import { AREAS, PLACES } from "./fixtures/lagos.mjs";
 
@@ -63,28 +64,35 @@ test("leave-by is start minus the trip, pickups and a buffer, rounded down", () 
   assert.match(p.shareText, /^Tolu and Ada: leave Yaba by 1\d:\d\d for Freedom Park \(about \d+ min\)\.$/);
 });
 
-test("the Uber link uses the documented m.uber.com/looking form with the dropoff filled", () => {
-  const url = /** @type {string} */ (uberLink(plan.place));
-  const u = new URL(url);
-  assert.equal(u.origin + u.pathname, "https://m.uber.com/looking");
-  assert.deepEqual(JSON.parse(/** @type {string} */ (u.searchParams.get("drop[0]"))), {
-    latitude: 6.4497, longitude: 3.3972, addressLine1: "Freedom Park", addressLine2: "Hospital Road, Lagos Island",
-  });
-  assert.equal(u.searchParams.get("pickup"), null, "pickup is the rider's current location");
-  const legacy = new URL(/** @type {string} */ (uberLink(plan.place, { style: "legacy" })));
-  assert.equal(legacy.searchParams.get("dropoff[latitude]"), "6.4497");
-  assert.equal(legacy.searchParams.get("dropoff[nickname]"), "Freedom Park");
-  assert.equal(uberLink({ name: "Somewhere", address: null, lat: null, lon: null }), null);
-});
-
-test("Bolt gets copyable text, since it has no destination deep link", () => {
-  assert.equal(boltText(plan.place), "Freedom Park, Hospital Road, Lagos Island (6.44970, 3.39720)");
-  assert.equal(boltText({ name: "Tolu's place", address: null, lat: null, lon: null }), "Tolu's place");
+test("the drop-off is text to paste into any ride app: name and address, coordinates only as a last resort", () => {
+  assert.equal(destinationText(plan.place), "Freedom Park, Hospital Road, Lagos Island");
+  assert.equal(destinationText({ name: "Tolu's place", address: null, lat: null, lon: null }), "Tolu's place");
+  assert.equal(destinationText({ name: null, address: null, lat: 6.4497, lon: 3.3972 }), "6.44970, 3.39720");
+  assert.equal(destinationText({ name: null, address: null, lat: null, lon: null }), null);
   const { pods } = podsForPlan({ ...plan, place: { name: "Tolu's place", address: "12 Herbert Macaulay Way, Yaba", lat: null, lon: null } }, [{ id: "a", name: "Tolu", area: AREAS.yaba }]);
-  assert.equal(pods[0].uberUrl, null);
   assert.equal(pods[0].leaveBy, null);
   assert.equal(pods[0].solo, true);
-  assert.equal(pods[0].boltText, "Tolu's place, 12 Herbert Macaulay Way, Yaba");
+  assert.equal(pods[0].destinationText, "Tolu's place, 12 Herbert Macaulay Way, Yaba");
+  assert.ok(!("uberUrl" in pods[0]));
+});
+
+test("ride apps: Bolt first, then inDrive; each sourced and dated; none claims a drop-off link", () => {
+  assert.deepEqual(RIDE_PROVIDERS.map((p) => p.id).slice(0, 2), ["bolt", "indrive"]);
+  assert.ok(!RIDE_PROVIDERS.some((p) => /uber/i.test(p.id + p.name)), "Uber left Nigeria on 2 Sep 2026");
+  for (const p of RIDE_PROVIDERS) {
+    assert.equal(p.dropoff, null, `${p.name}: no documented drop-off link`);
+    assert.ok(p.sources.length >= 1 && p.sources.every((s) => s.url.startsWith("https://")), `${p.name}: sourced`);
+    assert.match(p.checkedAt, /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(p.links.android, /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[\w.]+$/);
+    assert.match(p.links.ios, /^https:\/\/apps\.apple\.com\/ng\/app\/[\w-]+\/id\d+$/);
+    assert.match(p.links.web, /^https:\/\//);
+    assert.ok(!/\d/.test(p.blurb), "no fare claims");
+  }
+  const bolt = RIDE_PROVIDERS[0];
+  assert.equal(rideLink(bolt, "android"), "https://play.google.com/store/apps/details?id=ee.mtakso.client");
+  assert.equal(rideLink(bolt, "ios"), "https://apps.apple.com/ng/app/bolt-request-a-ride/id675033630");
+  assert.equal(rideLink(bolt, "other"), "https://bolt.eu/en-ng/cities/lagos/");
+  assert.deepEqual(ridesForApi().map((r) => r.dropoff), [false, false, false]);
 });
 
 test("ride times say what they assume, and a place with no pin uses where it roughly is", async () => {
@@ -95,7 +103,7 @@ test("ride times say what they assume, and a place with no pin uses where it rou
   const { pods } = podsForPlan(plan, going, { near: { label: "Yaba", ...AREAS.yaba } });
   const p = pods[0];
   assert.ok(p.travelMin > 60, "Lekki to Yaba on a Friday evening crosses the lagoon in rush hour");
-  assert.equal(p.uberUrl, null, "never a ride link to a guessed spot");
+  assert.equal(p.destinationText, "Tolu's place", "the guessed spot is never pasted as the drop-off");
   assert.equal(p.estimate.band, "peak");
   assert.equal(p.estimate.approxTo, "Yaba");
   assert.equal(p.estimate.lagoonMin, 20);

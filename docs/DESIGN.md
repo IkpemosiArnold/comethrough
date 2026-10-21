@@ -80,7 +80,7 @@ Who's going                         5 going
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  the branch
   (You) (Ada) (Seyi) (Zainab) (Dayo)        hanging by their arms
 Can't make it? No need to say anything.
-Rides: your pod, leave Yaba by 3:05pm, Book Uber, Copy address, Open Bolt
+Rides: your pod, leave Yaba by 3:05pm, Copy address, Bolt, inDrive
 Why this place (canopy panel, the sloth peeks over)
 Bring: chips
 [ Going ] [ Add to my calendar ]            bottom bar after you tap

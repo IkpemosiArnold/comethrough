@@ -274,7 +274,7 @@ const km = (a, b) => {
 };
 
 function pods(db, plan) {
-  if (!plan || !plan.place?.lat) return { pods: [], unplaced: [] };
+  if (!plan || !plan.place?.lat) return { pods: [], unplaced: [], rides: RIDES };
   // The host is already there, so the host never needs a ride.
   const going = Object.entries(plan.rsvps).filter(([mid, v]) => v === 'going' && mid !== plan.host).map(([mid]) => db.members.find((m) => m.id === mid)).filter(Boolean);
   const hubs = [area('Yaba'), area('Lekki Phase 1'), area('Ikeja'), area('Surulere')];
@@ -295,13 +295,19 @@ function pods(db, plan) {
       memberIds: people.map((p) => p.id), names: people.map((p) => p.name), fromLabel: hub.label, solo: people.length === 1,
       leaveBy: leave.toISOString(), travelMin, crossesLagoon,
       estimate: { band: 'weekend', text: `A guess from the map, not live traffic: ${Math.round(km(hub, dest) * 1.4 * 10) / 10} km of road at about 22 km/h in weekend traffic${crossesLagoon ? ', 8 min for the bridge' : ''}. Leave-by adds 15 min to spare.` },
-      uberUrl: `https://m.uber.com/looking?drop[0]=${encodeURIComponent(JSON.stringify({ latitude: dest.lat, longitude: dest.lon, addressLine1: dest.name, addressLine2: dest.address }))}`,
-      boltText: `${dest.name}, ${dest.address}`,
+      destinationText: [dest.name, dest.address].filter(Boolean).join(', '),
       shareText: `Leaving ${hub.label} by ${leave.toISOString()} for ${plan.title}`,
     };
   });
-  return { pods: list, unplaced: [] };
+  return { pods: list, unplaced: [], rides: RIDES };
 }
+
+// The same list the server sends (src/core/rides.mjs), Bolt first
+const RIDES = [
+  { id: 'bolt', name: 'Bolt', blurb: '', links: { android: 'https://play.google.com/store/apps/details?id=ee.mtakso.client', ios: 'https://apps.apple.com/ng/app/bolt-request-a-ride/id675033630', web: 'https://bolt.eu/en-ng/cities/lagos/' }, dropoff: false },
+  { id: 'indrive', name: 'inDrive', blurb: 'You name the fare.', links: { android: 'https://play.google.com/store/apps/details?id=sinet.startup.inDriver', ios: 'https://apps.apple.com/ng/app/indrive-rides-at-your-price/id780125801', web: 'https://indrive.com/en-ng/' }, dropoff: false },
+  { id: 'lagride', name: 'LagRide', blurb: 'Backed by Lagos State.', links: { android: 'https://play.google.com/store/apps/details?id=com.lagos.emobility.client', ios: 'https://apps.apple.com/ng/app/lagride/id6738812036', web: 'https://www.lagride.ng/' }, dropoff: false },
+];
 
 let _db;
 function db0() { return _db || (_db = load()); }

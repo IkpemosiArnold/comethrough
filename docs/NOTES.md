@@ -49,7 +49,7 @@ against RFC 5545 (`scripts/ics-check.mjs`); two heartbeats.
 | Flyer plan | 5.7 to 11 s; every field right; address not on the map, so ride times and weather use Surulere. Once Gemma took over 25 s and the draft came back empty: the screen now says "Over to you" with "Try Gemma again" |
 | Event link | 4.4 to 5.9 s; the page's own event data (Sat 24 Oct 13:00 to 15:00), pinned at the Sheraton, Ikeja; flyer image from og:image |
 | Instagram link | 422 `link_locked` in 2 ms, no Gemma call |
-| Pods | Seyi to Tolu's: 14 min from Surulere; Amaka: 103 min from Lekki on a Friday evening, across the bridge; Uber link `m.uber.com/looking?drop[0]=...` on pinned plans only |
+| Pods | Seyi to Tolu's: 14 min from Surulere; Amaka: 103 min from Lekki on a Friday evening, across the bridge; a ride link on pinned plans only (Uber then; since replaced by Bolt and inDrive, see LOCAL-FACTS.md) |
 | Calendar | feed: 3 events, every line 75 octets or less, 9 folded, escaping correct, ETag 304; event.ics: one event with an alarm |
 | Heartbeat | tick 1 made the ritual in 44 s (Overpass at capacity, the curated spots carried it); tick 2 made nothing |
 | Rain | Saturday 3 to 7 pm forecast up to 95% rain, so the ritual moved to 8 to 10 am (34%) with the note "Rain is likely from 3 pm to 7 pm (up to 95%), so the sloth moved it to 8 am to 10 am..." (Since replaced: nobody meets in a Lagos park at 8 am on a Saturday. The sloth now stays inside social hours and, with this forecast, skips the slot. See LOCAL-FACTS.md.) |
@@ -120,7 +120,7 @@ Exact steps, checks after deploy and the phone checklist: [DEPLOY.md](DEPLOY.md)
 ## Open items
 
 - Real-phone checks (listed in DEPLOY.md, step 6): Web Push on Android Chrome and on an
-  installed iPhone app, the Uber link with `drop[0]` in Lagos, Bolt, the one-event file,
+  installed iPhone app, the Bolt and inDrive buttons, the one-event file,
   webcal on iPhone, the Android share target, an iPhone HEIC flyer, and voice input.
 - The free Gemma quota is unpublished (a third-party source says 15 requests a minute). The
   server allows 20 Gemma calls a minute in total and 8 per visitor; watch for 429s in the

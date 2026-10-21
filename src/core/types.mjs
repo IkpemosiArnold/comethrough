@@ -108,8 +108,7 @@
  * @property {string} fromLabel
  * @property {string} leaveBy
  * @property {number} travelMin
- * @property {string|null} uberUrl
- * @property {string} boltText
+ * @property {string|null} destinationText  what to paste into a ride app's "Where to?" box
  */
 
 export {};

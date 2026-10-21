@@ -8,6 +8,41 @@ This file exists because the first build shipped a "Book Uber" button weeks afte
 Nigeria (2 Sep 2026). The research behind that button checked how Uber's links work, and
 never asked whether Uber works in Lagos. Each section below answers that second question.
 
+## Rides
+
+**Uber is gone.** Uber wound down its Nigerian operations "effective 2 September 2026"
+(Uber's statement as quoted by TechCabal, "Ride-hailing giant Uber to stop operating in
+Nigeria, ending a 12-year run", 2 Sep 2026,
+https://techcabal.com/2026/09/02/uber-exits-nigeria/; also Semafor, 4 Sep 2026,
+https://www.semafor.com/article/09/04/2026/ubers-nigeria-exit-furthers-retreat-from-africa).
+All checked 21 Oct 2026. Uber's Play Store listing still answers HTTP 200, so a live store
+page proves nothing about whether a service runs.
+
+What the app offers now, in this order (`src/core/rides.mjs`):
+
+| App | Runs in Lagos? (source, published) | Drop-off link? | Button goes to |
+|---|---|---|---|
+| Bolt | Yes. TechCabal 2 Sep 2026: the market is now "concentrated around its biggest rivals, Bolt and inDrive"; TechCabal 3 Sep 2026: Bolt says Nigeria "remains an important market" (https://techcabal.com/2026/09/03/with-uber-gone-bolt-says-nigeria-remains-an-important-market/); Bolt's own Lagos page https://bolt.eu/en-ng/cities/lagos/ answers HTTP 200 | No. `bolt.eu/.well-known/apple-app-site-association` has only `webcredentials`, no `applinks`; `assetlinks.json` delegates all URLs to `ee.mtakso.client` but no documented path takes a destination; no developer docs found | Play: `ee.mtakso.client`; App Store: id675033630; web: bolt.eu/en-ng/cities/lagos/ |
+| inDrive | Yes. TechCabal 2 Sep 2026 (above); Legit.ng 3 Sep 2026, "Uber Leaves Nigeria: Bolt, inDrive and Local Rivals Face New Ride-Hailing Battle" (https://www.legit.ng/business-economy/technology/1728679-uber-leaves-nigeria-bolt-indrive-local-rivals-face-ride-hailing-battle/) | No. `indrive.com`'s app site association claims only `/app/`, `/app/super_services`, `/app/oauth-callback`, `/app/wallet/*`, `/app/bdu/*` | Play: `sinet.startup.inDriver`; App Store: id780125801; web: indrive.com/en-ng/ (HTTP 403 to curl, so unchecked as a page) |
+| LagRide | Yes. Legit.ng 3 Sep 2026 calls it "the Lagos State-backed ride-hailing platform"; Condia 11 Sep 2026 lists it as Lagos only (https://thecondia.com/uber-alternatives-nigeria-ride-hailing-apps/) | No. `lagride.ng` serves no app link manifests | Play: `com.lagos.emobility.client`; App Store: id6738812036; web: www.lagride.ng |
+| Rida | **Not added.** The evidence conflicts: news lists it, but rida.app now offers only Congo (DRC) locales, its iPhone app's description does not mention Nigeria, and a driver review on 3 Sep 2026 says Lagos is not in its city list. | | |
+
+Every store and web URL above answered HTTP 200 from this machine on 21 Oct 2026, except
+inDrive's web page (403 to curl).
+
+So the ride card says what is true: "Copy address" (the place's name and address, or nothing
+for a host's home with no address), then "Bolt" and "inDrive" buttons that open the app's
+store page on a phone (the store shows "Open" when the app is installed) or the Lagos web
+page on a computer, and a line saying no ride app here takes a drop-off from a link. When a
+provider documents one, it goes in `dropoff` with its source and a test.
+
+**Fares:** none are shown. Bolt publishes estimates on its own route pages (for example
+https://bolt.eu/en-ng/cities/lagos/route/egbeda-bus-stop-to-ajah-motor-park/), but the app
+does not use them, and the others publish none.
+
+Not verified on a phone yet: that the Play and App Store pages show "Open" for an installed
+app on the devices the crew uses (DEPLOY.md, phone checklist).
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

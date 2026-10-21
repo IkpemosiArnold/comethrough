@@ -1,6 +1,7 @@
 // @ts-check
 // Ride pods: the members going to a plan, grouped by where they start so they can share a
-// ride, each with a leave-by time and a one-tap ride link.
+// ride, each with a leave-by time and the drop-off text to paste into a ride app (no ride app
+// in Lagos documents a link that fills the drop-off in; see ./rides.mjs).
 //
 // Grouping is small agglomerative clustering with complete linkage: start with everyone
 // alone, then keep merging the two closest groups while every pair inside the merged group
@@ -11,6 +12,7 @@
 
 import { LAGOS_TRAFFIC, centroid, crossesLagoon, haversineKm, travelEstimate } from "./geo.mjs";
 import { DEFAULT_TZ, MINUTE, parseInstant, toIsoLocal, localParts } from "./time.mjs";
+import { destinationText } from "./rides.mjs";
 
 /** @typedef {import("./types.mjs").Pod} Pod */
 /** @typedef {{ id: string, name: string, area: { label: string, lat: number, lon: number }|null }} Rider */
@@ -72,52 +74,17 @@ export function clusterRiders(riders, { maxSize = POD_DEFAULTS.maxSize, radiusKm
 }
 
 /**
- * An Uber link that opens the app (or the mobile site) with the dropoff filled in and the
- * pickup left to the rider's current location.
- *   "looking" (default): https://m.uber.com/looking?drop[0]=<JSON>, the universal link in
- *     Uber's deep-link docs as checked on 21 Oct 2026; the JSON is
- *     {"latitude","longitude","addressLine1","addressLine2"}.
- *   "legacy": the older m.uber.com/ul/?action=setPickup&dropoff[...] form, now documented
- *     only for the uber:// scheme. Kept behind UBER_LINK_STYLE=legacy in case it works better.
- * @param {{ name?: string|null, address?: string|null, lat: number|null, lon: number|null }} dropoff
- * @param {{ style?: "looking"|"legacy" }} [opts]
- * @returns {string|null}  null when the place has no coordinates
- */
-export function uberLink(dropoff, { style = "looking" } = {}) {
-  if (!Number.isFinite(dropoff.lat) || !Number.isFinite(dropoff.lon)) return null;
-  const lat = Number(/** @type {number} */ (dropoff.lat).toFixed(6));
-  const lon = Number(/** @type {number} */ (dropoff.lon).toFixed(6));
-  const line1 = dropoff.name || dropoff.address || "Dropoff";
-  const line2 = dropoff.address && dropoff.address !== line1 ? dropoff.address : "";
-  if (style === "legacy") {
-    const q = [["action", "setPickup"], ["pickup", "my_location"], ["dropoff[latitude]", String(lat)], ["dropoff[longitude]", String(lon)], ["dropoff[nickname]", line1]];
-    if (line2) q.push(["dropoff[formatted_address]", line2]);
-    return `https://m.uber.com/ul/?${q.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&")}`;
-  }
-  const drop = { latitude: lat, longitude: lon, addressLine1: line1, addressLine2: line2 };
-  return `https://m.uber.com/looking?${encodeURIComponent("drop[0]")}=${encodeURIComponent(JSON.stringify(drop))}`;
-}
-
-/** The destination text to paste into Bolt (Bolt documents no deep link that fills the destination). */
-export function boltText(place) {
-  const parts = [place.name, place.address].filter(Boolean);
-  const text = [...new Set(parts)].join(", ");
-  const pin = Number.isFinite(place.lat) && Number.isFinite(place.lon) ? ` (${place.lat.toFixed(5)}, ${place.lon.toFixed(5)})` : "";
-  return (text || "the plan's location") + pin;
-}
-
-/**
- * Ride pods for a plan: who rides together, when to leave and the ride links.
+ * Ride pods for a plan: who rides together, when to leave, and what to paste into the app.
  *
  * Travel times are estimates (see travelEstimate in geo.mjs), and each pod says what was
  * assumed, so the UI can show it one tap away: the traffic band, the road distance, the
  * speed, the bridge penalty, and whether the destination itself was only approximate.
- * @param {{ start: string, tz?: string, place: { name: string|null, address: string|null, lat: number|null, lon: number|null } }} plan
+ * @param {{ start: string, tz?: string, place: { name: string|null, address: string|null, lat: number|null, lon: number|null, private?: boolean } }} plan
  * @param {Rider[]} going  the members going (the caller filters rsvps)
- * @param {{ maxSize?: number, radiusKm?: number, bufferMin?: number, pickupMin?: number, uberStyle?: "looking"|"legacy",
+ * @param {{ maxSize?: number, radiusKm?: number, bufferMin?: number, pickupMin?: number,
  *           near?: { label: string, lat: number, lon: number } | null }} [opts]
  *   near: where the place roughly is when it has no pin (a host's home is "near" the host's
- *   neighbourhood); used for times only, never for the ride links
+ *   neighbourhood); used for times only, never as the drop-off
  */
 export function podsForPlan(plan, going, opts = {}) {
   const o = { ...POD_DEFAULTS, ...opts };
@@ -129,8 +96,8 @@ export function podsForPlan(plan, going, opts = {}) {
   const hasDest = Number.isFinite(place?.lat) && Number.isFinite(place?.lon);
   const near = !hasDest && o.near && Number.isFinite(o.near.lat) && Number.isFinite(o.near.lon) ? o.near : null;
   const dest = hasDest ? /** @type {any} */ (place) : near;
-  const uberUrl = hasDest ? uberLink(place, { style: o.uberStyle }) : null;
-  const bolt = boltText(place || {});
+  // a host's home with no address has nothing worth pasting ("Tolu's place" finds nothing)
+  const dropoff = place?.private && !place?.address ? null : destinationText(place || {});
 
   const pods = clusterRiders(placed, o).map((g) => {
     const pickup = /** @type {{lat:number,lon:number}} */ (centroid(g.map((r) => /** @type {any} */ (r.area))));
@@ -164,8 +131,7 @@ export function podsForPlan(plan, going, opts = {}) {
         approxTo: near ? near.label : null,
         text: estimateText(est, { pickupMin: o.pickupMin * (g.length - 1), bufferMin: o.bufferMin, approxTo: near ? near.label : null }),
       } : null,
-      uberUrl,
-      boltText: bolt,
+      destinationText: dropoff,
       shareText: shareText({ names, fromLabel, leaveBy, travelMin, place, tz }),
     };
   });
