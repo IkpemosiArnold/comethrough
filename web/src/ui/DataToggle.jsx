@@ -3,7 +3,7 @@
 import { MOCK } from '../lib/api.js';
 import { sessionGet } from '../lib/store.js';
 
-const STATES = [['demo', 'Demo data'], ['worst', 'Worst case'], ['empty', 'Empty']];
+const STATES = [['demo', 'Demo data'], ['worst', 'Worst case'], ['quiet', 'Quiet week'], ['empty', 'Empty']];
 
 export function DataToggle() {
   const current = sessionGet('ct.data');

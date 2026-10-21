@@ -137,7 +137,9 @@ function load() {
   const raw = sessionGet('ct.mockdb');
   if (raw) { try { return JSON.parse(raw); } catch { /* reseed */ } }
   const data = sessionGet('ct.data');
-  const db = data === 'worst' ? seedWorst() : seed();
+  const db = data === 'worst' || data === 'quiet' ? seedWorst() : seed();
+  // a quiet week for the worst-case crew: only the sloth's pick, so the ideas card shows
+  if (data === 'quiet') db.plans = db.plans.filter((p) => p.kind === 'ritual');
   if (data === 'empty') { db.plans = []; db.members = db.members.slice(0, 1); }
   sessionSet('ct.mockdb', JSON.stringify(db));
   return db;
@@ -227,6 +229,13 @@ export function ideas() {
     when: `${day === sun ? 'Sunday' : 'Saturday'}, ${hh - 12} to ${hh + hours - 12}pm`,
     draftPlan: { kind, title, start: lagosDate(day, hh), end: lagosDate(day, hh + hours), tz: 'Africa/Lagos', place, price: null, host: null, bring: [], source: source?.url ? { url: source.url } : {} },
   });
+  if (/worst|quiet/.test(sessionGet('ct.data') || '')) {
+    return [
+      idea('i-long', 'Lagos Jazz Series Presents: An Evening of Highlife, Juju and Afro Jazz Classics Under the Stars (Rooftop Edition)', 'Starts after the heat breaks, about 40 minutes for most of you, and the Ikorodu side shares one ride through Ketu.', { ...PLACES.freedom, name: 'Freedom Park Lagos, Old Broad Street, Lagos Island (by the Broad Street gate)' }, sun, 16, 3, 'found', { name: 'Awe Lagos', url: 'https://example.com/a-very-long-guide-url/weekly/2026/10/everything-happening-in-lagos-this-weekend', credit: "From a Lagos weekly guide with a very long name (demo)" }),
+      idea('i-ok', 'Ok', '', PLACES.muri, sat, 15, 3, 'quick'),
+      idea('i-noplace', 'Small chops and catch-up', 'Nobody has been out since the wedding.', null, sat, 16, 2, 'quick'),
+    ];
+  }
   return [
     idea('i-freedom', 'Sunday evening at Freedom Park', 'Lagos Island is about the middle for Yaba and Lekki, and the evening is cooler.', PLACES.freedom, sun, 16, 3, 'found', { name: 'A Lagos guide (demo)', url: null, credit: "From a Lagos weekly guide (demo)" }),
     idea('i-muri', 'Lazy Saturday at Muri Okunola Park', 'Shade, space for a mat, and nobody has picked it this month.', PLACES.muri, sat, 15, 3, 'quick'),

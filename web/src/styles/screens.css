@@ -870,3 +870,8 @@ html.sheet-open .bottom-bar { visibility: hidden; }
   .sheet-wrap.closing .sheet { animation-name: fade-out; }
   .paint-in, .first-pick.landed { animation: none; }
 }
+
+/* break-ui at 320 px: answer buttons keep their words on one line, and inline links are thumb-sized */
+.nudge-actions { flex-wrap: wrap; }
+.nudge-actions .btn { white-space: nowrap; }
+.ot-done .link-btn { display: inline-flex; align-items: center; min-height: 44px; }
