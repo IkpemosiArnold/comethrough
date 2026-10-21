@@ -761,3 +761,17 @@ a.ritual:active { transform: scale(0.98); }
 .credits { margin-top: var(--s-4); }
 .credits a, .wx-credit a { color: inherit; }
 .wx-credit { margin: calc(-1 * var(--s-6)) 0 var(--s-6); }
+
+.posted-card {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-6);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px var(--danfo);
+}
+.posted-card p { margin: 0; }
+.plan-share { display: grid; gap: var(--s-2); }
+.upload-size { margin-top: var(--s-2); }
+.entry-src { white-space: nowrap; }

@@ -3,13 +3,12 @@ import { useEffect, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
 import { getCrew, saveCrew, readCrewCache as readCache, writeCrewCache as writeCache } from '../lib/store.js';
 import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
-import { copyText, whatsappUrl } from '../lib/platform.js';
+import { whatsappUrl } from '../lib/platform.js';
 import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { WeatherChip, weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { KindSticker, ErrorNote } from '../ui/misc.jsx';
-import { toast } from '../ui/toast.jsx';
 
 
 export function CrewHome({ params }) {
@@ -38,21 +37,12 @@ export function CrewHome({ params }) {
   const meId = mine?.memberId;
 
   const inviteUrl = mine?.inviteUrl || (crew ? `${location.origin}/c/${slug}?t=${encodeURIComponent(crew.inviteToken || mine?.invite || '')}` : '');
-  async function invite() {
-    const text = `Come through! Join ${crew?.name || 'the crew'} here: ${inviteUrl}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: crew?.name, text, url: inviteUrl }); return; } catch (e) { if (e?.name === 'AbortError') return; }
-    }
-    const ok = await copyText(inviteUrl);
-    toast(ok ? 'Invite link copied' : "Couldn't copy the link");
-  }
-
   return (
     <div class="column crew-home screen-enter has-bar">
       <header class="crew-head">
         <div class="row spread crew-top">
           <a class="crumb" href="/" aria-label="All your crews">Come Through</a>
-          <button class="btn ghost invite-btn" onClick={invite}><Icon name="people" size={20} /> Invite</button>
+          <a class="btn ghost invite-btn" href={whatsappUrl(`Come through! Join ${crew?.name || 'the crew'} here: ${inviteUrl}`)} target="_blank" rel="noopener" data-external><WhatsAppIcon size={20} /> Invite</a>
         </div>
         {crew ? (
           <h1 class="display display-xl painted crew-name">{crew.name}</h1>

@@ -1,12 +1,13 @@
 // The plan page. The signature moment lives here: tap "I'm going", your face swings onto
 // the branch with everyone else, the branch dips under the weight, your ride pod forms,
-// and the button turns into "Add to my calendar".
+// and the button turns into "Tell the crew" on WhatsApp (the calendar is an extra below).
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api, MOCK } from '../lib/api.js';
 import { getCrew } from '../lib/store.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
-import { copyText, whatsappUrl, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
+import { copyText, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
+import { whatsappUrl, planMessage } from '../lib/share.js';
 import { haptic, prefersReducedMotion, springAnimate } from '../lib/spring.js';
 import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
@@ -36,9 +37,7 @@ export function PlanPage({ params, query }) {
     api.pods(slug, id).then((r) => { setPods(r.pods); if (r.rides?.length) setRides(r.rides); }).catch(() => setPods([]));
   }
   useEffect(load, [slug, id]);
-  useEffect(() => {
-    if (query.get('posted')) toast('Posted. The crew can see it now.', 3000);
-  }, []);
+  const [posted, setPosted] = useState(() => !!query.get('posted'));
 
   if (error && !plan) {
     return (
@@ -66,7 +65,9 @@ export function PlanPage({ params, query }) {
   const invite = mine?.invite || plan.crew?.inviteToken;
   const planUrl = `${location.origin}/c/${slug}/p/${id}${invite ? `?t=${encodeURIComponent(invite)}` : ''}`;
   const when = `${dayLabel(plan.start)}, ${timeRange(plan.start, plan.end)}`;
-  const shareText = `${plan.title}\n${when}${plan.place?.name ? `, ${plan.place.name}` : ''}\nCome through: ${planUrl}`;
+  const msg = { title: plan.title, when, place: plan.place?.name, url: planUrl };
+  const shareText = planMessage(msg);
+  const goingText = planMessage({ ...msg, mine: 'going' });
 
   async function answer(value) {
     if (!meId) return;
@@ -121,6 +122,15 @@ export function PlanPage({ params, query }) {
           </a>
         }
       />
+
+      {posted && (
+        <aside class="posted-card" aria-label="Tell the crew">
+          <p><b>Posted.</b> Now tell the crew: the link in the group chat is how most people will see it.</p>
+          <a class="btn whatsapp block" href={whatsappUrl(planMessage({ ...msg, posted: true }))} target="_blank" rel="noopener" data-external onClick={() => setPosted(false)}>
+            <WhatsAppIcon /> Tell the crew on WhatsApp
+          </a>
+        </aside>
+      )}
 
       {plan.offline && <p class="offline-note">You're offline, so this is what the phone saw last. <button class="link-btn" onClick={load}>Refresh</button></p>}
 
@@ -276,9 +286,16 @@ export function PlanPage({ params, query }) {
       )}
 
       <div class="plan-share">
-        <a class="btn whatsapp block" href={whatsappUrl(shareText)} target="_blank" rel="noopener" data-external>
-          <WhatsAppIcon /> Share in the group chat
-        </a>
+        {my !== 'going' && (
+          <a class="btn whatsapp block" href={whatsappUrl(shareText)} target="_blank" rel="noopener" data-external>
+            <WhatsAppIcon /> Share in the group chat
+          </a>
+        )}
+        {my === 'going' && api.eventIcsUrl(slug, plan) && (
+          <a class="btn ghost block cal-extra" href={api.eventIcsUrl(slug, plan)} download={`${plan.title}.ics`} data-external>
+            <Icon name="calendar" size={20} /> Add to my calendar
+          </a>
+        )}
       </div>
 
       {plan.rainPlan?.kind !== 'skip' && <ActionBar
@@ -287,10 +304,9 @@ export function PlanPage({ params, query }) {
         menu={menu}
         setMenu={setMenu}
         answer={answer}
-        icsUrl={api.eventIcsUrl(slug, plan)}
+        waUrl={whatsappUrl(goingText)}
         joinHref={`/c/${slug}/join${invite ? `?t=${encodeURIComponent(invite)}&` : '?'}next=${encodeURIComponent(`/c/${slug}/p/${id}`)}`}
         crewName={crewName}
-        fileName={`${plan.title}.ics`}
       />}
     </div>
   );
@@ -397,7 +413,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, host = null }) {
   );
 }
 
-function ActionBar({ my, meId, menu, setMenu, answer, icsUrl, joinHref, crewName, fileName }) {
+function ActionBar({ my, meId, menu, setMenu, answer, waUrl, joinHref, crewName }) {
   const menuRef = useRef(null);
   useEffect(() => {
     if (!menu) return;
@@ -435,8 +451,8 @@ function ActionBar({ my, meId, menu, setMenu, answer, icsUrl, joinHref, crewName
             <button class="btn secondary going-pill" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-haspopup="menu">
               <Icon name="check" size={20} /> Going
             </button>
-            <a class="btn primary big grow cal-btn" href={icsUrl} download={fileName} data-external>
-              <Icon name="calendar" size={22} /> Add to my calendar
+            <a class="btn whatsapp big grow cal-btn" href={waUrl} target="_blank" rel="noopener" data-external>
+              <WhatsAppIcon /> Tell the crew
             </a>
             {menu && (
               <div class="answer-menu" role="menu">

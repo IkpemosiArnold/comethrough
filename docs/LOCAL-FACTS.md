@@ -247,6 +247,27 @@ real visitors never load. Later visits come from the service worker's cache.
 The map on a plan page is six OpenStreetMap tiles, about 15 to 30 KB each, loaded lazily
 only on that page.
 
+## Delivery: WhatsApp first
+
+A Lagos crew lives in its WhatsApp group, and nobody installs an app to go to a hangout. So
+the plan's link in the group chat is how most people will see a plan, and the UI now says
+and does that:
+
+- After posting a plan, a card says "Posted. Now tell the crew" with "Tell the crew on
+  WhatsApp" (a `wa.me` link: "New plan: ... Tap the link and say if you're coming: <link>").
+  It used to show a toast saying "The crew can see it now", which was only true for people
+  who had turned on push.
+- After "I'm going", the main button in the bar is "Tell the crew" on WhatsApp ("I'm going
+  to ... Come through: <link>"). "Add to my calendar" moved under the page as an extra.
+- The crew's Invite button opens WhatsApp directly (it opened the phone's share sheet).
+- The join screen says plans come as a link in the group chat, and offers push as "a nudge
+  as well", not as the way plans arrive.
+- Unchanged: "Share in the group chat", the WhatsApp invite after creating a crew, and the
+  WhatsApp rain heads-up.
+
+The messages are in `web/src/lib/share.js`, tested in `test/share.test.mjs`. No claim is made
+about WhatsApp's market share in Nigeria here, because none was checked for this pass.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

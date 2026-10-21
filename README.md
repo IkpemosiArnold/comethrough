@@ -40,9 +40,11 @@ More in [docs/screens/real](docs/screens/real).
   weather, and posts the plan two or three days ahead. If rain is coming, it moves to a
   drier stretch inside the hours people actually go out (11 am to 6:30 pm at the
   weekend), and when there is none it skips the week and says why.
-- **Reminders without an app.** Web Push nudges on Android and on iPhone (from the Home
-  Screen), a one-tap calendar file after "I'm going", a calendar feed for iPhone and
-  laptops, and a WhatsApp heads-up when rain moves in.
+- **WhatsApp first.** Plans travel the way Lagos crews already talk: every "tell the crew"
+  button opens WhatsApp with the plan's link in the message (after you post a plan, after
+  you say you're going, the invite, the rain heads-up). Web Push is the extra nudge for
+  people who turn it on, and the calendar (a one-tap file after "I'm going", or a feed for
+  iPhone and laptops) is there for those who want it.
 
 ## How it works
 

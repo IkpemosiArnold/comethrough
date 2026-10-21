@@ -129,10 +129,11 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 ## Delivery: how a plan reaches people (from the 21 Oct research)
 
-- **Web Push** is the fast channel. It works on Android Chrome with no install, and on iPhone only once the app is added to the Home Screen. Keys come from the env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
+- **WhatsApp is the primary channel.** Every "tell the crew" action is a `https://wa.me/?text=...` link with the plan's own link in the text: the card after posting a plan ("Tell the crew on WhatsApp"), the main bar button after "I'm going" ("Tell the crew"), the crew's Invite button, "Share in the group chat" and the rain heads-up. The messages live in `web/src/lib/share.js`.
+- **Web Push** is the nudge for people who turn it on. It works on Android Chrome with no install, and on iPhone only once the app is added to the Home Screen. Keys come from the env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
 - **One-tap "add to my calendar":** after "I'm going", the UI offers `eventIcsUrl` (a single-event .ics). It works on Android and iPhone.
 - **The subscribed feed** (`webcal://.../cal/<calToken>.ics`) stays for iPhone and desktop. The Google Calendar app on Android cannot subscribe (only calendar.google.com on a computer can), and Google refreshes feeds every 6 to 24 hours, so the feed is never the place for last-minute news.
-- **WhatsApp** heads-up links (`https://wa.me/?text=...`) for rain and changes, one tap to share in the group chat.
+- **The calendar** is an extra: "Add to my calendar" sits under the plan after "I'm going", not in the bar.
 
 ## Scheduler
 
@@ -145,7 +146,7 @@ Render web service and MongoDB Atlas (Free tier), both in **Frankfurt** (eu-cent
 ## UI requests (for the web builder)
 
 - Area inputs: type-ahead from `GET /api/areas?q=` (debounce 300 ms, at least 2 characters); send the chosen `{ label, lat, lon }` when joining. Free text still works.
-- After "I'm going": offer "Add to calendar" (`eventIcsUrl`), and once per device ask for push ("Get a nudge when plans change"). On iPhone outside an installed app, show "Add to Home Screen to get nudges" instead of the push prompt.
+- After "I'm going": the bar's main button is "Tell the crew" on WhatsApp; "Add to my calendar" (`eventIcsUrl`) sits under the page; and once per device ask for push ("Get a nudge when plans change"). On iPhone outside an installed app, show "Add to Home Screen to get nudges" instead of the push prompt.
 - On the join success screen, show the calendar subscription as optional, with "open on a computer" wording for Android users.
 - Rides: "Copy address" (`pod.destinationText`), then a button per ride app from `rides` (Bolt, then inDrive), going to `links.android`, `links.ios` or `links.web` by platform. `dropoff` is false for every app (none documents a drop-off link).
 - Highlight draft fields listed in `low` (confidence under 0.6). Show the "only what you submit goes to Google" note on the parse screen.

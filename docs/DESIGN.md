@@ -83,7 +83,7 @@ Can't make it? No need to say anything.
 Rides: your pod, leave Yaba by 3:05pm, Copy address, Bolt, inDrive
 Why this place (canopy panel, the sloth peeks over)
 Bring: chips
-[ Going ] [ Add to my calendar ]            bottom bar after you tap
+[ Going ] [ Tell the crew (WhatsApp) ]      bottom bar after you tap
 ```
 
 Text is left-aligned everywhere. Nothing is centred except the reading status and empty pages.
@@ -98,7 +98,7 @@ When you tap "I'm going", these things happen in order:
 2. **The swing.** If the branch is off screen, the page scrolls to it first. Your face drops onto the left end of the branch from 26 px above, rotated -34 degrees, and swings to rest like a pendulum. The swing is a spring with a damping ratio of 0.4 and a response of 0.9 s, which settles in about 2.2 s. It is slow on purpose because it is the sloth's motion and it happens once per plan. The spring is turned into a CSS `linear()` easing and run with the Web Animations API, so it runs off the main thread on cheap phones.
 3. **The weight.** Everyone already on the branch slides one place to the right (320 ms ease-out, using FLIP). The branch dips 6 px as your hands catch, then springs back (damping 0.4, response 0.65 s). The resting sag of the branch also grows with the number of people.
 4. **The pod forms.** The ride pod card fades up 450 ms later with your leave-by time, and your face in the pod pops in from 60 percent scale with a small spring.
-5. **The bar changes.** The bottom bar becomes "Going" (a pill you can tap to change your answer) and "Add to my calendar", which downloads a one-event .ics file that works on Android and iPhone. The swap uses a 2 px blur crossfade.
+5. **The bar changes.** The bottom bar becomes "Going" (a pill you can tap to change your answer) and "Tell the crew", which opens WhatsApp with "I'm going to ... Come through: <link>" ready to send. WhatsApp is how plans travel in Lagos, so it is the main action. "Add to my calendar" (a one-event .ics file for Android and iPhone) sits under the page as an extra. The swap uses a 2 px blur crossfade.
 6. **One nudge.** The first time on a device, a small card asks "Get a nudge if this plan changes?". On iPhone outside an installed app, it explains Add to Home Screen instead.
 
 With reduced motion turned on, your face fades in and nothing swings, slides or bounces.
@@ -139,7 +139,7 @@ The copy follows the core of Arnold's copywriting manual. It names the person's 
 
 - "Come through", "Who's going", "Leave Yaba by 3:05pm", "Drop this link in the group chat".
 - Saying no is never required: "Can't make it? No need to say anything."
-- Buttons name the action: "Set up my crew", "Join the crew", "Post it to the crew", "Add to my calendar", "Copy address".
+- Buttons name the action: "Set up my crew", "Join the crew", "Post it to the crew", "Tell the crew on WhatsApp", "Copy address".
 - Privacy is stated where data leaves the phone: "To read your sentence we send it to Gemma, Google's open model. That's all that goes to Google."
 - Errors say what failed and what to do: "Couldn't reach Come Through. Check your data and try again."
 - Empty states point to the next action: "Bring the crew in first" with a WhatsApp invite button.

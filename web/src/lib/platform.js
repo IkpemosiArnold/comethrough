@@ -32,9 +32,7 @@ export async function copyText(text) {
   }
 }
 
-export function whatsappUrl(text) {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-}
+export { whatsappUrl } from './share.js';
 
 function b64ToBytes(b64) {
   const pad = '='.repeat((4 - (b64.length % 4)) % 4);

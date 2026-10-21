@@ -143,13 +143,13 @@ function Joined({ slug, res, next }) {
       <div class="joined-head">
         <Sloth size={92} mood="awake" />
         <h1 class="display display-xl painted">You're in, {firstName(res.member.name)}</h1>
-        <p class="lede">When a plan drops, tap once if you're coming. That's the whole job.</p>
+        <p class="lede">When a plan link lands in the group chat, open it and tap once if you're coming. That's the whole job.</p>
       </div>
 
       {showNudge && !skipped && (
         <section class="nudge surface" aria-labelledby="nudge-title">
           <div class="nudge-icon"><Icon name="bell" size={26} /></div>
-          <h2 id="nudge-title" class="display display-md">Get a nudge when plans drop?</h2>
+          <h2 id="nudge-title" class="display display-md">Want a nudge as well?</h2>
           {perm === 'granted' ? (
             <p class="nudge-on"><Icon name="check" size={20} /> Nudges are on. You'll hear about new plans and rain.</p>
           ) : perm === 'denied' ? (
@@ -166,7 +166,7 @@ function Joined({ slug, res, next }) {
             </>
           ) : (
             <>
-              <p class="muted">One nudge when someone posts a plan, and one if rain moves in on a plan you're going to. Nothing else.</p>
+              <p class="muted">Plans go to the group chat on WhatsApp. A nudge on this phone adds one alert when someone posts a plan, and one if rain moves in on a plan you're going to. Nothing else.</p>
               <div class="row nudge-actions">
                 <button class="btn primary" onClick={nudge} disabled={asking}>{asking ? <>Asking <Dots /></> : 'Yes, nudge me'}</button>
                 <button class="btn ghost" onClick={() => setSkipped(true)}>Not now</button>
