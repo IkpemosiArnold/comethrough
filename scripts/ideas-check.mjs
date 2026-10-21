@@ -25,6 +25,7 @@ import { memoryStore } from "../src/adapters/store.mjs";
 import { loadPrompts } from "../src/app/prompts.mjs";
 import { parseRss } from "../src/core/feeds.mjs";
 import { withEntries } from "../src/core/places.mjs";
+import { LAGOS, LAGOS_REGION } from "../src/packs/index.mjs";
 
 loadDotEnv();
 const cfg = config();
@@ -57,11 +58,15 @@ const crew = {
   region: { center: { lat: 6.4856, lon: 3.3978 }, countryCode: "NG", city: "Lagos", timezone: "Africa/Lagos", tzSource: "open-meteo" },
 };
 await store.put("crews", crew);
+// as after the heartbeat: the guides read first (at most once a day each)
+const r0 = performance.now();
+await ideas.refreshAll([{ pack: LAGOS, region: LAGOS_REGION }]);
+const refreshSec = +((performance.now() - r0) / 1000).toFixed(1);
 const t0 = performance.now();
 const card = await ideas.getIdeas({ slug: crew.slug, token: crew.inviteToken, when });
 const sec = +((performance.now() - t0) / 1000).toFixed(1);
 console.log(JSON.stringify({
-  llm: describeLlm(cfg), when, sec, by: card.by, notes: card.notes, slot: card.slot,
+  llm: describeLlm(cfg), when, refreshSec, sec, by: card.by, notes: card.notes, slot: card.slot,
   ideas: card.ideas.map((i) => ({ kind: i.kind, title: i.title, when: i.when, place: i.place.name, price: i.price?.text ?? null, why: i.why, by: i.by, source: i.source ?? null, longest: i.travel?.longestMinutes ?? null, weather: i.weather?.text ?? null })),
   log: logs.filter((l) => /gemma|feed_read|ideas|error/.test(l)),
 }, null, 2));

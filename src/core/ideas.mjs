@@ -479,7 +479,8 @@ export function rankMessages(prompt, { crew, when, candidates }) {
   const crewFacts = crewFactsOf(crew, when);
   return [
     { role: "system", content: prompt.system },
-    { role: "user", content: fill(prompt.user, { crew: JSON.stringify(crewFacts), ideas: candidates.map((c) => JSON.stringify(c.facts)).join("\n") }) },
+    // "the three best" of two ideas made Gemma answer with none (live, 21 Oct): say how many
+    { role: "user", content: `${fill(prompt.user, { crew: JSON.stringify(crewFacts), ideas: candidates.map((c) => JSON.stringify(c.facts)).join("\n") })}\n\nPick ${Math.min(3, candidates.length) === 1 ? "this one idea" : `${Math.min(3, candidates.length)} of these ${candidates.length} ideas`}.` },
   ];
 }
 
