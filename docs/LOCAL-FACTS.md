@@ -160,6 +160,61 @@ What backs them, and what does not:
 - The speeds themselves are not measured. They should be tuned against real trips by the
   crew (a "how long did it take?" tap would do it).
 
+## Pidgin and mixed English
+
+Lagos crews type in Nigerian Pidgin and in mixes of Pidgin, Yoruba and English. On 21 Oct
+2026 the Gemma prompts were tested live against the Gemini API (gemma-4-26b-a4b-it) on 16
+realistic inputs (`test/fixtures/pidgin.mjs`): 5 crew setups ("Na we be the Yaba boys o,
+every other Sunday..."), 8 plans ("abeg make we link up Saturday for Lekki, I no get money",
+"Olisa dey host wine and monopoly for him house Friday 7, carry your own drink", "who wan
+follow me go Afrobeats rave for Eko Hotels Saturday night", "Make we go Elegushi beach Sunday
+afternoon, gate na 2k, bring towel", ...) and 3 pieces of feedback ("We no wan go Freedom
+Park again, and make we start later small"). Each case lists the fields the app should end
+up with, after Gemma reads and code resolves. `node scripts/pidgin-eval.mjs` repeats the run.
+
+**What went wrong on the first run, and the fixes:**
+
+| Problem (first run) | Fix |
+|---|---|
+| "carry your own drink" came back as bring: "a bottle", copied from the prompt's own example | The example is gone from the prompt, and code now drops anything to bring that the message does not say, with a note |
+| "every Saturday morning" came back with no rhythm | The prompt lists "every Saturday" and "once a month"; code also reads "every other", "once a month", "every Friday" and the one weekday named, in English and Pidgin |
+| "VI" was dropped (two letters), so a VI crew lost an area | "VI" is accepted and expanded to Victoria Island |
+| "after work" became the default 3 to 7 pm | "after work" is 5:30 to 9 pm, matching the weekday social hours |
+| "Start 2pm" came back as "2nd" (from "Sat 31st") | Code reads one clear clock time from a typed message when the model misses it, at lower confidence |
+| "for Lekki" with no venue gave no place | The prompt says an area alone counts as the address |
+| "nothing too expensive", "make e no cost plenty money" | The prompt explains common Pidgin; code reads Pidgin money words as cheap |
+
+**Final per-field accuracy** (each case's last live answer, with the final prompts; checked
+offline by `test/pidgin.test.mjs`):
+
+| Task | Field | Right |
+|---|---|---|
+| Crew setup | how often | 5/5 |
+| | day | 5/5 |
+| | areas | 5/5 |
+| | vibe | 4/4 |
+| | budget | 2/2 |
+| Plan | kind (hosted, found, quick) | 7/7 |
+| | date | 8/8 |
+| | start time | 6/6 |
+| | place | 6/6 |
+| | title | 3/3 |
+| | price | 6/6 (including "no price" where none was said) |
+| | free | 2/2 |
+| | host | 4/4 (named host, self-hosted, or none) |
+| | bring | 2/2 |
+| | outdoor | 1/1 |
+| Feedback | closer to, avoid, prefer, cheaper, later | 6/6 |
+| **All** | | **72/72** |
+
+The first run, before the fixes, was 14 of 22 on the cases that reached Gemma. Honest
+limits: 16 inputs is a small set written by the developer, not collected from real crews,
+and 72/72 is on the final answers only. Gemini returned "500 Internal error" on 4 of the 48
+calls that reached it (8%), and on one run the connection from Lagos dropped for 11 calls;
+the app already handles both by saying Gemma is busy and letting the person fill the form.
+Calls used: 48 that reached the API (under the 60 budget), plus 11 that failed before
+leaving the machine.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

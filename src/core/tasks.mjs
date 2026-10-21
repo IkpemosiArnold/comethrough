@@ -153,7 +153,7 @@ export function crewSetupMessages(prompt, { sentence }) {
 }
 
 /** Time-of-day words to a window. */
-export const DAYPARTS = { morning: ["09:00", "12:00"], afternoon: ["13:00", "17:00"], evening: ["17:00", "21:00"], night: ["19:00", "23:00"], daytime: ["11:00", "17:00"] };
+export const DAYPARTS = { morning: ["09:00", "12:00"], afternoon: ["13:00", "17:00"], evening: ["17:00", "21:00"], night: ["19:00", "23:00"], daytime: ["11:00", "17:00"], "after work": ["17:30", "21:00"], "after church": ["13:00", "17:00"] };
 /** The default window for a rhythm with no time: late afternoon, after the worst heat. */
 export const DEFAULT_WINDOW = { from: "15:00", to: "19:00" };
 
@@ -172,9 +172,14 @@ export function readCrewSetup(data, { sentence }) {
   const vibe = text(d.vibe, 80);
   const vibeTags = Array.isArray(d.vibeTags) ? [...new Set(d.vibeTags.map((/** @type {any} */ t) => String(t).toLowerCase().trim()).filter((/** @type {string} */ t) => VIBE_MATCHERS[t] || t === "games"))].slice(0, 6) : [];
   const budget = ["free", "cheap", "any"].includes(d.budget) ? d.budget : null;
-  const dayIdx = typeof d.day === "string" ? DAY_NAMES.findIndex((n) => n.toLowerCase().startsWith(d.day.toLowerCase().trim().slice(0, 3))) : -1;
+  let dayIdx = typeof d.day === "string" ? DAY_NAMES.findIndex((n) => n.toLowerCase().startsWith(d.day.toLowerCase().trim().slice(0, 3))) : -1;
+  // what the sentence plainly says wins when the model misses it ("every Saturday morning"
+  // came back with no "every" on 21 Oct 2026): code reads the rhythm words too
+  const said = everyIn(sentence);
+  const every = ["1w", "2w", "4w"].includes(d.every) ? d.every : said.every;
+  if (dayIdx < 0 && said.day != null) dayIdx = said.day;
   let rhythm = null;
-  if (["1w", "2w", "4w"].includes(d.every) && dayIdx >= 0) {
+  if (every && dayIdx >= 0) {
     const part = (/** @type {any} */ w) => (typeof w === "string" ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (w.toLowerCase().trim())] : null);
     let from = part(d.from)?.[0] ?? resolveTimeWords(d.from);
     let to = part(d.from)?.[1] ?? resolveTimeWords(d.to);
@@ -184,18 +189,19 @@ export function readCrewSetup(data, { sentence }) {
       filled.push("rhythm.window");
       notes.push("No time was given, so the window is 3 pm to 7 pm, after the worst heat.");
     }
-    rhythm = { every: d.every, day: dayIdx, window: { from, to } };
-  } else if (d.every || d.day) {
+    rhythm = { every, day: dayIdx, window: { from, to } };
+  } else if (every || d.day) {
     notes.push("The rhythm needs both how often and which day.");
   }
   // an area must be something the sentence actually says: one of its distinctive words at least
   // (the sentence says "Lekki", the model may say "Lekki Phase 1")
-  const said = ` ${norm(sentence)} `;
+  const words = ` ${norm(sentence)} `;
   const areas = (Array.isArray(d.areas) ? d.areas : []).map((/** @type {any} */ a) => text(a, 60)).filter(Boolean).filter((/** @type {string} */ a) => {
-    const ok = norm(a).split(" ").some((w) => w.length >= 3 && !/^(lagos|phase|estate|road|street|area|town|the)$/.test(w) && said.includes(` ${w} `));
+    const short = AREA_SHORT[norm(a)];
+    const ok = (short && short.some((x) => words.includes(` ${x} `))) || words.includes(` ${norm(a)} `) || norm(a).split(" ").some((w) => w.length >= 3 && !/^(lagos|phase|estate|road|street|area|town|the)$/.test(w) && words.includes(` ${w} `));
     if (!ok) notes.push(`Left out "${a}": the sentence does not mention it.`);
     return ok;
-  }).slice(0, 6);
+  }).map((/** @type {string} */ a) => AREA_FULL[norm(a)] ?? a).slice(0, 6);
   const confidence = {
     name: name ? c.name ?? 0.5 : 0,
     vibe: vibe ? c.vibe ?? 0.5 : 0,
@@ -204,8 +210,34 @@ export function readCrewSetup(data, { sentence }) {
   };
   if (name && groundedShare(name, sentence) < 0.5) confidence.name = Math.min(confidence.name, 0.4);
   // the budget falls back to a plain reading of the sentence, then to "any"
-  const budgetOut = budget ?? (/\b(cheap|broke|budget|low.?key)\b/i.test(sentence) ? "cheap" : /\bfree\b/i.test(sentence) ? "free" : "any");
+  const budgetOut = budget ?? (CHEAP_WORDS.test(sentence) ? "cheap" : /\bfree\b/i.test(sentence) ? "free" : "any");
   return { draft: { name, vibe, vibeTags, budget: budgetOut, rhythm, areaLabels: areas }, confidence, low: lowFields(confidence, filled), notes };
+}
+
+/** Money words, in English and Pidgin, that mean the crew wants it cheap. */
+export const CHEAP_WORDS = /\b(cheap|broke|budget|low.?key|no (?:get|too get|get much) money|nothing too (?:expensive|costly)|no (?:cost|go cost) (?:plenty|much|too much)|not too expensive|small money|make e no cost|e no too cost)\b/i;
+
+/** Short names Lagosians write, as the place a map knows ("VI" is Victoria Island). */
+const AREA_FULL = /** @type {Record<string, string>} */ ({ vi: "Victoria Island", "v i": "Victoria Island" });
+
+/** Short names Lagosians write for areas: "VI" is Victoria Island. */
+const AREA_SHORT = /** @type {Record<string, string[]>} */ ({ "victoria island": ["vi"], "lekki phase 1": ["lekki"], "lekki phase i": ["lekki"], "ikeja gra": ["gra"], "ikoyi": ["ikoyi"] });
+
+/**
+ * The rhythm words a sentence plainly says: "every other" (2w), "once a month" (4w),
+ * "every Saturday" or "weekly" (1w), and the one weekday it names. In English and Pidgin.
+ * @param {string} sentence
+ * @returns {{ every: "1w"|"2w"|"4w"|null, day: number|null }}
+ */
+export function everyIn(sentence) {
+  const t = ` ${String(sentence).toLowerCase()} `;
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const named = days.map((d, i) => (new RegExp(`\\b${d}(day|s|urday|nesday|sday|rsday|r)?\\b`).test(t) ? i : -1)).filter((i) => i >= 0);
+  const day = named.length === 1 ? named[0] : null;
+  if (/\bevery other\b|\bfortnight|\bevery two weeks\b|\bevery 2 weeks\b/.test(t)) return { every: "2w", day };
+  if (/\bonce a month\b|\bmonthly\b|\bevery month\b|\bonce every month\b/.test(t)) return { every: "4w", day };
+  if (/\bevery (sun|mon|tue|wed|thu|fri|sat)|\bweekly\b|\bevery week\b|\bevery weekend\b/.test(t)) return { every: "1w", day };
+  return { every: null, day };
 }
 
 const addHours = (/** @type {string} */ t, /** @type {number} */ h) => {
@@ -292,6 +324,18 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   }
   let time = resolveTimeWords(d.startTime);
   let timeConf = time ? c.time ?? 0.8 : 0;
+  // a typed message with one clear clock time ("Start 2pm") is read by code when the model
+  // misses it (on 21 Oct 2026 Gemma answered "2nd" for that, from "Sat 31st")
+  if (!time && t && !image) {
+    const clock = [...t.matchAll(/\b(\d{1,2})(?:[:.](\d{2}))?\s?(am|pm)\b/gi)];
+    if (clock.length === 1) {
+      time = resolveTimeWords(clock[0][0]);
+      if (time) {
+        timeConf = 0.7;
+        notes.push(`Read the time as ${time} from "${clock[0][0]}".`);
+      }
+    }
+  }
   if (time && isAmbiguousTime(d.startTime)) {
     timeConf = Math.min(timeConf, 0.55);
     notes.push(`Read "${d.startTime}" as ${time}.`);
@@ -345,6 +389,14 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     notes.push("Used the event details the page publishes.");
   }
 
+  // what to bring must be in what was shared: on 21 Oct 2026 Gemma answered "a bottle" for
+  // "carry your own drink", copying the prompt's own example
+  const bring = (Array.isArray(d.bring) ? d.bring : []).map((/** @type {any} */ b) => text(b, 60)).filter(Boolean).filter((/** @type {string} */ b) => {
+    if (!checkable || groundedShare(b, source) >= 0.5) return true;
+    notes.push(`Left out "${b}" from what to bring: the message does not say it.`);
+    return false;
+  }).slice(0, 10);
+
   const atHost = d.atHost === true;
   let kind = ["found", "hosted", "quick"].includes(d.kind) ? d.kind : atHost ? "hosted" : url || image ? "found" : "quick";
   if (atHost) kind = "hosted";
@@ -371,7 +423,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     price: priceText || free ? { text: priceText ?? "Free", free } : null,
     host: selfHosted ? member.id : null,
     hostName: selfHosted ? null : hostName,
-    bring: (Array.isArray(d.bring) ? d.bring : []).map((/** @type {any} */ b) => text(b, 60)).filter(Boolean).slice(0, 10),
+    bring,
     source: { ...(t ? { text: t.slice(0, 2000) } : {}), ...(url ? { url } : {}), ...(image ? { image: true } : {}) },
   };
   const confidence = {

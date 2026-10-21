@@ -1,0 +1,405 @@
+{
+ "answers": {
+  "crew-office-vi": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "name": "the office crew",
+    "vibe": "drinks, nothing too expensive",
+    "vibeTags": [
+     "drinks"
+    ],
+    "budget": "cheap",
+    "every": "1w",
+    "day": "Friday",
+    "from": "after work",
+    "to": null,
+    "areas": [
+     "VI",
+     "Ikoyi"
+    ],
+    "confidence": {
+     "name": 1,
+     "vibe": 1,
+     "rhythm": 1,
+     "areas": 1
+    }
+   }
+  },
+  "crew-gym-lekki": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "name": "Gym padi dem",
+    "vibe": "after training we go chop together",
+    "vibeTags": [
+     "food"
+    ],
+    "budget": null,
+    "every": "1w",
+    "day": "Saturday",
+    "from": "morning",
+    "to": null,
+    "areas": [
+     "Lekki Phase 1"
+    ],
+    "confidence": {
+     "name": 1,
+     "vibe": 1,
+     "rhythm": 1,
+     "areas": 1
+    }
+   }
+  },
+  "plan-olisa-monopoly": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "hosted",
+    "title": "wine and monopoly",
+    "dateWords": "Friday",
+    "date": "2026-10-23",
+    "startTime": "7",
+    "endTime": null,
+    "atHost": true,
+    "venueName": null,
+    "address": null,
+    "outdoor": false,
+    "priceText": null,
+    "free": null,
+    "hostName": "Olisa",
+    "bring": [
+     "your own drink"
+    ],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 1,
+     "place": 1,
+     "price": 0,
+     "host": 1
+    }
+   }
+  },
+  "fb-closer-ikeja": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "closerTo": "Ikeja",
+    "avoid": [
+     "Lekki"
+    ],
+    "prefer": [],
+    "budget": null,
+    "time": null,
+    "confidence": {
+     "closerTo": 1,
+     "avoid": 1,
+     "prefer": 0,
+     "budget": 0,
+     "time": 0
+    }
+   }
+  },
+  "fb-shade-cheaper": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "closerTo": null,
+    "avoid": [],
+    "prefer": [
+     "shade"
+    ],
+    "budget": "cheaper",
+    "time": null,
+    "confidence": {
+     "closerTo": 0,
+     "avoid": 0,
+     "prefer": 1,
+     "budget": 1,
+     "time": 0
+    }
+   }
+  },
+  "fb-no-freedom-later": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "closerTo": null,
+    "avoid": [
+     "Freedom Park"
+    ],
+    "prefer": [],
+    "budget": null,
+    "time": "later",
+    "confidence": {
+     "closerTo": 0,
+     "avoid": 1,
+     "prefer": 0,
+     "budget": 0,
+     "time": 1
+    }
+   }
+  },
+  "crew-yaba-sunday": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "name": "the Yaba boys",
+    "vibe": "somewhere cool outside",
+    "vibeTags": [
+     "outside",
+     "chill"
+    ],
+    "budget": null,
+    "every": "2w",
+    "day": "Sunday",
+    "from": null,
+    "to": null,
+    "areas": [
+     "Yaba",
+     "Surulere"
+    ],
+    "confidence": {
+     "name": 1,
+     "vibe": 1,
+     "rhythm": 1,
+     "areas": 1
+    }
+   }
+  },
+  "crew-uni-babes": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "name": "My babes from uni",
+    "vibe": "food and gist",
+    "vibeTags": [
+     "food"
+    ],
+    "budget": null,
+    "every": "4w",
+    "day": "Saturday",
+    "from": "evening",
+    "to": null,
+    "areas": [
+     "Ikeja"
+    ],
+    "confidence": {
+     "name": 1,
+     "vibe": 1,
+     "rhythm": 1,
+     "areas": 1
+    }
+   }
+  },
+  "crew-church-ajah": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "name": "Church youth guys",
+    "vibe": null,
+    "vibeTags": [],
+    "budget": "cheap",
+    "every": null,
+    "day": null,
+    "from": null,
+    "to": null,
+    "areas": [
+     "Ajah",
+     "Sangotedo"
+    ],
+    "confidence": {
+     "name": 1,
+     "vibe": 0,
+     "rhythm": 0,
+     "areas": 1
+    }
+   }
+  },
+  "plan-link-up-lekki": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "quick",
+    "title": "link up",
+    "dateWords": "Saturday",
+    "date": "2026-10-24",
+    "startTime": null,
+    "endTime": null,
+    "atHost": false,
+    "venueName": null,
+    "address": "Lekki",
+    "outdoor": null,
+    "priceText": null,
+    "free": null,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 0,
+     "place": 1,
+     "price": 0,
+     "host": 0
+    }
+   }
+  },
+  "plan-afrobeats-eko": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "found",
+    "title": "Afrobeats rave",
+    "dateWords": "Saturday night",
+    "date": "2026-10-24",
+    "startTime": null,
+    "endTime": null,
+    "atHost": false,
+    "venueName": "Eko Hotels",
+    "address": null,
+    "outdoor": null,
+    "priceText": null,
+    "free": null,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 0,
+     "place": 1,
+     "price": 0,
+     "host": 0
+    }
+   }
+  },
+  "plan-suya-glover": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "quick",
+    "title": "Suya for Glover Court",
+    "dateWords": "tonight",
+    "date": "2026-10-21",
+    "startTime": "8",
+    "endTime": null,
+    "atHost": false,
+    "venueName": null,
+    "address": "Glover Court",
+    "outdoor": null,
+    "priceText": "3k per person",
+    "free": false,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 1,
+     "place": 1,
+     "price": 1,
+     "host": 0
+    }
+   }
+  },
+  "plan-elegushi-sunday": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "found",
+    "title": "go Elegushi beach",
+    "dateWords": "Sunday afternoon",
+    "date": "2026-10-25",
+    "startTime": null,
+    "endTime": null,
+    "atHost": false,
+    "venueName": "Elegushi beach",
+    "address": "Elegushi beach",
+    "outdoor": true,
+    "priceText": "2k",
+    "free": false,
+    "hostName": null,
+    "bring": [
+     "towel"
+    ],
+    "confidence": {
+     "title": 1,
+     "date": 0.8,
+     "time": 0,
+     "place": 1,
+     "price": 1,
+     "host": 0
+    }
+   }
+  },
+  "plan-nike-free": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "found",
+    "title": "Art exhibition",
+    "dateWords": "this Saturday",
+    "date": "2026-10-24",
+    "startTime": "12pm",
+    "endTime": null,
+    "atHost": false,
+    "venueName": "Nike Art Gallery",
+    "address": "Lekki",
+    "outdoor": null,
+    "priceText": "free entry",
+    "free": true,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 1,
+     "place": 1,
+     "price": 1,
+     "host": 0
+    }
+   }
+  },
+  "plan-movie-my-place": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "hosted",
+    "title": "Movie night",
+    "dateWords": "Sunday",
+    "date": "2026-10-25",
+    "startTime": "6",
+    "endTime": null,
+    "atHost": true,
+    "venueName": null,
+    "address": null,
+    "outdoor": false,
+    "priceText": null,
+    "free": null,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 1,
+     "place": 1,
+     "price": 0,
+     "host": 0
+    }
+   }
+  },
+  "plan-owambe-gra": {
+   "model": "gemma-4-26b-a4b-it",
+   "data": {
+    "kind": "found",
+    "title": "My cousin wedding",
+    "dateWords": "Sat 31st Oct",
+    "date": "2026-10-31",
+    "startTime": "2pm",
+    "endTime": null,
+    "atHost": false,
+    "venueName": null,
+    "address": "Ikeja GRA",
+    "outdoor": null,
+    "priceText": null,
+    "free": null,
+    "hostName": null,
+    "bring": [],
+    "confidence": {
+     "title": 1,
+     "date": 1,
+     "time": 1,
+     "place": 1,
+     "price": 0,
+     "host": 0
+    }
+   }
+  }
+ },
+ "recordedAt": "2026-10-21",
+ "model": "gemma-4-26b-a4b-it"
+}

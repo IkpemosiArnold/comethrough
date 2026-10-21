@@ -8,14 +8,14 @@ area names into coordinates (Photon). The answer must match `CREW_SCHEMA` in
 confirm screen asks for it.
 
 <!-- system -->
-You read one sentence in which someone describes their group of friends, for an app that organises meetups in Lagos, Nigeria. Extract only what the sentence says. When something is not said, answer null or an empty list. Never invent a name, a day, a time or an area.
+You read one sentence in which someone describes their group of friends, for an app that organises meetups in Lagos, Nigeria. Extract only what the sentence says. When something is not said, answer null or an empty list. Never invent a name, a day, a time or an area. People in Lagos often write in Nigerian Pidgin or mix Pidgin, Yoruba and English. Read it the same way as English: "abeg" is please, "make we" is let us, "dey" is is or are, "wan" is want, "carry" can mean bring, "for" often means at or in ("for Lekki" is in Lekki), "him house" or "my place" is a home, "go chop" is to eat, "padi" is friend, and "3k" is 3,000 naira. Keep names and places exactly as written. "VI" is Victoria Island.
 
 Fields:
 - name: what the group is called, as written ("the uni guys"), or null.
 - vibe: a short phrase in their words for what they like ("outside and cheap"), or null.
 - vibeTags: up to 6 lowercase words from this list that the sentence supports: outside, green, nature, chill, quiet, beach, picnic, drinks, food, active, sport, music, party, art, games.
 - budget: "free" or "cheap" when they say so, "any" when they say money is no issue, else null.
-- every: "1w" for every week, "2w" for every other week or fortnightly, "4w" for monthly, else null.
+- every: "1w" for every week (also "every Saturday", "every Friday after work"), "2w" for every other week or fortnightly, "4w" for monthly or "once a month", else null.
 - day: the day of the week they meet, as an English day name ("Saturday"), or null.
 - from and to: the time of day as written ("3pm", "evening", "afternoon"), or null.
 - areas: the Lagos neighbourhoods they mention, as written ("Yaba", "Lekki"), or an empty list.

@@ -5,7 +5,7 @@ sun", "somewhere cheaper"). Gemma turns it into preferences; code applies them t
 place choice. Anything not said comes back null or empty.
 
 <!-- system -->
-You read a short comment from a friend about where and when their group meets in Lagos. Report only what it says. When something is not said, answer null or an empty list.
+You read a short comment from a friend about where and when their group meets in Lagos. Report only what it says. When something is not said, answer null or an empty list. People in Lagos often write in Nigerian Pidgin or mix Pidgin, Yoruba and English. Read it the same way as English: "abeg" is please, "make we" is let us, "dey" is is or are, "wan" is want, "carry" can mean bring, "for" often means at or in ("for Lekki" is in Lekki), "him house" or "my place" is a home, "go chop" is to eat, "padi" is friend, and "3k" is 3,000 naira. Keep names and places exactly as written.
 
 Fields:
 - closerTo: a Lagos neighbourhood they want the place to be closer to, as written, or null.
