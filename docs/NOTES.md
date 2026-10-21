@@ -29,6 +29,57 @@ What this settles from the research:
 - No fallback model is needed for vision. `GEMMA_VISION_MODEL` exists if one is ever wanted.
 - The public Overpass instances cannot be relied on at request time. Overpass runs only in the heartbeat, is cached for a week, and the curated spots cover the ritual when it fails.
 
+## Integration run, Wed 21 Oct 2026 (afternoon)
+
+The backend and the web app were built in parallel against the spec. This run joined them
+and drove the real app over HTTP, first with `OFFLINE=1`, then live (Gemma
+gemma-4-26b-a4b-it, Photon, Overpass, Open-Meteo), with `scripts/e2e.mjs`.
+
+The flow: a crew from one sentence; Tolu (Yaba, the organiser), Amaka (Lekki Phase 1),
+Seyi (Surulere) and Bayo (Ikeja) join; plans arrive as a sentence ("wine and monopoly at
+mine friday 7, bring a bottle"), a made-up flyer (`test/fixtures/flyer-mango-yard.png`:
+"Highlife Under Mangoes", The Mango Yard, Surulere, Sat 31 Oct, 5pm, gate N3,000), a public
+Eventbrite page, and an Instagram link; RSVPs; pods; the feed and one event file checked
+against RFC 5545 (`scripts/ics-check.mjs`); two heartbeats.
+
+| Step | Live result |
+|---|---|
+| Crew sentence | 3.7 to 6.3 s; name, every other Saturday, vibe, three areas geocoded by Photon |
+| Sentence plan | 3.6 s; hosted, Friday 19:00 (flagged), host Tolu, bring a bottle |
+| Flyer plan | 5.7 to 11 s; every field right; address not on the map, so ride times and weather use Surulere. Once Gemma took over 25 s and the draft came back empty: the screen now says "Over to you" with "Try Gemma again" |
+| Event link | 4.4 to 5.9 s; the page's own event data (Sat 24 Oct 13:00 to 15:00), pinned at the Sheraton, Ikeja; flyer image from og:image |
+| Instagram link | 422 `link_locked` in 2 ms, no Gemma call |
+| Pods | Seyi to Tolu's: 14 min from Surulere; Amaka: 103 min from Lekki on a Friday evening, across the bridge; Uber link `m.uber.com/looking?drop[0]=...` on pinned plans only |
+| Calendar | feed: 3 events, every line 75 octets or less, 9 folded, escaping correct, ETag 304; event.ics: one event with an alarm |
+| Heartbeat | tick 1 made the ritual in 44 s (Overpass at capacity, the curated spots carried it); tick 2 made nothing |
+| Rain | Saturday 3 to 7 pm forecast up to 95% rain, so the ritual moved to 8 to 10 am (34%) with the note "Rain is likely from 3 pm to 7 pm (up to 95%), so the sloth moved it to 8 am to 10 am..." |
+| Web Push | headless Chrome subscribed through FCM; a new plan by another member arrived as a notification (`scripts/push-check.mjs`) |
+
+Bugs found and fixed, each with a test:
+
+- **The ritual never came for an active crew.** Any plan within half a cycle blocked it, so
+  an indoor Friday wine night cancelled Saturday in the park. Now only a plan in the slot's
+  own hours, or an outdoor plan in the cycle, counts.
+- **A wet ritual just went out wet.** Now `ritualWindow` moves it to a dry daylight stretch
+  that day, else the next day, else keeps the least wet hours and says so (`rainPlan`).
+- **The heartbeat could take 166 s**, past Cloudflare's 100 s, when Overpass was down (90 s
+  budget, tried at two radii). Now 40 s, one try per tick.
+- **Member names went to Google** in the ritual's explanation. Now only neighbourhoods and
+  minutes.
+- **Instagram links spent a Gemma call** on an empty page. Now `link_locked`, no call.
+- **Unpinned places had no ride times and a silent failure.** The note was dropped; now the
+  person is told, and the neighbourhood in the address (or the host's area) gives ride times
+  and weather, never a ride link.
+- **Flyer thumbnails never reached the server**: the web app did not send `thumb`. It now
+  sends a 480 px JPEG.
+- **Crew drafts lost the server's notes** in the web client, and the rhythm note said
+  "couldn't find a regular day" when only the time was guessed.
+- Smaller: "wine and monopoly" now gets a capital; shouted hosts and prices are calmed;
+  repeated address parts go; "Dry" only below 20% rain ("Mostly dry (34%)" otherwise);
+  invites say "8 am to 10 am"; a pod from two areas says both; no "Copy address" when there
+  is no address; an Android phone is never taken for an iPad; no marker animation under
+  reduced motion; invalid `ALLOWED_ORIGINS` entries no longer crash the server at boot.
+
 ## Curated Lagos spots (data/lagos-spots.json)
 
 Built by `node scripts/build-spots.mjs` on 21 Oct 2026: 26 spots, every coordinate from a Photon or Overpass lookup, with the service, query, OSM id and date recorded. Only meetup-shaped OSM classes and full name matches are accepted. Overpass knows only 27 named parks and beaches in the whole of Lagos, and most are labels like "bbc", "open space" or a hotel; six were kept after review.
@@ -39,24 +90,23 @@ Not found in OSM under their names, so left out rather than guessed: Elegushi Be
 
 ```sh
 npm install
-npm test               # 90 tests: core, adapters (fakes and a local HTTP server), service, API end to end
+npm test               # 99 tests: core, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
 npm run smoke          # the live calls above (needs GEMINI_API_KEY)
+npm run e2e -- <base> <event link>          # the whole flow over HTTP (scripts/e2e.mjs)
+node scripts/push-check.mjs <base>          # real Web Push through headless Chrome and FCM
+node scripts/screens-real.mjs <base> docs/screens/real <event link>   # screenshots on live data
 ```
 
 The web dev server (Vite) proxies `/api`, `/cal` and `/healthz` to port 3000.
 
 The MongoDB store has its own test, run against a real server when `MONGODB_URI_TEST` is set (`docker run -d --rm -p 127.0.0.1:27027:27017 mongo:8.0`, then `MONGODB_URI_TEST=mongodb://127.0.0.1:27027 npm test`). On 21 Oct it passed against MongoDB 8.0, and a full offline run of the server on MongoDB (create a crew, parse a plan, tick a ritual) worked. That run also caught two bugs, both fixed and tested: "monopoly" was read as Monday by the date-word resolver, and with only the organiser joined the ritual centred on that one member instead of the crew's declared areas.
 
-## Deploying (checklist)
+## Deploying
 
-1. MongoDB Atlas: a free cluster in eu-central-1 (Frankfurt); copy the connection string.
-2. Render: connect the repo; render.yaml creates one free Node service in Frankfurt. Set `PUBLIC_URL`, `GEMINI_API_KEY`, `MONGODB_URI`, and the VAPID keys (`npx web-push generate-vapid-keys`). `TICK_SECRET` is generated.
-3. After the first deploy: `curl -H 'X-Forwarded-For: 1.2.3.4' $PUBLIC_URL/healthz` must show your own address in `you`. If it shows a Render or Cloudflare address, adjust `TRUST_PROXY_HOPS`.
-4. GitHub: repository secret `TICK_SECRET` (the value from Render) and variable `COMETHROUGH_URL`. Run the "tick" workflow once by hand to check.
-5. Custom domain: point comethrough.tech at the Render service; set `PUBLIC_URL` to it.
+Exact steps, checks after deploy and the phone checklist: [DEPLOY.md](DEPLOY.md).
 
 ## Design notes
 
@@ -69,7 +119,13 @@ The MongoDB store has its own test, run against a real server when `MONGODB_URI_
 
 ## Open items
 
-- Real-phone checks: the m.uber.com/looking link with drop[0] in Lagos (Android and iPhone), Web Push on Android Chrome and on an installed iPhone app, and webcal subscription on iPhone.
-- The free Gemma quota is unpublished (a third-party source says 15 requests a minute). The server allows 20 Gemma calls a minute in total and 8 per visitor; watch for 429s in the logs.
+- Real-phone checks (listed in DEPLOY.md, step 6): Web Push on Android Chrome and on an
+  installed iPhone app, the Uber link with `drop[0]` in Lagos, Bolt, the one-event file,
+  webcal on iPhone, the Android share target, an iPhone HEIC flyer, and voice input.
+- The free Gemma quota is unpublished (a third-party source says 15 requests a minute). The
+  server allows 20 Gemma calls a minute in total and 8 per visitor; watch for 429s in the
+  logs. A vision call took over 25 s once in six tries on 21 Oct.
+- Eventbrite's page gave the bot a USD price ("USD 42.39") for a Lagos event priced in naira
+  on its flyer. The draft is editable, but a note could flag a foreign currency.
 - SerpApi (events near the crew) is not built.
 - No email or account recovery by design: losing the member link means joining again. A "send me my link" option could come later.
