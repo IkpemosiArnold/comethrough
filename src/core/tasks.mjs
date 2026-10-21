@@ -162,9 +162,11 @@ export function readCrewSetup(data, { sentence }) {
   } else if (d.every || d.day) {
     notes.push("The rhythm needs both how often and which day.");
   }
-  // an area must be something the sentence actually says
+  // an area must be something the sentence actually says: one of its distinctive words at least
+  // (the sentence says "Lekki", the model may say "Lekki Phase 1")
+  const said = ` ${norm(sentence)} `;
   const areas = (Array.isArray(d.areas) ? d.areas : []).map((/** @type {any} */ a) => text(a, 60)).filter(Boolean).filter((/** @type {string} */ a) => {
-    const ok = groundedShare(a, sentence) >= 0.5;
+    const ok = norm(a).split(" ").some((w) => w.length >= 3 && !/^(lagos|phase|estate|road|street|area|town|the)$/.test(w) && said.includes(` ${w} `));
     if (!ok) notes.push(`Left out "${a}": the sentence does not mention it.`);
     return ok;
   }).slice(0, 6);

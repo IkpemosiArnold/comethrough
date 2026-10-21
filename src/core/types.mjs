@@ -20,6 +20,7 @@
  * @property {string} name
  * @property {string|null} vibe
  * @property {string[]} [vibeTags]
+ * @property {"free"|"cheap"|"any"} [budget]
  * @property {Rhythm|null} rhythm
  * @property {Area[]} areas
  * @property {string} createdAt

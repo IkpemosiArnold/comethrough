@@ -134,7 +134,7 @@ async function nominatim(q, extra = {}) {
 async function overpassHarvest() {
   const bbox = "6.38,3.05,6.72,3.75";
   const q = `[out:json][timeout:60];(nwr["leisure"~"^(park|garden|nature_reserve|recreation_ground)$"]["name"](${bbox});nwr["natural"="beach"]["name"](6.38,2.70,6.72,4.10););out center tags 400;`;
-  const url = cfg.overpassUrl.split(",")[0];
+  const url = cfg.overpassUrls[0];
   const json = await fetchJson(url, { method: "POST", headers: { ...UA, "content-type": "application/x-www-form-urlencoded" }, body: `data=${encodeURIComponent(q)}`, timeoutMs: 90000, retries: 2, backoffMs: 3000 });
   const generic = /^(park|garden|playground|recreation ground|children'?s? park|green area|open space)$/i;
   return (json.elements || [])

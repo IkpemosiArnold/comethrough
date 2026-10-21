@@ -37,7 +37,7 @@ const list = (/** @type {string|undefined} */ v) => String(v || "").split(",").m
  * @param {NodeJS.ProcessEnv} [env]
  */
 export function config(env = process.env) {
-  const port = num(env.PORT, 8790);
+  const port = num(env.PORT, 3000);
   const publicUrl = (env.PUBLIC_URL || `http://localhost:${port}`).replace(/\/+$/, "");
   return {
     port,
@@ -63,7 +63,8 @@ export function config(env = process.env) {
       photonUrl: env.PHOTON_URL || "https://photon.komoot.io",
       countryCodes: env.GEOCODE_COUNTRY || "ng",
     },
-    overpassUrl: env.OVERPASS_URL || "https://overpass-api.de/api/interpreter",
+    /** comma-separated; the second is tried when the first is at capacity */
+    overpassUrls: list(env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter"),
     openMeteoUrl: env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast",
     /** sent in User-Agent to OpenStreetMap services, as their usage policies ask */
     contact: env.CONTACT || "https://github.com/IkpemosiArnold/comethrough",
@@ -72,6 +73,11 @@ export function config(env = process.env) {
     trustProxyHops: num(env.TRUST_PROXY_HOPS, env.RENDER ? 3 : 0),
     imageMaxBytes: num(env.IMAGE_MAX_BYTES, 5 * 1024 * 1024),
     uidDomain: env.UID_DOMAIN || "comethrough.tech",
+    /** the built web app, served by this server when the folder exists (one origin, no CORS needed) */
+    staticDir: path.resolve(env.STATIC_DIR || "web/dist"),
+    vapid: { publicKey: env.VAPID_PUBLIC_KEY || "", privateKey: env.VAPID_PRIVATE_KEY || "", subject: env.VAPID_SUBJECT || "mailto:hello@comethrough.tech" },
+    /** OFFLINE=1: fake geocoding, places, weather, links and a regex stand-in for Gemma (UI work with no keys or network) */
+    offline: env.OFFLINE === "1" || env.OFFLINE === "true",
     /** "looking" (m.uber.com/looking, the documented link) or "legacy" (m.uber.com/ul) */
     uberLinkStyle: /** @type {"looking"|"legacy"} */ (env.UBER_LINK_STYLE === "legacy" ? "legacy" : "looking"),
   };

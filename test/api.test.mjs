@@ -1,0 +1,314 @@
+// @ts-check
+// The HTTP API end to end over real HTTP, with every outside service faked and the clock
+// fixed at Wednesday 21 Oct 2026, 10:00 in Lagos.
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { after, before, test } from "node:test";
+import { config } from "../src/config.mjs";
+import { createService } from "../src/app/service.mjs";
+import { makeIds } from "../src/app/ids.mjs";
+import { loadPrompts } from "../src/app/prompts.mjs";
+import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather, OFFLINE_ANSWERS } from "../src/adapters/fakes.mjs";
+import { memoryStore } from "../src/adapters/store.mjs";
+import { clientIp } from "../src/server/http.mjs";
+import { createApi } from "../src/server/server.mjs";
+import { PLACES } from "./fixtures/lagos.mjs";
+
+let clock = Date.parse("2026-10-21T09:00:00Z");
+const now = () => clock;
+const WINE = "wine and monopoly at mine friday 7, bring a bottle";
+const answers = {
+  ...OFFLINE_ANSWERS,
+  "parse-crew": { name: "the uni guys", vibe: "outside and cheap", vibeTags: ["outside", "chill"], budget: "cheap", every: "2w", day: "Saturday", from: "3pm", to: "7pm", areas: ["Yaba", "Lekki"], confidence: { name: 0.9, vibe: 0.9, rhythm: 0.9, areas: 0.9 } },
+  "parse-plan": (/** @type {string} */ user) =>
+    user.includes("wine")
+      ? { kind: "hosted", title: "Wine and monopoly", dateWords: "friday", date: "2026-10-23", startTime: "7", endTime: null, atHost: true, venueName: null, address: null, outdoor: false, priceText: null, free: null, hostName: null, bring: ["a bottle"], confidence: { title: 0.9, date: 0.9, time: 0.8, place: 0.8, price: 0, host: 0.9 } }
+      : { kind: "found", title: "Beach day", dateWords: "saturday", date: null, startTime: "2pm", endTime: "6pm", atHost: false, venueName: "Tarkwa Bay", address: null, outdoor: true, priceText: null, free: null, hostName: null, bring: [], confidence: { title: 0.8, date: 0.8, time: 0.9, place: 0.8, price: 0, host: 0 } },
+  "explain-pick": { why: "Freedom Park sits in the middle, so nobody crosses the whole city." },
+  "write-invite": { invite: "Saturday at Freedom Park, 16:00 to 19:00. Come through if you can, no need to reply." },
+};
+const ai = fakeAi({ answers });
+const push = fakePush();
+const store = memoryStore();
+let rainy = false;
+const weather = fakeWeather({ rain: (_d, h) => (rainy ? 90 : h >= 12 && h <= 14 ? 60 : 10) });
+let base = "";
+/** @type {import("node:http").Server} */
+let server;
+let webDir = "";
+
+before(async () => {
+  webDir = await fs.mkdtemp(path.join(os.tmpdir(), "ct-web-"));
+  await fs.writeFile(path.join(webDir, "index.html"), "<!doctype html><title>Come Through</title>");
+  const cfg = { ...config({ PUBLIC_URL: "https://api.comethrough.test", WEB_URL: "https://comethrough.test", WEB_ORIGIN: "https://comethrough.test", TICK_SECRET: "s3cret-tick", STATIC_DIR: webDir }), imageMaxBytes: 4096 };
+  const service = createService({
+    store, ai, push, weather, now,
+    geocoder: fakeGeocoder(),
+    places: fakeOverpass([PLACES.freedom, PLACES.jakande, PLACES.muri]),
+    pages: fakePageMeta(),
+    spots: [],
+    prompts: loadPrompts(),
+    ids: makeIds(),
+    cfg,
+  });
+  server = createApi({ service, cfg, now });
+  await new Promise((r) => server.listen(0, "127.0.0.1", () => r(null)));
+  base = `http://127.0.0.1:${/** @type {any} */ (server.address()).port}`;
+});
+after(async () => {
+  server.close();
+  await fs.rm(webDir, { recursive: true });
+});
+
+/** @param {string} method @param {string} p @param {{ token?: string, body?: any, headers?: Record<string,string>, raw?: any }} [o] */
+async function call(method, p, { token, body, headers = {}, raw } = {}) {
+  const h = { ...headers };
+  if (token) h.authorization = `Bearer ${token}`;
+  if (body !== undefined) h["content-type"] = "application/json";
+  const res = await fetch(base + p, { method, headers: h, body: raw ?? (body !== undefined ? JSON.stringify(body) : undefined) });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {}
+  return { status: res.status, json, text, headers: res.headers };
+}
+
+/** state shared by the steps below, which run in order */
+const S = /** @type {any} */ ({});
+
+test("start a crew: Gemma's draft, then confirm with the organiser joining", async () => {
+  const d = await call("POST", "/api/crews", { body: { sentence: "the uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki" } });
+  assert.equal(d.status, 200);
+  assert.deepEqual(d.json.draft.rhythm, { every: "2w", day: 6, window: { from: "15:00", to: "19:00" } });
+  assert.deepEqual(d.json.draft.areas.map((/** @type {any} */ a) => a.label), ["Yaba", "Lekki"]);
+  assert.ok(d.json.draft.areas.every((/** @type {any} */ a) => typeof a.lat === "number"));
+  const c = await call("POST", "/api/crews", { body: { confirm: d.json.draft, organiser: { name: "Tolu", area: "Yaba" } } });
+  assert.equal(c.status, 201);
+  assert.match(c.json.crew.slug, /^the-uni-guys-[0-9a-z]{4}$/);
+  assert.equal(c.json.inviteUrl, `https://comethrough.test/c/${c.json.crew.slug}?t=${encodeURIComponent(c.json.inviteToken)}`);
+  assert.ok(c.json.memberToken.length >= 32);
+  assert.match(c.json.webcalUrl, /^webcal:\/\/api\.comethrough\.test\/cal\/[A-Za-z0-9_-]+\.ics$/);
+  Object.assign(S, { slug: c.json.crew.slug, invite: c.json.inviteToken, tolu: c.json.memberToken, toluId: c.json.member.id, cal: c.json.calendarUrl });
+});
+
+test("join with the invite link, using a picked area", async () => {
+  const areas = await call("GET", "/api/areas?q=Lek");
+  assert.equal(areas.json.results[0].label, "Lekki Phase 1");
+  const j = await call("POST", `/api/crews/${S.slug}/members`, { token: S.invite, body: { name: "Kene", area: areas.json.results[0] } });
+  assert.equal(j.status, 201);
+  assert.deepEqual(j.json.member.area, { label: "Lekki Phase 1" }, "coordinates are not echoed to the crew");
+  S.kene = j.json.memberToken;
+  S.keneId = j.json.member.id;
+  const ada = await call("POST", `/api/crews/${S.slug}/members`, { token: S.invite, body: { name: "Ada", area: "Yaba" } });
+  S.ada = ada.json.memberToken;
+  S.adaId = ada.json.member.id;
+  assert.equal((await call("POST", `/api/crews/${S.slug}/members`, { token: S.invite, body: { name: "  " } })).status, 400);
+});
+
+test("auth: no token, a wrong token, another crew's token", async () => {
+  assert.equal((await call("GET", `/api/crews/${S.slug}`)).status, 401);
+  const wrong = await call("GET", `/api/crews/${S.slug}`, { token: "nope" });
+  assert.equal(wrong.status, 403);
+  assert.match(wrong.json.error.message, /stopped working/);
+  assert.equal((await call("GET", "/api/crews/no-such-crew", { token: S.invite })).status, 404);
+  assert.equal((await call("GET", "/api/nothing")).status, 404);
+  assert.equal((await call("PUT", `/api/crews/${S.slug}`)).status, 405);
+});
+
+test("a hosted plan from one sentence: draft, confirm, and the private address", async () => {
+  const p = await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.tolu, body: { text: WINE } });
+  assert.equal(p.status, 200);
+  assert.equal(p.json.draft.start, "2026-10-23T19:00:00+01:00");
+  assert.equal(p.json.draft.host, S.toluId);
+  assert.ok(p.json.low.includes("start"), "a bare 7 is highlighted");
+  assert.ok(p.json.notes.includes('Read "7" as 19:00.'));
+  const guestParse = await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.invite, body: { text: WINE } });
+  assert.equal(guestParse.status, 403);
+  const draft = { ...p.json.draft, place: { ...p.json.draft.place, address: "12 Herbert Macaulay Way, Yaba" } };
+  const c = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: draft } });
+  assert.equal(c.status, 201);
+  S.wine = c.json.plan.id;
+  assert.equal(c.json.plan.you, "going", "the host is going");
+  assert.match(c.json.plan.eventIcsUrl, /\/api\/plans\/p_[a-z0-9]+\/event\.ics\?t=/);
+  const asGuest = await call("GET", `/api/crews/${S.slug}`, { token: S.invite });
+  const gp = asGuest.json.plans.find((/** @type {any} */ x) => x.id === S.wine);
+  assert.equal(gp.place.address, null);
+  assert.equal(gp.place.hidden, true);
+  assert.ok(!asGuest.text.includes("Herbert Macaulay"));
+  assert.equal(asGuest.json.you, null);
+  const asMember = await call("GET", `/api/crews/${S.slug}`, { token: S.kene });
+  assert.equal(asMember.json.plans.find((/** @type {any} */ x) => x.id === S.wine).place.address, "12 Herbert Macaulay Way, Yaba");
+  assert.equal(asMember.json.you.name, "Kene");
+  assert.equal(asMember.json.members.length, 3);
+  // a bad draft names its fields
+  const bad = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: { title: "", start: "friday" } } });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(bad.json.error.fields.map((/** @type {any} */ f) => f.field).sort(), ["start", "title"]);
+});
+
+test("push: subscribe, then new plans and pods buzz the right people once", async () => {
+  const sub = (/** @type {string} */ n) => ({ subscription: { endpoint: `https://push.example/${n}`, keys: { p256dh: "BKey", auth: "auth" } } });
+  assert.equal((await call("POST", `/api/members/${S.keneId}/push-subscription`, { token: S.kene, body: sub("kene") })).status, 204);
+  assert.equal((await call("POST", `/api/members/${S.adaId}/push-subscription`, { token: S.ada, body: sub("ada") })).status, 204);
+  assert.equal((await call("POST", `/api/members/${S.adaId}/push-subscription`, { token: S.kene, body: sub("x") })).status, 403, "only for yourself");
+  assert.equal((await call("GET", "/api/push/key")).json.publicKey, "BFakePublicKeyForTests");
+  push.sent.length = 0;
+  // a found plan with an image upload (multipart)
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64)]);
+  const form = new FormData();
+  form.append("text", "beach day saturday");
+  form.append("image", new Blob([png], { type: "image/png" }), "flyer.png");
+  const parsed = await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.tolu, raw: form });
+  assert.equal(parsed.status, 200);
+  assert.deepEqual(ai.calls.at(-1).messages[1].images[0].mimeType, "image/png");
+  assert.equal(parsed.json.draft.start, "2026-10-24T14:00:00+01:00");
+  assert.equal(parsed.json.draft.place.outdoor, true);
+  const created = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: { ...parsed.json.draft, place: { ...parsed.json.draft.place, lat: 6.3999, lon: 3.3956 } } } });
+  S.beach = created.json.plan.id;
+  assert.deepEqual(push.sent.map((m) => m.endpoint).sort(), ["https://push.example/ada", "https://push.example/kene"]);
+  assert.match(push.sent[0].title, /^New plan: Beach day$/);
+  assert.equal(created.json.plan.weather.rainProb, 60, "an outdoor plan gets the forecast for its own hours");
+  // not an image, and too big
+  const fake = new FormData();
+  fake.append("image", new Blob([Buffer.from("<svg></svg>xxxxxxxx")], { type: "image/png" }), "x.png");
+  assert.equal((await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.tolu, raw: fake })).status, 415);
+  const big = new FormData();
+  big.append("image", new Blob([Buffer.concat([png, Buffer.alloc(5000)])], { type: "image/png" }), "x.png");
+  assert.equal((await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.tolu, raw: big })).status, 413);
+});
+
+test("RSVP, ride pods, the one-event file and the feed", async () => {
+  push.sent.length = 0;
+  const r = await call("PATCH", `/api/plans/${S.wine}`, { token: S.ada, body: { rsvp: "going" } });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.plan.going, ["Ada", "Tolu"]);
+  assert.equal(r.json.plan.you, "going");
+  assert.equal(r.json.plan.seq, 1);
+  const pods = await call("GET", `/api/plans/${S.wine}/pods`, { token: S.kene });
+  assert.equal(pods.status, 200);
+  assert.deepEqual(pods.json.unplaced, []);
+  // the wine plan has no pin (a home with only a street), so pods have no ride link yet
+  assert.equal(pods.json.pods[0].memberIds.length, 2);
+  // the beach plan has a pin: pods get a leave-by and the Uber link
+  await call("PATCH", `/api/plans/${S.beach}`, { token: S.ada, body: { rsvp: "going" } });
+  await call("PATCH", `/api/plans/${S.beach}`, { token: S.kene, body: { rsvp: "going" } });
+  const bp = await call("GET", `/api/plans/${S.beach}/pods`, { token: S.kene });
+  assert.equal(bp.json.pods.length, 2, "Yaba and Lekki ride separately");
+  const yaba = bp.json.pods.find((/** @type {any} */ p) => p.fromLabel === "Yaba");
+  assert.match(yaba.uberUrl, /^https:\/\/m\.uber\.com\/looking\?drop%5B0%5D=/);
+  assert.match(yaba.leaveBy, /^2026-10-24T1[23]:\d\d:00\+01:00$/);
+  assert.ok(push.sent.some((m) => m.title === "Ride pod for Beach day"), "the pod that formed is told");
+  const n = push.sent.length;
+  await call("PATCH", `/api/plans/${S.beach}`, { token: S.ada, body: { rsvp: "going" } });
+  assert.equal(push.sent.length, n, "no repeat buzz");
+  const ics = await call("GET", `/api/plans/${S.beach}/event.ics?t=${encodeURIComponent(S.ada)}`);
+  assert.equal(ics.status, 200);
+  assert.match(ics.headers.get("content-type") || "", /^text\/calendar/);
+  assert.match(ics.headers.get("content-disposition") || "", /attachment; filename="Beach day\.ics"/);
+  assert.match(ics.text, /SUMMARY:Going: Beach day/);
+  assert.match(ics.text, /TRIGGER;VALUE=DATE-TIME:/);
+  const feed = await call("GET", new URL(S.cal).pathname);
+  assert.equal(feed.status, 200);
+  assert.match(feed.text, /X-WR-CALNAME:Come Through: the uni guys/);
+  assert.equal((feed.text.match(/BEGIN:VEVENT/g) || []).length, 2);
+  const again = await call("GET", new URL(S.cal).pathname, { headers: { "if-none-match": /** @type {string} */ (feed.headers.get("etag")) } });
+  assert.equal(again.status, 304);
+  assert.equal((await call("GET", "/cal/not-a-real-token-at-all.ics")).status, 404);
+});
+
+test("edits: only the creator or host; a cancel tells who was coming", async () => {
+  const no = await call("PATCH", `/api/plans/${S.wine}`, { token: S.kene, body: { title: "Mine now" } });
+  assert.equal(no.status, 403);
+  push.sent.length = 0;
+  const moved = await call("PATCH", `/api/plans/${S.wine}`, { token: S.tolu, body: { start: "2026-10-23T20:00:00+01:00" } });
+  assert.equal(moved.json.plan.status, "moved");
+  assert.equal(moved.json.plan.end, "2026-10-24T00:00:00+01:00");
+  assert.deepEqual(push.sent.map((m) => m.title), ["Changed: Wine and monopoly"]);
+  push.sent.length = 0;
+  const c = await call("PATCH", `/api/plans/${S.wine}`, { token: S.tolu, body: { status: "cancelled" } });
+  assert.equal(c.json.plan.status, "cancelled");
+  assert.deepEqual(push.sent.map((m) => m.title), ["Cancelled: Wine and monopoly"]);
+});
+
+test("the heartbeat: secret, a ritual once, the rain watch", async () => {
+  assert.equal((await call("POST", "/api/tick")).status, 401);
+  assert.equal((await call("POST", "/api/tick", { token: "wrong" })).status, 401);
+  push.sent.length = 0;
+  const t1 = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.equal(t1.status, 200);
+  // the beach plan on Saturday the 24th is within half a cycle, so the crew is "busy"
+  assert.equal(t1.json.rituals, 0);
+  assert.ok(t1.json.weatherChecked >= 1);
+  // cancel the beach plan: the slot is quiet, so the ritual is made
+  await call("PATCH", `/api/plans/${S.beach}`, { token: S.tolu, body: { status: "cancelled" } });
+  const t2 = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.equal(t2.json.rituals, 1);
+  const t3 = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.equal(t3.json.rituals, 0, "a retried heartbeat makes nothing twice");
+  const crew = await call("GET", `/api/crews/${S.slug}`, { token: S.kene });
+  const ritual = crew.json.plans.find((/** @type {any} */ p) => p.kind === "ritual");
+  assert.equal(ritual.title, "Saturday at Freedom Park");
+  assert.equal(ritual.ritualFor, "2026-10-24");
+  assert.equal(ritual.createdBy, "sloth");
+  assert.equal(ritual.start, "2026-10-24T16:00:00+01:00", "after the midday storm and heat");
+  assert.match(ritual.invite, /Come through/);
+  assert.match(ritual.why, /Freedom Park/);
+  assert.ok(push.sent.some((m) => m.title === "Saturday at Freedom Park"));
+  // Thursday: rain moves in for Saturday. One alert, then quiet
+  clock = Date.parse("2026-10-22T09:00:00Z");
+  rainy = true;
+  await call("PATCH", `/api/plans/${ritual.id}`, { token: S.kene, body: { rsvp: "going" } });
+  push.sent.length = 0;
+  const t4 = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.equal(t4.json.rainAlerts, 1);
+  assert.deepEqual(push.sent.map((m) => m.title), ["Rain watch: Saturday at Freedom Park"]);
+  const wet = (await call("GET", `/api/crews/${S.slug}`, { token: S.kene })).json.plans.find((/** @type {any} */ p) => p.id === ritual.id);
+  assert.match(wet.headsUp.whatsappUrl, /^https:\/\/wa\.me\/\?text=Heads%20up/);
+  const t5 = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.equal(t5.json.rainAlerts, 0);
+  rainy = false;
+  clock = Date.parse("2026-10-21T09:00:00Z");
+});
+
+test("expired plans are deleted by the heartbeat", async () => {
+  const saved = clock;
+  clock = Date.parse("2026-12-30T09:00:00Z");
+  const t = await call("POST", "/api/tick", { token: "s3cret-tick" });
+  assert.ok(t.json.expired >= 3, JSON.stringify(t.json));
+  assert.equal((await store.find("plans", {})).filter((p) => Date.parse(p.expiresAt) <= clock).length, 0);
+  clock = saved;
+});
+
+test("CORS for the web origin only, and security headers", async () => {
+  const pre = await call("OPTIONS", `/api/crews/${S.slug}`, { headers: { origin: "https://comethrough.test", "access-control-request-method": "GET" } });
+  assert.equal(pre.status, 204);
+  assert.equal(pre.headers.get("access-control-allow-origin"), "https://comethrough.test");
+  const evil = await call("GET", "/healthz", { headers: { origin: "https://evil.test" } });
+  assert.equal(evil.headers.get("access-control-allow-origin"), null);
+  assert.equal(evil.headers.get("referrer-policy"), "no-referrer");
+  assert.equal(evil.headers.get("cache-control"), "no-store");
+});
+
+test("the web app is served for app routes; a missing asset is a 404", async () => {
+  const page = await call("GET", `/c/${S.slug}?t=abc`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /<title>Come Through<\/title>/);
+  assert.equal((await call("GET", "/assets/missing.js")).status, 404);
+  assert.equal((await call("GET", "/../../etc/passwd")).status, 200, "a traversal attempt gets the app, not the file");
+});
+
+test("Gemma's limits: per IP per minute", async () => {
+  let last = 0;
+  for (let i = 0; i < 10; i++) last = (await call("POST", "/api/crews", { body: { sentence: "a crew" } })).status;
+  assert.equal(last, 429);
+});
+
+test("the client address behind Render and Cloudflare (3 hops) ignores what the client prepends", () => {
+  const req = (/** @type {string} */ xff) => /** @type {any} */ ({ headers: { "x-forwarded-for": xff }, socket: { remoteAddress: "10.1.1.1" } });
+  assert.equal(clientIp(req("102.89.1.1, 172.70.1.1, 10.0.0.2"), 3), "102.89.1.1");
+  assert.equal(clientIp(req("6.6.6.6, 102.89.1.1, 172.70.1.1, 10.0.0.2"), 3), "102.89.1.1", "a spoofed first entry is ignored");
+  assert.equal(clientIp(req("6.6.6.6"), 0), "10.1.1.1");
+});

@@ -41,9 +41,9 @@ test("crew setup: the sentence's rhythm, vibe and areas; invented areas dropped"
   const msgs = crewSetupMessages(prompt("parse-crew"), { sentence });
   assert.equal(msgs.length, 2);
   assert.ok(msgs[1].content.endsWith(sentence));
-  const r = readCrewSetup({ name: "the uni guys", vibe: "outside and cheap", vibeTags: ["outside", "cheap", "chill"], budget: "cheap", every: "2w", day: "Saturday", from: null, to: null, areas: ["Yaba", "Lekki", "Ikeja"], confidence: { name: 0.9, vibe: 0.9, rhythm: 0.9, areas: 0.9 } }, { sentence });
+  const r = readCrewSetup({ name: "the uni guys", vibe: "outside and cheap", vibeTags: ["outside", "cheap", "chill"], budget: "cheap", every: "2w", day: "Saturday", from: null, to: null, areas: ["Yaba", "Lekki Phase 1", "Ikeja"], confidence: { name: 0.9, vibe: 0.9, rhythm: 0.9, areas: 0.9 } }, { sentence });
   assert.deepEqual(r.draft.rhythm, { every: "2w", day: 6, window: { from: "15:00", to: "19:00" } });
-  assert.deepEqual(r.draft.areaLabels, ["Yaba", "Lekki"]);
+  assert.deepEqual(r.draft.areaLabels, ["Yaba", "Lekki Phase 1"]);
   assert.deepEqual(r.draft.vibeTags, ["outside", "chill"]);
   assert.equal(r.draft.budget, "cheap");
   assert.ok(r.low.includes("rhythm.window"), "a defaulted window is flagged");
