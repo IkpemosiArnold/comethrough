@@ -177,7 +177,7 @@ function Row({ label, value, unsure, note, open, onToggle, children }) {
       <button type="button" class="pv-head" aria-expanded={open} onClick={onToggle}>
         <span class="pv-text">
           <span class="pv-label">{label}</span>
-          <span class="pv-value">{value}</span>
+          <span class="pv-value"><span class="pv-ink">{value}</span></span>
           {unsure && !open && <span class="pv-note">{note}</span>}
         </span>
         <span class="pv-edit">{open ? 'Done' : 'Change'}</span>
@@ -203,6 +203,9 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
   const [areaKey, setAreaKey] = useState(0);
   const toggle = (k) => setOpen(open === k ? null : k);
   const anyUnsure = ['name', 'rhythm', 'vibe', 'areas'].some(low) || draft.ai === false;
+  // the guessed-time note is said in the row itself
+  const timeGuessed = (draft.notes || []).some((t) => /^No time was given/.test(t));
+  const notes = (draft.notes || []).filter((t) => !/^No time was given/.test(t));
 
   function setEvery(every) {
     if (!every) set({ rhythm: null });
@@ -238,15 +241,15 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
         </button>
       )}
 
-      {draft.notes?.length > 0 && (
+      {notes.length > 0 && (
         <ul class="draft-notes" aria-label="Notes">
-          {draft.notes.map((t) => <li key={t}>{t}</li>)}
+          {notes.map((t) => <li key={t}>{t}</li>)}
         </ul>
       )}
 
       <div class="pv-card surface">
         <Row label="When you link up" value={r ? rhythmText(r) : 'No regular day'} unsure={low('rhythm')} open={open === 'rhythm'} onToggle={() => toggle('rhythm')}
-          note={r ? 'The time is a guess. Check it.' : 'No regular day in your sentence. Pick one, or leave it.'}>
+          note={r ? (timeGuessed ? 'No time in your sentence, so the sloth chose after the worst heat. Check it.' : 'The time is a guess. Check it.') : 'No regular day in your sentence. Pick one, or leave it.'}>
           <div class="row wrap seg">
             {[['1w', 'Every week'], ['2w', 'Every other week'], ['4w', 'Once a month'], [null, 'No regular day']].map(([v, label]) => (
               <button type="button" key={label} class="chip" aria-pressed={(r?.every || null) === v} onClick={() => setEvery(v)}>{label}</button>

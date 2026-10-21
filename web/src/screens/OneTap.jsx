@@ -117,6 +117,7 @@ export function OneTap({ params, query, answer }) {
         ) : (
           <div class="branch-empty">
             <svg width="100%" height="34" viewBox="0 0 300 34" preserveAspectRatio="none" aria-hidden="true"><path d="M-5 14 Q 150 24 305 14" /></svg>
+            <p class="muted">Nobody on the branch yet. Be the first?</p>
           </div>
         )}
       </section>
