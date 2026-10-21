@@ -167,6 +167,7 @@ export async function geminiGenerate({ key, model, messages, schema, maxTokens, 
  * @property {string} model
  * @property {number} wallSec
  * @property {boolean} jsonMode  whether the model accepted JSON mode for this call
+ * @property {{ promptTokens: number|null, outTokens: number|null, loadSec?: number|null, totalSec?: number|null }} [usage]  token counts, when the adapter knows them
  */
 /**
  * @typedef {object} AiPort

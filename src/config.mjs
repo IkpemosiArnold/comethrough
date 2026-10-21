@@ -71,6 +71,16 @@ export function config(env = process.env) {
       visionModel: env.GEMMA_VISION_MODEL || "",
       timeoutMs: num(env.GEMMA_TIMEOUT_MS, 25000),
     },
+    /** which adapter answers every Gemma task: the Gemini API (default) or your own Ollama */
+    llm: /** @type {"gemini"|"ollama"} */ (String(env.LLM || "").toLowerCase() === "ollama" ? "ollama" : "gemini"),
+    ollama: {
+      url: (env.OLLAMA_URL || "http://localhost:11434").replace(/\/+$/, ""),
+      model: env.OLLAMA_MODEL || "gemma3:4b",
+      /** auto: ask Ollama whether the model has a vision projector; yes or no to override */
+      vision: /** @type {"auto"|"yes"|"no"} */ (["yes", "no"].includes(String(env.OLLAMA_VISION)) ? env.OLLAMA_VISION : "auto"),
+      /** a small model on a laptop is slow: three minutes by default */
+      timeoutMs: num(env.OLLAMA_TIMEOUT_MS, 180_000),
+    },
     geocoder: {
       // Photon for search and type-ahead (Nominatim forbids autocomplete); Nominatim for single lookups
       provider: /** @type {"nominatim"|"photon"} */ (env.GEOCODER === "nominatim" ? "nominatim" : "photon"),
