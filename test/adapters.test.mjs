@@ -158,7 +158,8 @@ test("overpass: a bounded named-green query, failover between endpoints, unnamed
 test("open-meteo: the forecast URL asks for the hours we read, in Lagos time", () => {
   // the zone is the crew's, passed in; with none, Open-Meteo picks the point's own ("auto")
   const u = new URL(forecastUrl("https://api.open-meteo.com/v1/forecast", { lat: 6.4785, lon: 3.4217 }, { tz: "Africa/Lagos" }));
-  assert.equal(u.searchParams.get("hourly"), "precipitation_probability,apparent_temperature,uv_index,precipitation,temperature_2m");
+  // is_day was added so outdoor plans end with the light (src/core/weather.mjs, litHours)
+  assert.equal(u.searchParams.get("hourly"), "precipitation_probability,apparent_temperature,uv_index,precipitation,temperature_2m,is_day");
   assert.equal(u.searchParams.get("timezone"), "Africa/Lagos");
   assert.equal(new URL(forecastUrl("https://api.open-meteo.com/v1/forecast", { lat: 52.5, lon: 13.4 })).searchParams.get("timezone"), "auto");
   assert.equal(u.searchParams.get("latitude"), "6.479");

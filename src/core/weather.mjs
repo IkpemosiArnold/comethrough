@@ -16,6 +16,7 @@ import { DAY_NAMES, DEFAULT_TZ, addDays, localParts, minutesOfDay, hhmm, parseIn
  * @property {number|null} feelsC    apparent temperature
  * @property {number|null} uv
  * @property {number|null} precipMm
+ * @property {0|1} [isDay]      1 when the hour has daylight (Open-Meteo's is_day); absent when not asked for
  */
 
 /** Thresholds: a window is "ok" outdoors below RAIN_OK % and FEELS_OK C. */
@@ -41,6 +42,7 @@ export function hoursFromOpenMeteo(json) {
     feelsC: at("apparent_temperature", i),
     uv: at("uv_index", i),
     precipMm: at("precipitation", i),
+    ...(Array.isArray(h.is_day) ? { isDay: /** @type {0|1} */ (h.is_day[i] === 1 ? 1 : 0) } : {}),
   }));
 }
 
@@ -250,14 +252,18 @@ export function clockWords(t) {
  *   null when the forecast does not reach the date
  */
 export function ritualWindow(hours, { date, from, to, hours: span }, social = GENERIC_SOCIAL_HOURS) {
-  const mine = clipToSocial(date, { from, to }, { social });
+  // an outdoor hangout ends when the light does: in London on the last Sunday of October the
+  // sun sets before 5 pm, inside any "3 pm to 7 pm". Lagos's sunsets (18:25 at the earliest)
+  // come after its own 18:30 cut-off at the hour, so its windows do not change.
+  const lit = (/** @type {string} */ d) => litHours(social, hours, d);
+  const mine = clipToSocial(date, { from, to }, { social: lit(date) });
   const own = bestWindow(hours, { date, from: mine.from, to: mine.to, hours: span });
   if (!own) return null;
   if (own.ok) return { date, window: { from: own.from, to: own.to }, win: own, rainPlan: null };
   const inWindow = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(mine.from) && minutesOfDay(h.time) < minutesOfDay(mine.to));
   const wanted = { date, from: mine.from, to: mine.to, rainProb: max(inWindow.map((h) => h.rainProb)) ?? own.rainProb };
   const wet = `Rain is likely from ${clockWords(mine.from)} to ${clockWords(mine.to)} (up to ${wanted.rainProb ?? "?"}%)`;
-  const day = socialWindow(date, { social });
+  const day = socialWindow(date, { social: lit(date) });
   const short = Math.min(span, 2);
   const moved = bestWindow(hours, { date, from: day.from, to: day.to, hours: span });
   const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: day.from, to: day.to, hours: short });
@@ -269,7 +275,7 @@ export function ritualWindow(hours, { date, from, to, hours: span }, social = GE
   }
   const next = addDays(date, 1);
   const nextOk = isWeekend(next) === isWeekend(date);
-  const nextMine = clipToSocial(next, { from, to }, { social });
+  const nextMine = clipToSocial(next, { from, to }, { social: lit(next) });
   const nextWin = nextOk ? bestWindow(hours, { date: next, from: nextMine.from, to: nextMine.to, hours: span }) : null;
   if (nextWin?.ok) {
     return {
@@ -290,6 +296,28 @@ export function ritualWindow(hours, { date, from, to, hours: span }, social = GE
       note: `${head} on ${DAY_NAMES[weekdayOf(date)]} (up to ${peak ?? "?"}% between ${clockWords(day.from)} and ${clockWords(day.to)})${nextWords}. The sloth is skipping this one. If it clears up, anyone can still add a plan.`,
     },
   };
+}
+
+/**
+ * The social hours for a date with the outdoor ones cut to daylight, when the forecast says
+ * which hours are light (Open-Meteo's is_day). An hour counts as light when it starts in
+ * daylight. Without is_day, or with fewer than two light hours left, the hours are unchanged.
+ * @param {SocialHours} social
+ * @param {Hour[]} hours
+ * @param {string} date
+ * @returns {SocialHours}
+ */
+export function litHours(social, hours, date) {
+  const light = hours.filter((h) => h.date === date && h.isDay === 1).map((h) => minutesOfDay(h.time));
+  if (!light.length) return social;
+  const first = Math.min(...light);
+  const last = Math.max(...light) + 60;
+  const cut = (/** @type {TimeWindow} */ w) => {
+    const lo = Math.max(minutesOfDay(w.from), first);
+    const hi = Math.min(minutesOfDay(w.to), last);
+    return hi - lo >= 120 && (lo !== minutesOfDay(w.from) || hi !== minutesOfDay(w.to)) ? { from: hhmm(lo), to: hhmm(hi) } : w;
+  };
+  return { ...social, weekendOutdoor: cut(social.weekendOutdoor), weekdayOutdoor: cut(social.weekdayOutdoor) };
 }
 
 /**

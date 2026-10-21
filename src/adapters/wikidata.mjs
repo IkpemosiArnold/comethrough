@@ -86,7 +86,7 @@ export function readWikidata(json, checkedAt) {
  * @param {{ url?: string, contact: string, cache: Cache, fetchImpl?: typeof fetch, timeoutMs?: number, now?: () => number }} cfg
  * @returns {{ spotsNear(at: { lat: number, lon: number }, radiusKm: number): Promise<Candidate[]> }}
  */
-export function createWikidata({ url = "https://query.wikidata.org/sparql", contact, cache, fetchImpl, timeoutMs = 15000, now = Date.now }) {
+export function createWikidata({ url = "https://query.wikidata.org/sparql", contact, cache, fetchImpl, timeoutMs = 25000, now = Date.now }) {
   return {
     async spotsNear(at, radiusKm) {
       const key = `wd:spots:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusKm)}`;

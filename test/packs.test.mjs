@@ -268,3 +268,20 @@ test("ambiguous names: the visitor's country first, and the areas that sit toget
   const blr = await make(["Indiranagar", "Koramangala"]).draftCrew({ sentence: "Office gang, every other Saturday, somewhere green, around Indiranagar and Koramangala", hint: { tz: "Asia/Kolkata" } });
   assert.deepEqual(blr.draft.areas.map((a) => a.lat), [12.9733, 12.9352], "the Indiranagar next to Koramangala, not the one nearer Kolkata");
 });
+
+test("an outdoor ritual ends with the light: London's last Sunday of October, and Lagos unchanged", async () => {
+  const { ritualWindow, hoursFromOpenMeteo } = await import("../src/core/weather.mjs");
+  // Open-Meteo's shape for one dry day; is_day is 1 from 07:00 to 16:00 (sunset about 16:45 GMT on 25 Oct 2026)
+  const day = (/** @type {string} */ date, /** @type {number} */ lastLight) => Array.from({ length: 24 }, (_, h) => ({ t: `${date}T${String(h).padStart(2, "0")}:00`, d: h >= 7 && h <= lastLight ? 1 : 0 }));
+  const json = (/** @type {{ t: string, d: number }[]} */ hs) => ({ hourly: { time: hs.map((x) => x.t), precipitation_probability: hs.map(() => 5), apparent_temperature: hs.map(() => 12), uv_index: hs.map(() => 1), precipitation: hs.map(() => 0), is_day: hs.map((x) => x.d) } });
+  const london = hoursFromOpenMeteo(json(day("2026-10-25", 16)));
+  const w = ritualWindow(london, { date: "2026-10-25", from: "15:00", to: "19:00", hours: 3 });
+  assert.deepEqual(w?.window, { from: "15:00", to: "17:00" }, "not 4 pm to 7 pm in the dark");
+  assert.equal(w?.rainPlan, null);
+  // Lagos: light until 18:xx, so the 18:30 social cut-off still decides, exactly as before
+  const lagos = hoursFromOpenMeteo(json(day("2026-10-24", 18)));
+  const before = ritualWindow(lagos.map(({ isDay, ...h }) => h), { date: "2026-10-24", from: "15:00", to: "19:00", hours: 3 }, LAGOS.social);
+  const after = ritualWindow(lagos, { date: "2026-10-24", from: "15:00", to: "19:00", hours: 3 }, LAGOS.social);
+  assert.deepEqual(after?.window, before?.window);
+  assert.deepEqual(after?.window, { from: "15:00", to: "18:00" });
+});

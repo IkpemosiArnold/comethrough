@@ -13,7 +13,8 @@ import { cached, fetchJson } from "./http.mjs";
 /** @typedef {import("./http.mjs").Cache} Cache */
 /** @typedef {import("../core/weather.mjs").Hour} Hour */
 
-export const HOURLY = ["precipitation_probability", "apparent_temperature", "uv_index", "precipitation", "temperature_2m"];
+/** is_day lets an outdoor plan end with the light (src/core/weather.mjs, litHours). */
+export const HOURLY = ["precipitation_probability", "apparent_temperature", "uv_index", "precipitation", "temperature_2m", "is_day"];
 
 /** The forecast URL for a point. */
 export function forecastUrl(base, { lat, lon }, { tz = "auto", days = 7 } = {}) {
