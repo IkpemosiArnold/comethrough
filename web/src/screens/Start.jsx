@@ -138,7 +138,7 @@ export function Start({ query }) {
         <button class="btn primary block big" type="submit" disabled={reading}>
           {reading ? <>Gemma is reading it <Dots /></> : 'Set up my crew'}
         </button>
-        <p class="fine">To read your sentence we send it to Gemma, Google's open model. That's all that goes to Google.</p>
+        <p class="fine">To read it, we send this sentence to Gemma, Google's open model, through Google's free API. Google may use it to improve its products. Your crew list and locations stay with Come Through.{speech.supported ? " The mic uses your phone's own voice typing, which may send the audio to Google or Apple." : ''}</p>
       </form>
 
       <section class="how" aria-labelledby="how-title">

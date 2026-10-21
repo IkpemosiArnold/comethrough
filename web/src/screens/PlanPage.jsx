@@ -105,6 +105,9 @@ export function PlanPage({ params, query }) {
   const otherPods = (pods || []).filter((p) => p !== myPod);
   const w = plan.weather;
   const outdoor = plan.place?.outdoor;
+  // rides need a pin, or at least a rough spot: the neighbourhood of an address that is not
+  // on the map, or a host's own neighbourhood
+  const canRide = plan.place?.lat != null || !!plan.place?.near || (plan.kind === 'hosted' && !!plan.host) || (pods || []).some((p) => p.travelMin != null);
 
   return (
     <div class={`column plan-page screen-enter has-bar kind-${plan.kind}`}>
@@ -130,6 +133,13 @@ export function PlanPage({ params, query }) {
         <p class="plan-when"><Icon name="calendar" size={20} /> <span>{when}</span></p>
         {plan.invite && <p class="plan-invite">{plan.invite}</p>}
       </header>
+
+      {plan.rainPlan && plan.status !== 'cancelled' && (
+        <div class={`rain-plan rain-plan-${plan.rainPlan.kind}`} role="note">
+          <Icon name="rain" size={22} />
+          <p class="small">{plan.rainPlan.note}</p>
+        </div>
+      )}
 
       {w && outdoor && !w.ok && (
         <div class="rain-warn" role="note">
@@ -159,6 +169,7 @@ export function PlanPage({ params, query }) {
           <div>
             <p>{plan.place.name}{plan.place.address ? `, ${plan.place.address}` : ''}</p>
             {plan.place.hidden && !meId && <p class="small muted">The address shows once you join the crew.</p>}
+            {plan.place.near && <p class="small muted">Not on the map yet, so ride times and weather are guessed from {plan.place.near.label}.</p>}
           </div>
         </div>
       )}
@@ -168,7 +179,7 @@ export function PlanPage({ params, query }) {
           <li><Icon name="ticket" size={20} /><span>{plan.price.free ? (plan.price.text || 'Free') : plan.price.text}</span></li>
         )}
         {w && outdoor && (
-          <li class={w.ok ? '' : 'bad'}><Icon name={weatherIcon(w)} size={20} /><span>{Math.round(w.tempC)}°, {w.ok ? w.summary.toLowerCase() : `${w.rainProb}% chance of rain`}</span></li>
+          <li class={w.ok ? '' : 'bad'}><Icon name={weatherIcon(w)} size={20} /><span>{Math.round(w.tempC)}°, {w.ok ? w.summary.replace(/^./, (c) => c.toLowerCase()) : `${w.rainProb}% chance of rain`}</span></li>
         )}
         {host && (
           <li><Avatar member={host} /><span>{host.id === meId ? "You're hosting" : `${firstName(host.name)} is hosting`}</span></li>
@@ -194,7 +205,7 @@ export function PlanPage({ params, query }) {
         <p class="quiet-no">Can't make it? No need to say anything.</p>
       </section>
 
-      {plan.place?.lat != null && (
+      {canRide && (
         <section class="rides" aria-labelledby="rides-title">
           <h2 id="rides-title" class="section-label">Rides</h2>
           {my === 'going' && myPod && (
@@ -213,7 +224,7 @@ export function PlanPage({ params, query }) {
               {otherPods.map((p) => (
                 <li key={p.fromLabel}>
                   <Faces members={p.memberIds.map((m) => byId[m]).filter(Boolean)} max={3} />
-                  <span>From {p.fromLabel}, leave by <b>{time(p.leaveBy)}</b></span>
+                  <span>From {p.fromLabel}{p.leaveBy ? <>, leave by <b>{time(p.leaveBy)}</b></> : ''}</span>
                 </li>
               ))}
             </ul>
@@ -228,6 +239,9 @@ export function PlanPage({ params, query }) {
           <div class="why-sloth" aria-hidden="true"><Sloth size={58} branch={false} mood="awake" /></div>
           <h2 id="why-title" class="why-title">Why this place</h2>
           <p>{plan.why}</p>
+          {plan.kind === 'ritual' && (
+            <p class="fine why-privacy">Gemma, Google's open model, wrote the sloth's words through Google's free API. We sent it the place, the weather, your crew's vibe words and the minutes from each neighbourhood, with no names. Google may use that to improve its products. Your crew list and locations stay with Come Through.</p>
+          )}
         </section>
       )}
 
@@ -312,6 +326,7 @@ function NudgeAsk({ slug }) {
 
 function PodCard({ pod, byId, meId, fresh, onBolt }) {
   const ref = useRef(null);
+  const [how, setHow] = useState(false);
   const people = pod.memberIds.map((m, i) => byId[m] || { id: m, name: pod.names?.[i] || '?' });
   const others = people.filter((p) => p.id !== meId);
   useEffect(() => {
@@ -328,13 +343,19 @@ function PodCard({ pod, byId, meId, fresh, onBolt }) {
           {people.length > 4 && <span class="more">+{people.length - 4}</span>}
         </div>
       </div>
-      <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
+      {pod.leaveBy
+        ? <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
+        : <p class="pod-leave">From {pod.fromLabel}</p>}
       <p class="muted small">
-        About {pod.travelMin} min{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
+        {pod.travelMin != null ? <>About {pod.travelMin} min, an estimate</> : 'No ride time yet: the place is not on the map'}{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
         {pod.crossesLagoon ? ' The time allows for the bridge.' : ''}
+        {pod.estimate?.text && (
+          <> <button type="button" class="link-btn how-btn" aria-expanded={how} onClick={() => setHow(!how)}>{how ? 'Hide' : 'How we guess'}</button></>
+        )}
       </p>
+      {how && pod.estimate?.text && <p class="small how-text">{pod.estimate.text}</p>}
       <div class="pod-actions">
-        <a class="btn secondary" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>
+        {pod.uberUrl && <a class="btn secondary" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>}
         <div class="bolt-pair">
           <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy address</button>
           <a class="btn ghost" href={BOLT_URL} target="_blank" rel="noopener" data-external>Open Bolt</a>

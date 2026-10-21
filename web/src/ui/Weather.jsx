@@ -3,7 +3,7 @@ import { Icon } from './icons.jsx';
 export function weatherIcon(w) {
   if (!w) return 'sun';
   if (!w.ok || w.rainProb >= 40) return 'rain';
-  if (/cloud/i.test(w.summary || '')) return 'cloudsun';
+  if (/cloud|mostly dry/i.test(w.summary || '') || w.rainProb >= 20) return 'cloudsun';
   return 'sun';
 }
 

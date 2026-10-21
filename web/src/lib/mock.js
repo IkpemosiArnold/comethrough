@@ -294,6 +294,7 @@ function pods(db, plan) {
     return {
       memberIds: people.map((p) => p.id), names: people.map((p) => p.name), fromLabel: hub.label, solo: people.length === 1,
       leaveBy: leave.toISOString(), travelMin, crossesLagoon,
+      estimate: { band: 'weekend', text: `A guess from the map, not live traffic: ${Math.round(km(hub, dest) * 1.4 * 10) / 10} km of road at about 22 km/h in weekend traffic${crossesLagoon ? ', 8 min for the bridge' : ''}. Leave-by adds 15 min to spare.` },
       uberUrl: `https://m.uber.com/looking?drop[0]=${encodeURIComponent(JSON.stringify({ latitude: dest.lat, longitude: dest.lon, addressLine1: dest.name, addressLine2: dest.address }))}`,
       boltText: `${dest.name}, ${dest.address}`,
       shareText: `Leaving ${hub.label} by ${leave.toISOString()} for ${plan.title}`,

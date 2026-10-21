@@ -398,6 +398,26 @@ a.ritual:active { transform: scale(0.98); }
 .rain-warn > svg { color: var(--zobo); flex: none; margin-top: 2px; }
 .rain-btn { margin-top: var(--s-3); }
 
+/* the sloth moved a wet ritual, or says plainly that no dry stretch exists */
+.rain-plan {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-3) var(--s-4);
+  margin-bottom: var(--s-5);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--lagoon) 9%, var(--paper));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--lagoon) 35%, transparent);
+  color: var(--ink);
+}
+.rain-plan > svg { color: var(--lagoon); flex: none; margin-top: 1px; }
+.rain-plan p { line-height: 1.5; }
+.rain-plan-wet { background: color-mix(in srgb, var(--zobo) 10%, var(--paper)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--zobo) 45%, transparent); }
+.rain-plan-wet > svg { color: var(--zobo); }
+
+.how-btn { font-size: inherit; padding: 0 2px; }
+.how-text { margin-top: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); background: color-mix(in srgb, var(--ink) 6%, var(--paper)); color: var(--ink-2); line-height: 1.5; }
+
 .place { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: var(--s-3) var(--s-2); margin-bottom: var(--s-4); }
 .place .map { grid-column: 1 / -1; }
 .place-text { min-width: 0; }
@@ -523,6 +543,7 @@ a.ritual:active { transform: scale(0.98); }
 .why-sloth { position: absolute; right: 12px; top: -26px; }
 .why-title { font-family: var(--font-display); font-weight: 400; font-size: var(--t-lg); margin-bottom: var(--s-2); color: var(--on-canopy); }
 .why p { color: var(--on-canopy); line-height: 1.55; }
+.why .why-privacy { margin-top: var(--s-3); opacity: 0.85; color: var(--on-canopy); }
 
 .bring { margin-bottom: var(--s-8); }
 .bring-list { gap: var(--s-2); }

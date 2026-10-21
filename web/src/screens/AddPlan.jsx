@@ -16,7 +16,8 @@ import { installPrompt } from '../lib/install.js';
 
 const UNSURE = 0.6;
 const URL_RE = /https?:\/\/[^\s]+/i;
-const IG_RE = /(^|\/\/|\.)instagram\.com\/|instagr\.am\//i;
+// Instagram, Facebook and Threads give servers an empty page (the server says link_locked too)
+const IG_RE = /(^|\/\/|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net)\//i;
 const STATUS_IMAGE = ['reading the flyer', 'finding the date', 'finding the place', 'checking the price'];
 const STATUS_TEXT = ['reading it', 'working out the day', 'finding the place'];
 
@@ -29,6 +30,24 @@ function toParts(iso) {
 function fromParts(date, time) {
   if (!date) return null;
   return new Date(`${date}T${time || '12:00'}:00+01:00`).toISOString();
+}
+
+// The crew sees the flyer as a small poster: a ~480px JPEG (well under the server's 200 KB
+// limit) is kept as the plan's thumbnail. The big copy is only read by Gemma, never stored.
+async function thumbOf(file) {
+  try {
+    if (!file.type.startsWith('image/') || typeof createImageBitmap === 'undefined') return null;
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 480 / bmp.width);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.72));
+    return blob && blob.size < 190e3 ? new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) : null;
+  } catch {
+    return null;
+  }
 }
 
 // Phone photos are often 3 to 5 MB. Shrink to 1600px JPEG before it goes over mobile data.
@@ -57,12 +76,13 @@ export function AddPlan({ params, query }) {
   const [preview, setPreview] = useState(null);
   const [draft, setDraft] = useState(null);
   const [error, setError] = useState(null);
+  const [locked, setLocked] = useState(false);
   const [status, setStatus] = useState(0);
   const fileRef = useRef(null);
   const speech = useSpeech(setText);
 
   const url = (text.match(URL_RE) || [])[0];
-  const isInstagram = url && IG_RE.test(url);
+  const isInstagram = (url && IG_RE.test(url)) || locked;
 
   // Arriving from the share sheet (Android): pick up what was shared.
   useEffect(() => {
@@ -95,10 +115,12 @@ export function AddPlan({ params, query }) {
 
   async function takeImage(file, withText = '') {
     if (!file) return;
-    const small = await shrink(file);
+    const [small, thumb] = await Promise.all([shrink(file), thumbOf(file)]);
     setImage(small);
+    setLocked(false);
     setPreview(URL.createObjectURL(small));
-    read({ image: small, text: withText && !URL_RE.test(withText) ? withText : '', url: (withText.match(URL_RE) || [])[0] });
+    const sharedUrl = (withText.match(URL_RE) || [])[0];
+    read({ image: small, thumb, text: withText && !URL_RE.test(withText) ? withText : '', url: sharedUrl && !IG_RE.test(sharedUrl) ? sharedUrl : undefined });
   }
 
   async function read(input) {
@@ -119,7 +141,8 @@ export function AddPlan({ params, query }) {
       setStep('draft');
       window.scrollTo(0, 0);
     } catch (e) {
-      setError(e.message);
+      // a link Instagram or Facebook keeps locked: the note with "Choose the flyer" says it
+      if (e.code === 'link_locked') { setLocked(true); setError(null); } else setError(e.message);
       setStep('compose');
     }
   }
@@ -194,7 +217,7 @@ export function AddPlan({ params, query }) {
     <button type="button" class="tile" onClick={paste}>
       <Icon name="link" size={26} />
       <span class="tile-title">Paste a link</span>
-      <span class="tile-sub">From Instagram, WhatsApp, a ticket site</span>
+      <span class="tile-sub">From WhatsApp or a ticket site</span>
     </button>
   );
   const flyerTile = (
@@ -224,7 +247,7 @@ export function AddPlan({ params, query }) {
             class="textarea"
             rows={3}
             value={text}
-            onInput={(e) => { setText(e.currentTarget.value); setError(null); }}
+            onInput={(e) => { setText(e.currentTarget.value); setError(null); setLocked(false); }}
             placeholder="Wine and monopoly at mine, Friday 7, bring a bottle"
             enterkeyhint="go"
           />
@@ -232,18 +255,27 @@ export function AddPlan({ params, query }) {
         </div>
         {isInstagram && (
           <div class="ig-note" role="note">
-            <p>Instagram keeps that one locked. Share the flyer picture instead.</p>
+            <p>{/facebook|fb\.|threads/i.test(url || '') ? 'Facebook keeps that one locked.' : 'Instagram keeps that one locked.'} Share the flyer picture instead: a screenshot works.</p>
             <button type="button" class="btn secondary" onClick={() => fileRef.current && fileRef.current.click()}><Icon name="image" size={20} /> Choose the flyer</button>
           </div>
         )}
         {speech.error && <p class="error-text">{speech.error}</p>}
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={!text.trim() || (isInstagram && !text.replace(URL_RE, '').trim())}>Read it</button>
-        <p class="fine">Gemma, Google's open model, reads only what you add here.</p>
+        <PrivacyNote mic={speech.supported} />
       </form>
 
       {showShareTip && <ShareTip />}
     </div>
+  );
+}
+
+// Exactly what goes to Google when a plan is read, and what does not.
+export function PrivacyNote({ mic = false }) {
+  return (
+    <p class="fine">
+      To read it, we send what you add here (your sentence, the flyer picture, or the text of the link's page) to Gemma, Google's open model, through Google's free API. Google may use it to improve its products. Your crew list and locations stay with Come Through.{mic ? " The mic uses your phone's own voice typing, which may send the audio to Google or Apple." : ''}
+    </p>
   );
 }
 

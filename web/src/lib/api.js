@@ -112,13 +112,15 @@ export const api = {
     return data.results || [];
   },
   // A draft plan from text, a link and/or a flyer image
-  async parsePlan(slug, { text, url, image }) {
+  // `thumb` is the browser's small copy of the flyer, kept as the plan's poster
+  async parsePlan(slug, { text, url, image, thumb }) {
     let opts;
     if (image) {
       const form = new FormData();
       if (text) form.append('text', text);
       if (url) form.append('url', url);
       form.append('image', image, image.name || 'flyer.jpg');
+      if (thumb) form.append('thumb', thumb, 'thumb.jpg');
       opts = { slug, form };
     } else {
       opts = { slug, body: { text: text || undefined, url: url || undefined } };
