@@ -126,7 +126,7 @@ test("a hosted plan from one sentence: draft, confirm, and the private address",
   assert.equal(p.json.draft.start, "2026-10-23T19:00:00+01:00");
   assert.equal(p.json.draft.host, S.toluId);
   assert.ok(p.json.low.includes("start"), "a bare 7 is highlighted");
-  assert.ok(p.json.notes.includes('Read "7" as 19:00.'));
+  assert.ok(p.json.notes.includes('Read "7" as 7pm.'));
   const guestParse = await call("POST", `/api/crews/${S.slug}/plans/parse`, { token: S.invite, body: { text: WINE } });
   assert.equal(guestParse.status, 403);
   const draft = { ...p.json.draft, place: { ...p.json.draft.place, address: "12 Herbert Macaulay Way, Yaba" } };

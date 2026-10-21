@@ -22,6 +22,15 @@ import { cleanConfidence, lowFields } from "./plans.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
 import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
 
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** "19:00" as people say it: "7pm", "7:30pm". */
+export const clock12 = (/** @type {string} */ hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${((h + 11) % 12) + 1}${m ? `:${String(m).padStart(2, "0")}` : ""}${h >= 12 ? "pm" : "am"}`;
+};
+/** "2026-10-23" as "Friday 23 October". */
+const dayWords = (/** @type {string} */ date) => `${DAY_NAMES[weekdayOf(date)]} ${Number(date.slice(8, 10))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
+
 export const PROMPT_NAMES = ["parse-crew", "parse-plan", "explain-pick", "write-invite", "parse-feedback"];
 
 /** @typedef {{ role: "system"|"user", content: string, images?: { mimeType: string, data: string }[] }} Message */
@@ -365,7 +374,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   if (fromWords) {
     date = fromWords;
     dateConf = c.date ?? 0.8;
-    if (isDate(d.date) && d.date !== fromWords) notes.push(`Read "${d.dateWords}" as ${fromWords}.`);
+    if (isDate(d.date) && d.date !== fromWords) notes.push(`Read "${d.dateWords}" as ${dayWords(fromWords)}.`);
   } else if (isDate(d.date)) {
     date = d.date;
     dateConf = Math.min(c.date ?? 0.5, 0.7);
@@ -390,13 +399,13 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
       time = resolveTimeWords(clock[0][0]);
       if (time) {
         timeConf = 0.7;
-        notes.push(`Read the time as ${time} from "${clock[0][0]}".`);
+        notes.push(`Read the time as ${clock12(time)} from "${clock[0][0]}".`);
       }
     }
   }
   if (time && isAmbiguousTime(d.startTime)) {
     timeConf = Math.min(timeConf, 0.55);
-    notes.push(`Read "${d.startTime}" as ${time}.`);
+    notes.push(`Read "${d.startTime}" as ${clock12(time)}.`);
   }
   let start = date && time ? toIsoLocal(zonedToMs(date, time, tz), tz) : null;
   let end = null;
@@ -446,7 +455,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     }
     if (ev.status) notes.push(`The page marks this event as ${ev.status.replace(/^Event/, "").toLowerCase()}. Check with the organiser.`);
     if (ev.organizer && !hostName) hostName = text(ev.organizer, 60);
-    notes.push("Used the event details the page publishes.");
+    notes.push("Read from the event page's own details.");
   }
 
   // what to bring must be in what was shared: on 21 Oct 2026 Gemma answered "a bottle" for
@@ -470,7 +479,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     outdoor: d.outdoor === true,
     private: atHost,
   };
-  if (selfHosted && !address) notes.push("Add your address if the crew does not know it; only members will see it.");
+  if (selfHosted && !address) notes.push("Add your address if the crew doesn't know it. Only the crew sees it.");
   if (!start) notes.push(date ? "What time does it start?" : "Which day is it?");
 
   const draft = {

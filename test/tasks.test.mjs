@@ -71,8 +71,8 @@ test("plan from one sentence: code resolves Friday and reads 7 as 7 pm, flagged"
   const answer = { kind: "hosted", title: "Wine and monopoly", dateWords: "friday", date: "2026-10-24", startTime: "7", endTime: null, atHost: true, venueName: null, address: null, outdoor: false, priceText: null, free: null, hostName: null, bring: ["a bottle"], confidence: { title: 0.9, date: 0.9, time: 0.8, place: 0.7, price: 0, host: 0.8 } };
   const r = readPlan(answer, { text, today, member });
   assert.equal(r.draft.start, "2026-10-23T19:00:00+01:00", "Friday is the 23rd, whatever the model said");
-  assert.ok(r.notes.includes('Read "friday" as 2026-10-23.'));
-  assert.ok(r.notes.includes('Read "7" as 19:00.'));
+  assert.ok(r.notes.includes('Read "friday" as Friday 23 October.'));
+  assert.ok(r.notes.includes('Read "7" as 7pm.'));
   assert.ok(r.low.includes("start"));
   assert.equal(r.draft.kind, "hosted");
   assert.equal(r.draft.host, "m1");
