@@ -105,6 +105,23 @@ export function calmCaps(s) {
   return s.toLowerCase().replace(/(^|[\s(/&+-])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase()).replace(/\b(Dj|Mc|Vip|Ft|Lgbt|Nyc|Uk|Usa|Vi)\b/g, (w) => w.toUpperCase());
 }
 
+/** "wine and monopoly" as "Wine and monopoly": a title typed all in lower case gets a capital. */
+export function firstCap(s) {
+  return s && !/\p{Lu}/u.test(s) ? s.replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : s;
+}
+
+/** An address with its repeated parts removed ("Ikeja, Lagos, LA 021189, Lagos, LA" keeps one "Lagos"). */
+export function tidyAddress(s) {
+  if (!s) return s;
+  const seen = new Set();
+  return s.split(",").map((x) => x.trim()).filter((x) => {
+    const k = x.toLowerCase();
+    if (!x || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).join(", ");
+}
+
 const text = (/** @type {any} */ v, max = 200) => (typeof v === "string" && v.trim() && !/^(null|none|n\/a|unknown)$/i.test(v.trim()) ? v.replace(/\s+/g, " ").trim().slice(0, max) : null);
 const norm = (/** @type {string} */ s) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -286,13 +303,13 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   let startConf = start ? Math.min(dateConf, timeConf) : 0;
   let endConf = end ? Math.min(startConf, c.time ?? 0.7) : 0;
 
-  let title = calmCaps(text(d.title, 120));
+  let title = firstCap(calmCaps(text(d.title, 120)));
   let titleConf = title ? c.title ?? 0.6 : 0;
   let venue = calmCaps(text(d.venueName, 120));
   let address = calmCaps(text(d.address, 200));
-  let priceText = text(d.priceText, 60);
+  let priceText = calmCaps(text(d.priceText, 60));
   let free = d.free === true || (priceText ? /\bfree\b/i.test(priceText) : false);
-  let hostName = text(d.hostName, 60);
+  let hostName = calmCaps(text(d.hostName, 60));
   let placeConf = ground(venue || address, venue || address ? c.place ?? 0.6 : 0, "place");
   let priceConf = ground(priceText, priceText ? c.price ?? 0.6 : 0, "price");
   const hostConf = ground(hostName, hostName ? c.host ?? 0.6 : 0, "host");
@@ -312,7 +329,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
       }
     }
     if (ev.name) [title, titleConf] = [text(ev.name, 120), 0.95];
-    if (ev.venue || ev.address) [venue, address, placeConf] = [text(ev.venue, 120) ?? venue, text(ev.address, 200) ?? address, 0.95];
+    if (ev.venue || ev.address) [venue, address, placeConf] = [text(ev.venue, 120) ?? venue, tidyAddress(text(ev.address, 200)) ?? address, 0.95];
     if (ev.price || ev.free) [priceText, free, priceConf] = [text(ev.price, 60) ?? (ev.free ? "Free" : priceText), ev.free === true, 0.9];
     if (ev.organizer && !hostName) hostName = text(ev.organizer, 60);
     notes.push("Used the event details the page publishes.");
@@ -397,7 +414,8 @@ export function explainFacts(explanation) {
     kind: explanation.pick.kind,
     green: explanation.pick.green,
     free: explanation.pick.fee === "no",
-    trips: explanation.members.map((/** @type {any} */ m) => ({ who: m.name, from: m.from, minutes: m.minutes })),
+    // neighbourhoods and minutes only: member names stay with Come Through
+    trips: explanation.members.map((/** @type {any} */ m) => ({ from: m.from, minutes: m.minutes })),
     longestMinutes: explanation.maxMinutes,
     vibe: explanation.vibeMatched,
     lastVisitedDaysAgo: explanation.lastUsedDaysAgo,

@@ -152,3 +152,14 @@ test("flyer text: shouting calmed, and a weekday that clashes with the date is f
   assert.ok(clash.low.includes("start"));
   assert.match(clash.notes[0], /names Saturday, but 2026-10-25 is a Sunday/);
 });
+
+test("tidy words: a lower-case title gets a capital, repeated address parts go", async () => {
+  const { firstCap, tidyAddress, calmCaps } = await import("../src/core/tasks.mjs");
+  assert.equal(firstCap("wine and monopoly"), "Wine and monopoly");
+  assert.equal(firstCap("iPhone launch"), "iPhone launch", "a title with any capital is left alone");
+  assert.equal(firstCap(null), null);
+  assert.equal(tidyAddress("30 Mobolaji Bank Anthony Way Ikeja, Lagos, LA 021189, Lagos, LA"), "30 Mobolaji Bank Anthony Way Ikeja, Lagos, LA 021189, LA");
+  assert.equal(calmCaps("GATE ₦3,000"), "Gate ₦3,000");
+  const r = readPlan({ kind: "hosted", title: "wine and monopoly", dateWords: "friday", startTime: "7", atHost: true, bring: ["a bottle"], confidence: {} }, { text: "wine and monopoly at mine friday 7, bring a bottle", url: null, pageMeta: null, image: null, today, tz: "Africa/Lagos", member });
+  assert.equal(r.draft.title, "Wine and monopoly");
+});
