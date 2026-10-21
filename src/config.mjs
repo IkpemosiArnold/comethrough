@@ -57,7 +57,8 @@ export function config(env = process.env) {
       timeoutMs: num(env.GEMMA_TIMEOUT_MS, 25000),
     },
     geocoder: {
-      provider: /** @type {"nominatim"|"photon"} */ (env.GEOCODER === "photon" ? "photon" : "nominatim"),
+      // Photon for search and type-ahead (Nominatim forbids autocomplete); Nominatim for single lookups
+      provider: /** @type {"nominatim"|"photon"} */ (env.GEOCODER === "nominatim" ? "nominatim" : "photon"),
       nominatimUrl: env.NOMINATIM_URL || "https://nominatim.openstreetmap.org",
       photonUrl: env.PHOTON_URL || "https://photon.komoot.io",
       countryCodes: env.GEOCODE_COUNTRY || "ng",
@@ -71,8 +72,8 @@ export function config(env = process.env) {
     trustProxyHops: num(env.TRUST_PROXY_HOPS, env.RENDER ? 3 : 0),
     imageMaxBytes: num(env.IMAGE_MAX_BYTES, 5 * 1024 * 1024),
     uidDomain: env.UID_DOMAIN || "comethrough.tech",
-    /** "universal" (m.uber.com/ul) or "web" (m.uber.com/looking) */
-    uberLinkStyle: env.UBER_LINK_STYLE === "web" ? "web" : "universal",
+    /** "looking" (m.uber.com/looking, the documented link) or "legacy" (m.uber.com/ul) */
+    uberLinkStyle: /** @type {"looking"|"legacy"} */ (env.UBER_LINK_STYLE === "legacy" ? "legacy" : "looking"),
   };
 }
 
