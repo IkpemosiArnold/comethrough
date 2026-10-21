@@ -4,11 +4,12 @@
 // The public instances are shared and often "at capacity". In the smoke test on 21 Oct
 // 2026, overpass-api.de answered 502 in a second, two mirrors hung past 40 s, and only
 // maps.mail.ru answered (17 to 19 s). So the query is bounded (a radius, a server timeout,
-// a result cap), each endpoint gets one attempt of at most 35 s before the next is tried
-// (OVERPASS_URL takes a comma-separated list), the whole call has a 90 s budget (it runs
-// only in the background heartbeat, never while someone waits), and
-// results are cached for a week (parks do not move). When every endpoint fails, the
-// ritual still has the curated spots. Unnamed features are skipped: in Lekki most mapped
+// a result cap), each endpoint gets one attempt of at most 25 s before the next is tried
+// (OVERPASS_URL takes a comma-separated list), and the whole call has a 40 s budget. It
+// runs only in the heartbeat, never while someone waits, but the heartbeat itself must
+// answer within Cloudflare's 100 s (Render sits behind it): on 21 Oct 2026 a 90 s budget
+// tried twice made one tick take 166 s. Results are cached for a week (parks do not
+// move). When every endpoint fails, the ritual still has the curated spots. Unnamed features are skipped: in Lekki most mapped
 // green is unnamed grass, and "meet at an unnamed lawn" is not a plan.
 
 import { GREEN_TAGS } from "../core/places.mjs";
@@ -53,7 +54,7 @@ export function readOverpass(json) {
  * @param {{ urls: string[], contact: string, cache: Cache, fetchImpl?: typeof fetch, sleep?: (ms: number) => Promise<any>, attemptMs?: number, budgetMs?: number, now?: () => number }} cfg
  * @returns {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<Candidate[]> }}
  */
-export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attemptMs = 35000, budgetMs = 90000, now = Date.now }) {
+export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attemptMs = 25000, budgetMs = 40000, now = Date.now }) {
   return {
     async greenNear(at, radiusM) {
       const key = `osm:green:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}`;

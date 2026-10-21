@@ -99,3 +99,19 @@ export function checkUrl(raw) {
   if (literal && !isPublicIp(host)) return { ok: false, reason: "That link points inside a private network." };
   return { ok: true, url };
 }
+
+/**
+ * Sites that hand servers an empty page instead of the post (Instagram, Facebook and
+ * Threads, checked 21 Oct 2026). Their links are never fetched: the person is asked for
+ * the flyer picture instead.
+ */
+export const LOCKED_HOSTS = /(^|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net)$/i;
+
+/** True for a link on one of the LOCKED_HOSTS. */
+export function isLockedLink(raw) {
+  try {
+    return LOCKED_HOSTS.test(new URL(String(raw)).hostname);
+  } catch {
+    return false;
+  }
+}

@@ -17,12 +17,12 @@ import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import { parseHtmlMeta } from "../core/htmlmeta.mjs";
-import { checkUrl, isPublicIp } from "../core/netguard.mjs";
+import { LOCKED_HOSTS, checkUrl, isPublicIp } from "../core/netguard.mjs";
 
 /** @typedef {import("../core/tasks.mjs").PageMeta} PageMeta */
 /** @typedef {{ meta: PageMeta|null, image: { mimeType: string, data: string }|null, note: string|null }} PageResult */
 
-export const SKIP_HOSTS = /(^|\.)(instagram\.com|instagr\.am|facebook\.com|fb\.com|fb\.me|threads\.net)$/i;
+export const SKIP_HOSTS = LOCKED_HOSTS;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
 export class LinkError extends Error {
