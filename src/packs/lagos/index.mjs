@@ -91,6 +91,9 @@ export const LAGOS = Object.freeze({
   /** Lagos crews: in Nigeria, inside the metro box (or named Lagos when there is no centre yet). */
   matches: (/** @type {Region} */ r) => r.countryCode === "NG" && (r.center ? inLagos(r.center) : /^lagos$/i.test(r.city || "")),
   travel: LAGOS_TRAVEL,
+  // an assumption, written down (docs/LOCAL-FACTS.md, "Taste"): ₦5,000 is about 7% of the
+  // ₦70,000 monthly minimum wage (2024), the most a "broke" or "cheap" crew pays for a ticket
+  cheapMax: 5000,
   social: SOCIAL_HOURS,
   rides: RIDE_PROVIDERS,
   curated: true,

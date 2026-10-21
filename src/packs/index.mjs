@@ -55,6 +55,7 @@ import { LAGOS_TZ } from "./lagos/geo.mjs";
  * @property {Record<string, string>} zoneNames   short zone names for calendar files
  * @property {(r: Region) => RegExp} addressNoise  address parts that name the city, state or country, never a neighbourhood
  * @property {{ example: string|null, areaPlaceholder: string, pricePlaceholder: string }} ui
+ * @property {number} [cheapMax]        the most a "cheap" crew pays for an event, in the local currency (none: no ceiling is assumed)
  */
 
 /** Every pack but the default, in the order they are tried. @type {CityPack[]} */

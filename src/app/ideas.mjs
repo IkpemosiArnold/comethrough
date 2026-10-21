@@ -18,7 +18,8 @@
 
 import { centroid, haversineKm, isLatLon } from "../core/geo.mjs";
 import { EVENTS_MAX_TOKENS, EVENTS_SCHEMA, eventsMessages, freshItems, postText, readEvents } from "../core/feeds.mjs";
-import { IDEAS_TTL_MS, RANK_MAX_TOKENS, RANK_SCHEMA, eventCandidates, ideaView, placeCandidates, pool, rankMessages, readRanking, slotFor, usualCandidates } from "../core/ideas.mjs";
+import { IDEAS_TTL_MS, RANK_MAX_TOKENS, RANK_SCHEMA, crewFactsOf, eventCandidates, homeCandidate, ideaView, placeCandidates, pool, rankMessages, readRanking, slotFor, usualCandidates } from "../core/ideas.mjs";
+import { tasteKey } from "../core/taste.mjs";
 import { recentPlaces } from "../core/plans.mjs";
 import { localisePrompt } from "../core/tasks.mjs";
 import { localParts } from "../core/time.mjs";
@@ -55,7 +56,7 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {import("../adapters/feeds.mjs").FeedsPort|null} deps.feeds  null: no curated guides (offline, tests)
  * @param {{ hourly(at: { lat: number, lon: number }, opts?: { tz?: string, days?: number }): Promise<any[]> }} deps.weather
  * @param {{ lookup(q: string, ctx?: any): Promise<any>, lookupArea(q: string, ctx?: any): Promise<any> }} deps.geocoder
- * @param {(center: { lat: number, lon: number }, pack: any) => Promise<any[]>} deps.candidatesNear  the service's places pipeline
+ * @param {(center: { lat: number, lon: number }, pack: any, taste?: any) => Promise<any[]>} deps.candidatesNear  the service's places pipeline (with the crew's taste: the kinds of place it is into too)
  * @param {Record<string, import("../core/tasks.mjs").Prompt>} deps.prompts
  * @param {() => number} deps.now
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
@@ -190,7 +191,8 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     if (!w) throw invalid([{ field: "when", message: 'Ask for "tonight" or "weekend".' }]);
     const { crew } = await viewerOf(slug, token);
     onAsk();
-    const key = `ideas:${crew.id}:${w}`;
+    // a new taste is a new card; the key holds the taste's hash, never its words
+    const key = `ideas:${crew.id}:${w}:${tasteKey(crew.taste)}`;
     const hit = await cache.get(key);
     if (hit) return { ...hit, cached: true };
     return once(inflight, key, async () => {
@@ -228,7 +230,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     try {
       hours = await weather.hourly(center, { tz, days: 7 });
     } catch {}
-    const placesP = candidatesNear(center, pack).catch(() => /** @type {any[]} */ ([]));
+    const placesP = candidatesNear(center, pack, crew.taste ?? null).catch(() => /** @type {any[]} */ ([]));
     let places = await Promise.race([placesP, wait(placesBudgetMs)]);
     if (places === undefined) {
       // the map is slow (it keeps going, and fills its cache for next time): the curated spots meanwhile
@@ -243,15 +245,17 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const events = (await Promise.all(guides.map(eventsFrom))).flat();
 
     const ctx = { slot, center, points, hours, model: pack.travel };
-    const ev = eventCandidates(events, ctx);
+    // the crew's taste: events its needs rule out are dropped, its keywords rank higher, and
+    // a cheap crew is not offered tickets over the pack's ceiling for "cheap"
+    const ev = eventCandidates(events, { ...ctx, taste: crew.taste ?? null, budget: crew.budget ?? "any", cheapMax: pack.cheapMax ?? null });
     const pl = placeCandidates(/** @type {any[]} */ (places || []), { ...ctx, crew, recent: recentPlaces(plans, t), now: t });
     const us = usualCandidates(plans, { ...ctx, now: t });
     if (pl.wet) notes.push("Rain is forecast for the open-air hours, so outdoor places are left out.");
-    const cands = pool({ events: ev, places: pl.candidates, usual: us }, slot.today);
+    const cands = pool({ events: ev, places: pl.candidates, usual: us, home: homeCandidate(slot, crew.taste) }, slot.today);
     const sources = guides.map((g) => ({ name: g.name, url: g.home }));
     if (!cands.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, "Nothing fits this time. Try the other slot, or add a plan yourself."], ...(partial ? { partial: true } : {}) };
 
-    const crewFacts = { vibe: crew.vibe ?? null, likes: crew.vibeTags ?? [], budget: crew.budget ?? "any", when };
+    const crewFacts = crewFactsOf(crew, when);
     let data = null;
     if (ai.available && cands.length > 1) {
       try {
