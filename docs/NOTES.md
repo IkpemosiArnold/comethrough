@@ -52,7 +52,7 @@ against RFC 5545 (`scripts/ics-check.mjs`); two heartbeats.
 | Pods | Seyi to Tolu's: 14 min from Surulere; Amaka: 103 min from Lekki on a Friday evening, across the bridge; Uber link `m.uber.com/looking?drop[0]=...` on pinned plans only |
 | Calendar | feed: 3 events, every line 75 octets or less, 9 folded, escaping correct, ETag 304; event.ics: one event with an alarm |
 | Heartbeat | tick 1 made the ritual in 44 s (Overpass at capacity, the curated spots carried it); tick 2 made nothing |
-| Rain | Saturday 3 to 7 pm forecast up to 95% rain, so the ritual moved to 8 to 10 am (34%) with the note "Rain is likely from 3 pm to 7 pm (up to 95%), so the sloth moved it to 8 am to 10 am..." |
+| Rain | Saturday 3 to 7 pm forecast up to 95% rain, so the ritual moved to 8 to 10 am (34%) with the note "Rain is likely from 3 pm to 7 pm (up to 95%), so the sloth moved it to 8 am to 10 am..." (Since replaced: nobody meets in a Lagos park at 8 am on a Saturday. The sloth now stays inside social hours and, with this forecast, skips the slot. See LOCAL-FACTS.md.) |
 | Web Push | headless Chrome subscribed through FCM; a new plan by another member arrived as a notification (`scripts/push-check.mjs`) |
 
 Bugs found and fixed, each with a test:

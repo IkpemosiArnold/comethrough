@@ -36,7 +36,8 @@ More in [docs/screens/real](docs/screens/real).
 - **The sloth's ritual.** If the crew has a regular day and nobody planned anything, Come
   Through picks a green spot near the middle of the crew from OpenStreetMap, checks the
   weather, and posts the plan two or three days ahead. If rain is coming, it moves to a
-  drier stretch or says plainly that there is none.
+  drier stretch inside the hours people actually go out (11 am to 6:30 pm at the
+  weekend), and when there is none it skips the week and says why.
 - **Reminders without an app.** Web Push nudges on Android and on iPhone (from the Home
   Screen), a one-tap calendar file after "I'm going", a calendar feed for iPhone and
   laptops, and a WhatsApp heads-up when rain moves in.

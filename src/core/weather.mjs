@@ -177,8 +177,48 @@ export function rainMovedIn(prev, next) {
   return !!next && !next.ok && (!prev || prev.ok);
 }
 
-/** Daylight hours a ritual may move into when its own window is wet (sunset in Lagos is near 18:45 all year). */
-export const DAYLIGHT = { from: "08:00", to: "19:00" };
+/**
+ * When people in Lagos actually meet up, by kind of plan. The sloth never plans outside
+ * these hours, whatever the weather does. Assumptions, written down so they can be argued
+ * with (docs/LOCAL-FACTS.md, "Social hours"):
+ *   - weekend outdoor: 11:00 to 18:30. Late enough to be up and out, done before dark
+ *     (sunset in Lagos ran from 18:25 to 19:06 in 2025, per Open-Meteo's archive).
+ *   - weekday evening: 17:30 to 21:00, for indoor or covered plans after work.
+ *   - a weekday outdoor plan gets only the light part of the evening, 17:30 to 18:30.
+ *   - a weekend covered or indoor plan: 11:00 to 21:00.
+ */
+export const SOCIAL_HOURS = {
+  weekendOutdoor: { from: "11:00", to: "18:30" },
+  weekendCovered: { from: "11:00", to: "21:00" },
+  weekdayOutdoor: { from: "17:30", to: "18:30" },
+  weekdayEvening: { from: "17:30", to: "21:00" },
+};
+
+export const isWeekend = (/** @type {string} */ date) => [0, 6].includes(weekdayOf(date));
+
+/**
+ * The acceptable hours for a plan on a date.
+ * @param {string} date  "YYYY-MM-DD"
+ * @param {{ outdoor?: boolean }} [opts]
+ */
+export function socialWindow(date, { outdoor = true } = {}) {
+  if (isWeekend(date)) return outdoor ? SOCIAL_HOURS.weekendOutdoor : SOCIAL_HOURS.weekendCovered;
+  return outdoor ? SOCIAL_HOURS.weekdayOutdoor : SOCIAL_HOURS.weekdayEvening;
+}
+
+/**
+ * The crew's own window cut to the social hours. When the two share less than an hour
+ * (a crew that said "Saturday 8am"), the social hours win.
+ * @param {string} date
+ * @param {{ from: string, to: string }} want
+ * @param {{ outdoor?: boolean }} [opts]
+ */
+export function clipToSocial(date, want, opts = {}) {
+  const ok = socialWindow(date, opts);
+  const lo = Math.max(minutesOfDay(want.from), minutesOfDay(ok.from));
+  const hi = Math.min(minutesOfDay(want.to), minutesOfDay(ok.to));
+  return hi - lo >= 60 ? { from: hhmm(lo), to: hhmm(hi) } : { ...ok };
+}
 
 /** "15:00" as "3 pm", "08:30" as "8:30 am". */
 export function clockWords(t) {
@@ -189,28 +229,33 @@ export function clockWords(t) {
 }
 
 /**
- * Where and when a ritual goes when it rains. The crew's own window comes first; when its
- * best stretch is wet (not ok), the sloth looks, in order, for:
- *   1. a dry stretch of at least two hours in daylight on the same day ("moved");
- *   2. a dry stretch in the crew's window on the next day ("next_day");
- *   3. nothing dry: it keeps the least wet stretch of the crew's window and says so
- *      plainly, suggesting a roof ("wet").
+ * Where and when a ritual goes when it rains. Every window considered is inside the social
+ * hours (SOCIAL_HOURS): the sloth never moves a Saturday hangout to 8 am. The crew's own
+ * window (cut to those hours) comes first; when its best stretch is wet (not ok), the sloth
+ * looks, in order, for:
+ *   1. a dry stretch of at least two hours in the same day's social hours ("moved");
+ *   2. a dry stretch in the crew's window on the next day, when that day is the same kind of
+ *      day (Saturday to Sunday, not Sunday to Monday) ("next_day");
+ *   3. nothing acceptable: "skip". The caller may offer a covered place instead ("covered");
+ *      otherwise the sloth skips this one and says why.
  * Every note is built from the forecast numbers, never guessed.
  * @param {Hour[]} hours
  * @param {{ date: string, from: string, to: string, hours: number }} slot
- * @returns {null | { date: string, window: { from: string, to: string }, win: NonNullable<ReturnType<typeof bestWindow>>, rainPlan: null | { kind: "moved"|"next_day"|"wet", note: string, wanted: { date: string, from: string, to: string, rainProb: number|null } } }}
+ * @returns {null | { date: string, window: { from: string, to: string }, win: NonNullable<ReturnType<typeof bestWindow>>, rainPlan: null | RainPlan }}
  *   null when the forecast does not reach the date
  */
 export function ritualWindow(hours, { date, from, to, hours: span }) {
-  const own = bestWindow(hours, { date, from, to, hours: span });
+  const mine = clipToSocial(date, { from, to });
+  const own = bestWindow(hours, { date, from: mine.from, to: mine.to, hours: span });
   if (!own) return null;
   if (own.ok) return { date, window: { from: own.from, to: own.to }, win: own, rainPlan: null };
-  const inWindow = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(from) && minutesOfDay(h.time) < minutesOfDay(to));
-  const wanted = { date, from, to, rainProb: max(inWindow.map((h) => h.rainProb)) ?? own.rainProb };
-  const wet = `Rain is likely from ${clockWords(from)} to ${clockWords(to)} (up to ${wanted.rainProb ?? "?"}%)`;
+  const inWindow = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(mine.from) && minutesOfDay(h.time) < minutesOfDay(mine.to));
+  const wanted = { date, from: mine.from, to: mine.to, rainProb: max(inWindow.map((h) => h.rainProb)) ?? own.rainProb };
+  const wet = `Rain is likely from ${clockWords(mine.from)} to ${clockWords(mine.to)} (up to ${wanted.rainProb ?? "?"}%)`;
+  const social = socialWindow(date);
   const short = Math.min(span, 2);
-  const moved = bestWindow(hours, { date, from: DAYLIGHT.from, to: DAYLIGHT.to, hours: span }) ?? null;
-  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: DAYLIGHT.from, to: DAYLIGHT.to, hours: short });
+  const moved = bestWindow(hours, { date, from: social.from, to: social.to, hours: span });
+  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: social.from, to: social.to, hours: short });
   if (movedShort?.ok) {
     return {
       date, window: { from: movedShort.from, to: movedShort.to }, win: movedShort,
@@ -218,16 +263,42 @@ export function ritualWindow(hours, { date, from, to, hours: span }) {
     };
   }
   const next = addDays(date, 1);
-  const nextWin = bestWindow(hours, { date: next, from, to, hours: span });
+  const nextOk = isWeekend(next) === isWeekend(date);
+  const nextMine = clipToSocial(next, { from, to });
+  const nextWin = nextOk ? bestWindow(hours, { date: next, from: nextMine.from, to: nextMine.to, hours: span }) : null;
   if (nextWin?.ok) {
     return {
       date: next, window: { from: nextWin.from, to: nextWin.to }, win: nextWin,
       rainPlan: { kind: "next_day", wanted, note: `${wet} on ${DAY_NAMES[weekdayOf(date)]}, so the sloth moved it to ${DAY_NAMES[weekdayOf(next)]}, ${clockWords(nextWin.from)} to ${clockWords(nextWin.to)} (rain chance up to ${nextWin.rainProb}%). Forecasts change; the sloth checks again before then.` },
     };
   }
-  const dayMin = moved?.rainProb ?? own.rainProb;
+  const daySocial = hours.filter((h) => h.date === date && minutesOfDay(h.time) >= minutesOfDay(social.from) && minutesOfDay(h.time) < minutesOfDay(social.to));
+  const allWet = daySocial.length > 0 && daySocial.every((h) => (h.rainProb ?? 50) >= RAIN_OK);
+  const part = minutesOfDay(social.from) >= 17 * 60 ? "evening" : "afternoon";
+  const peak = max(daySocial.map((h) => h.rainProb));
+  const nextWords = nextWin ? `, and ${DAY_NAMES[weekdayOf(next)]} looks no better` : "";
+  const head = allWet ? `Rain all ${part}` : `No dry two hours this ${part}`;
   return {
     date, window: { from: own.from, to: own.to }, win: own,
-    rainPlan: { kind: "wet", wanted, note: `No dry stretch this weekend: the driest few hours on ${DAY_NAMES[weekdayOf(date)]} still have a ${dayMin ?? "high"}% chance of rain. Bring an umbrella, or move it somewhere with a roof: anyone in the crew can change the place.` },
+    rainPlan: {
+      kind: "skip", wanted,
+      note: `${head} on ${DAY_NAMES[weekdayOf(date)]} (up to ${peak ?? "?"}% between ${clockWords(social.from)} and ${clockWords(social.to)})${nextWords}. The sloth is skipping this one. If it clears up, anyone can still add a plan.`,
+    },
   };
+}
+
+/**
+ * @typedef {{ kind: "moved"|"next_day"|"covered"|"skip", note: string, wanted: { date: string, from: string, to: string, rainProb: number|null } }} RainPlan
+ */
+
+/**
+ * The note for a covered alternative, when the rain blocks every outdoor window but a place
+ * with a roof is known.
+ * @param {RainPlan} skip  what ritualWindow returned
+ * @param {string} placeName
+ * @param {{ from: string, to: string }} window
+ */
+export function coveredNote(skip, placeName, window) {
+  const w = skip.wanted;
+  return `Rain is likely from ${clockWords(w.from)} to ${clockWords(w.to)} (up to ${w.rainProb ?? "?"}%), so the sloth picked somewhere with a roof: ${placeName}, ${clockWords(window.from)} to ${clockWords(window.to)}.`;
 }

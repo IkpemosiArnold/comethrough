@@ -178,7 +178,8 @@ function calendar(head, events, tzs) {
  */
 export function calendarFeed({ crew, member, plans, now, uidDomain, extras = () => ({}) }) {
   const live = plans
-    .filter((p) => !(parseInstant(p.expiresAt) <= now))
+    // a ritual the sloth skipped for rain was never on anyone's calendar
+    .filter((p) => !(parseInstant(p.expiresAt) <= now) && p.rainPlan?.kind !== "skip")
     .sort((a, b) => parseInstant(a.start) - parseInstant(b.start) || a.id.localeCompare(b.id));
   const name = `Come Through: ${crew.name}`;
   const head = [

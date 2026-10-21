@@ -19,7 +19,7 @@ import {
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
 import { DAY, DAY_NAMES, DEFAULT_TZ, hhmm, isTime, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
-import { clockWords, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
+import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
 import { isLockedLink } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
@@ -35,6 +35,7 @@ export const LIMITS = { sentence: 500, planText: 2000, url: 2000, memberName: 40
 /** The ritual looks for places this far from the crew's middle, then wider if it finds too few. */
 export const SEARCH_RADII_M = [6000, 12000];
 const SPOT_RADIUS_KM = 15;
+const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
 
 /**
  * @param {object} deps
@@ -173,7 +174,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { near: _old, ...bare } = place;
     const spot = !place.private && knownSpot(place.name);
     if (spot) {
-      const outdoor = place.outdoor || ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"].includes(spot.kind);
+      const outdoor = place.outdoor || OUTDOOR_KINDS.includes(spot.kind);
       return { place: { ...bare, name: spot.name, lat: spot.lat, lon: spot.lon, outdoor, ...(spot.osm ? { osm: spot.osm } : {}) }, note: `Pinned at ${spot.name}${outdoor && !place.outdoor ? ", an outdoor spot, so the weather is watched" : ""}.` };
     }
     try {
@@ -608,9 +609,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       }
       if (live.length >= 3) break;
     }
+    // outdoor spots, plus any spot a source says has a roof (offered only when it rains)
     const curated = spots
-      .filter((s) => ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"].includes(s.kind) && haversineKm(center, s) <= SPOT_RADIUS_KM)
-      .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, outdoor: true }));
+      .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
+      .map((s) => s.covered === true ? { name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, outdoor: false, covered: true } : { name: s.name, lat: s.lat, lon: s.lon, osm: s.osm || undefined, outdoor: true });
     const out = [...live];
     for (const c of curated) {
       const dup = out.some((o) => placeKey(o) === placeKey(c) || (haversineKm(o, c) < 0.3 && o.name.toLowerCase() === c.name.toLowerCase()));
@@ -629,46 +631,71 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const center = centroid(points.map((p) => p.area));
     if (!center) return { made: false, reason: "no_location" };
     const candidates = await candidatesNear(center);
-    if (!candidates.length) return { made: false, reason: "no_places" };
+    if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
     const tz = crew.tz || DEFAULT_TZ;
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
     let hours = null;
     try {
       hours = await weather.hourly(center, { tz, days: 7 });
     } catch {}
-    // the crew's window when it is dry; when it is wet, a dry stretch that day or the next,
-    // or an honest "no dry stretch" (core/weather.mjs, ritualWindow)
+    // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
+    // stretch that day or the next, else a covered place, else the sloth skips this one
+    // (core/weather.mjs, ritualWindow)
     const rw = hours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }) : null;
-    const win = rw?.win ?? null;
-    const date = rw?.date ?? due.date;
-    const window = rw ? rw.window : { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) };
-    const rainPlan = rw?.rainPlan ?? null;
+    let win = rw?.win ?? null;
+    let date = rw?.date ?? due.date;
+    let window = rw ? rw.window : clipToSocial(due.date, { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) });
+    /** @type {import("../core/weather.mjs").RainPlan|null} */
+    let rainPlan = rw?.rainPlan ?? null;
+    const open = candidates.filter((c) => c.covered !== true);
+    let pool = open;
+    if (rainPlan?.kind === "skip") {
+      const covered = candidates.filter((c) => c.covered === true);
+      if (covered.length) {
+        pool = covered;
+        window = clipToSocial(due.date, due.window, { outdoor: false });
+        window = { from: window.from, to: hhmm(Math.min(minutesOfDay(window.to), minutesOfDay(window.from) + span * 60)) };
+        date = due.date;
+        win = null;
+      }
+    }
     const at = zonedToMs(date, window.from, tz);
-    const scored = scorePlaces({ members: points, candidates, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: true, recent: recentPlaces(plans, now()), now: now() });
+    const outdoor = pool === open;
+    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now() });
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
+    if (rainPlan?.kind === "skip" && !outdoor) rainPlan = { ...rainPlan, kind: "covered", note: coveredNote(rainPlan, pick.name, window) };
+    const skipped = rainPlan?.kind === "skip";
+    const draft = ritualDraft({ date, window, place: { ...pick, address: pick.address }, tz, outdoor });
 
-    const ex = await gemma("explain-pick", explainMessages(prompts["explain-pick"], scored.explanation), EXPLAIN_SCHEMA);
-    const why = readExplain(ex.data, scored.explanation).why;
-    const draft = ritualDraft({ date, window, place: { ...pick, address: pick.address }, tz });
-    const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
-    const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
-    const inv = await gemma("write-invite", inviteMessages(prompts["write-invite"], facts), INVITE_SCHEMA);
-    const invite = readInvite(inv.data, facts, fallback).invite;
+    let why = null;
+    let invite;
+    if (skipped) {
+      // nothing to explain or invite to: the note says why, and no Gemma call is spent
+      invite = /** @type {string} */ (rainPlan?.note);
+    } else {
+      const ex = await gemma("explain-pick", explainMessages(prompts["explain-pick"], scored.explanation), EXPLAIN_SCHEMA);
+      why = readExplain(ex.data, scored.explanation).why;
+      const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why, vibe: crew.vibe };
+      const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
+      const inv = await gemma("write-invite", inviteMessages(prompts["write-invite"], facts), INVITE_SCHEMA);
+      invite = readInvite(inv.data, facts, fallback).invite;
+    }
 
     const v = validateDraft(draft, { tz });
     if (!v.ok) return { made: false, reason: "invalid_draft" };
     let plan = createPlan(v.draft, { id: `p_r_${crew.id.replace(/^c_/, "")}_${due.date.replace(/-/g, "")}`, crewId: crew.id, createdBy: "sloth", now: now(), why, invite, ritualFor: due.date });
-    if (hours) {
+    if (hours && outdoor) {
       const w = weatherForPlan(hours, plan, now());
       if (w) plan = { ...plan, weather: w };
     }
     if (rainPlan) plan = { ...plan, rainPlan };
+    if (skipped) plan = { ...plan, status: "cancelled" };
     // the last check before writing: another heartbeat may have made it meanwhile
     if (await store.get("plans", plan.id)) return { made: false, reason: "exists" };
     await store.put("plans", plan);
     log("ritual_made", { crew: crew.id, plan: plan.id, place: placeKey(pick), candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
-    await notify(members.map((m) => m.id), { title: plan.title, body: invite.slice(0, 180), url: links.plan(crew, plan.id), tag: plan.id }, `${plan.id}:new`);
+    await notify(members.map((m) => m.id), { title: skipped ? `The sloth is skipping ${DAY_NAMES[weekdayOf(date)]}` : plan.title, body: invite.slice(0, 180), url: links.plan(crew, plan.id), tag: plan.id }, `${plan.id}:new`);
     return { made: true, plan };
   }
 

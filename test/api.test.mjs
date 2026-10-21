@@ -272,7 +272,7 @@ test("the heartbeat: secret, a ritual once, the rain watch", async () => {
   assert.equal(ritual.title, "Saturday at Freedom Park");
   assert.equal(ritual.ritualFor, "2026-10-24");
   assert.equal(ritual.createdBy, "sloth");
-  assert.equal(ritual.start, "2026-10-24T16:00:00+01:00", "after the midday storm and heat");
+  assert.equal(ritual.start, "2026-10-24T15:00:00+01:00", "after the midday storm, and done by 6:30 pm before dark");
   assert.match(ritual.invite, /Come through/);
   assert.match(ritual.why, /Freedom Park/);
   assert.ok(push.sent.some((m) => m.title === "Saturday at Freedom Park"));

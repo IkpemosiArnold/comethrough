@@ -134,7 +134,7 @@ export function PlanPage({ params, query }) {
         {plan.invite && <p class="plan-invite">{plan.invite}</p>}
       </header>
 
-      {plan.rainPlan && plan.status !== 'cancelled' && (
+      {plan.rainPlan && (plan.status !== 'cancelled' || plan.rainPlan.kind === 'skip') && (
         <div class={`rain-plan rain-plan-${plan.rainPlan.kind}`} role="note">
           <Icon name="rain" size={22} />
           <p class="small">{plan.rainPlan.note}</p>
@@ -271,7 +271,7 @@ export function PlanPage({ params, query }) {
         </a>
       </div>
 
-      <ActionBar
+      {plan.rainPlan?.kind !== 'skip' && <ActionBar
         my={my}
         meId={meId}
         menu={menu}
@@ -281,7 +281,7 @@ export function PlanPage({ params, query }) {
         joinHref={`/c/${slug}/join${invite ? `?t=${encodeURIComponent(invite)}&` : '?'}next=${encodeURIComponent(`/c/${slug}/p/${id}`)}`}
         crewName={crewName}
         fileName={`${plan.title}.ics`}
-      />
+      />}
     </div>
   );
 }

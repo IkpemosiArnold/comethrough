@@ -84,15 +84,16 @@ export function ritualDue({ crew, now, plans, lead = LEAD }) {
  * @param {{ from: string, to: string }} input.window  the chosen hours, local
  * @param {{ name: string, lat: number, lon: number, address?: string, osm?: any }} input.place
  * @param {string} [input.tz]
+ * @param {boolean} [input.outdoor]  false for a covered place picked because of the rain
  */
-export function ritualDraft({ date, window, place, tz = DEFAULT_TZ }) {
+export function ritualDraft({ date, window, place, tz = DEFAULT_TZ, outdoor = true }) {
   return {
     kind: "ritual",
     title: `${DAY_NAMES[weekdayOf(date)]} at ${place.name}`,
     start: toIsoLocal(zonedToMs(date, window.from, tz), tz),
     end: toIsoLocal(zonedToMs(date, window.to, tz), tz),
     tz,
-    place: { name: place.name, address: place.address || null, lat: place.lat, lon: place.lon, osm: place.osm, outdoor: true, private: false },
+    place: { name: place.name, address: place.address || null, lat: place.lat, lon: place.lon, osm: place.osm, outdoor, private: false },
     price: null,
     host: null,
     hostName: null,

@@ -110,15 +110,47 @@ test("the ritual explanation sent to Gemma has neighbourhoods and minutes, never
   assert.match(text, /Yaba/);
 });
 
-test("a wet Saturday: the ritual moves to the dry morning and says so", async () => {
+test("a wet Saturday afternoon: never an 8 am plan; the sloth skips it and says why", async () => {
+  // the live forecast of 21 Oct 2026 for Saturday 24 Oct: a drier morning, storms from midday
   const sat = { 8: 24, 9: 34, 10: 45, 11: 58, 12: 71, 13: 82, 14: 90, 15: 95, 16: 94, 17: 85, 18: 69, 19: 53, 20: 35 };
+  /** @type {any[]} */
+  const sent = [];
+  const ai = { available: true, model: "x", async generate(/** @type {any} */ req) { sent.push(req); return { data: null, model: "x", wallSec: 0, jsonMode: true }; } };
   const weather = fakeWeather({ rain: (_d, h) => /** @type {any} */ (sat)[h] ?? 60 });
+  const { store, svc } = make({ ai, weather, places: fakeOverpass([PLACES.freedom]) });
+  await store.put("crews", CREW);
+  const r = await svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
+  const plan = /** @type {any} */ (r.plan);
+  assert.equal(plan?.rainPlan?.kind, "skip");
+  assert.equal(plan?.status, "cancelled");
+  assert.equal(plan?.ritualFor, "2026-10-24", "the slot is settled, so the heartbeat does not retry it");
+  const startHour = Number(plan?.start.slice(11, 13));
+  assert.ok(startHour >= 11 && startHour <= 18, `inside social hours, got ${plan?.start}`);
+  assert.match(plan?.invite || "", /^Rain all afternoon on Saturday \(up to 95% between 11 am and 6:30 pm\), and Sunday looks no better\. The sloth is skipping this one\./);
+  assert.equal(sent.length, 0, "no Gemma call for a skipped ritual");
+  assert.ok(!/[\u2014\u2013]/.test(plan?.invite || ""), "no dashes");
+});
+
+test("a wet Saturday with a known covered place: the sloth offers the roof instead", async () => {
+  const weather = fakeWeather({ rain: () => 85 });
+  const covered = { name: "Covered Hall", kind: "covered", lat: 6.45, lon: 3.40, covered: true, source: { url: "https://example.test" } };
+  const { store, svc } = make({ weather, places: fakeOverpass([PLACES.freedom]), spots: [covered] });
+  await store.put("crews", CREW);
+  const r = await svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
+  const plan = /** @type {any} */ (r.plan);
+  assert.equal(plan?.rainPlan?.kind, "covered");
+  assert.equal(plan?.status, "on");
+  assert.equal(plan?.place.name, "Covered Hall");
+  assert.equal(plan?.place.outdoor, false);
+  assert.match(plan?.rainPlan?.note, /so the sloth picked somewhere with a roof: Covered Hall, 3 pm to 6 pm\./);
+});
+
+test("a dry Saturday keeps the crew's window, cut to the social hours", async () => {
+  const weather = fakeWeather({ rain: () => 10 });
   const { store, svc } = make({ weather, places: fakeOverpass([PLACES.freedom]) });
   await store.put("crews", CREW);
   const r = await svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
-  assert.equal(r.plan?.start, "2026-10-24T08:00:00+01:00");
-  assert.equal(r.plan?.ritualFor, "2026-10-24");
-  assert.equal(/** @type {any} */ (r.plan)?.rainPlan?.kind, "moved");
-  assert.match(r.plan?.invite || "", /moved it to 8 am to 10 am/, "the plain invite carries the honest note");
-  assert.equal(r.plan?.weather?.ok, true);
+  assert.equal(r.plan?.start, "2026-10-24T15:00:00+01:00");
+  assert.equal(r.plan?.end, "2026-10-24T18:00:00+01:00");
+  assert.equal(/** @type {any} */ (r.plan)?.rainPlan, undefined);
 });

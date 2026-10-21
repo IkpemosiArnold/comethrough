@@ -114,6 +114,15 @@ export function CrewHome({ params }) {
 }
 
 function RitualPanel({ crew, ritual, byId, slug, meId }) {
+  if (ritual && ritual.rainPlan?.kind === 'skip') {
+    return (
+      <a class="ritual" href={`/c/${slug}/p/${ritual.id}`}>
+        <div class="ritual-sloth" aria-hidden="true"><Sloth size={78} mood="sleepy" /></div>
+        <p class="ritual-kicker">The sloth is skipping {dayLabel(ritual.start).toLowerCase() === 'tomorrow' ? 'tomorrow' : weekday(ritual.start)}</p>
+        <p class="ritual-wx ritual-rain">{ritual.rainPlan.note}</p>
+      </a>
+    );
+  }
   if (ritual) {
     const going = Object.entries(ritual.rsvps || {}).filter(([, v]) => v === 'going').map(([id]) => byId[id]).filter(Boolean);
     const youGoing = ritual.rsvps?.[meId] === 'going';
@@ -128,7 +137,7 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
           <p class="ritual-wx"><Icon name={weatherIcon(w)} size={18} /> {weatherWords(w)}</p>
         )}
         {ritual.rainPlan && (
-          <p class="ritual-wx ritual-rain">{ritual.rainPlan.kind === 'wet' ? 'No dry stretch this weekend. Bring cover.' : 'Moved to dodge the rain. Tap for why.'}</p>
+          <p class="ritual-wx ritual-rain">{ritual.rainPlan.kind === 'covered' ? 'Rain all afternoon, so somewhere with a roof. Tap for why.' : 'Moved to dodge the rain. Tap for why.'}</p>
         )}
         <div class="row ritual-who">
           {going.length > 0 && <Faces members={going} max={4} ring="var(--canopy)" />}

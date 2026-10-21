@@ -1,7 +1,7 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bestWindow, clockWords, hourCost, hoursFromOpenMeteo, rainMovedIn, ritualWindow, weatherForPlan } from "../src/core/weather.mjs";
+import { SOCIAL_HOURS, bestWindow, clipToSocial, clockWords, hourCost, hoursFromOpenMeteo, rainMovedIn, ritualWindow, socialWindow, weatherForPlan } from "../src/core/weather.mjs";
 
 /** A Lagos October Saturday: hot midday, a storm at 13:00 to 14:00, a cooler dry evening. */
 function forecast(date = "2026-10-24", overrides = {}) {
@@ -83,33 +83,55 @@ function days(dates, rain) {
   return dates.flatMap((date) => Array.from({ length: 24 }, (_, h) => ({ date, time: `${String(h).padStart(2, "0")}:00`, rainProb: rain(date, h), feelsC: 32, uv: 3, precipMm: 0 })));
 }
 
-test("the ritual's rain path: dry keeps the window; wet moves it, then tries the next day, then says so", () => {
+test("the ritual's rain path stays inside social hours: dry keeps the window; wet moves within 11 am to 6:30 pm, then the next weekend day, then skips", () => {
   const slot = { date: "2026-10-24", from: "15:00", to: "19:00", hours: 3 };
   const dry = ritualWindow(days(["2026-10-24"], () => 10), slot);
   assert.equal(dry?.rainPlan, null);
   assert.deepEqual(dry?.window, { from: "15:00", to: "18:00" });
 
-  // the live forecast of 21 Oct 2026 for Saturday 24 Oct: storms from midday, a drier morning
+  // a dry morning and a wet afternoon: the morning is NOT used (never an 8 am plan)
   const sat = { 8: 24, 9: 34, 10: 45, 11: 58, 12: 71, 13: 82, 14: 90, 15: 95, 16: 94, 17: 85, 18: 69, 19: 53, 20: 35 };
-  const moved = ritualWindow(days(["2026-10-24", "2026-10-25"], (d, h) => /** @type {any} */ (sat)[h] ?? 60), slot);
-  assert.equal(moved?.rainPlan?.kind, "moved");
-  assert.equal(moved?.date, "2026-10-24");
-  assert.deepEqual(moved?.window, { from: "08:00", to: "10:00" }, "a two-hour dry morning beats a wet afternoon");
-  assert.equal(moved?.rainPlan?.note, "Rain is likely from 3 pm to 7 pm (up to 95%), so the sloth moved it to 8 am to 10 am, the driest stretch that day (rain chance up to 34%). Forecasts change; the sloth checks again before then.");
-  assert.equal(moved?.rainPlan?.wanted.rainProb, 95);
+  const skip = ritualWindow(days(["2026-10-24", "2026-10-25"], (d, h) => /** @type {any} */ (sat)[h] ?? 60), slot);
+  assert.equal(skip?.rainPlan?.kind, "skip");
+  assert.equal(skip?.rainPlan?.note, "Rain all afternoon on Saturday (up to 95% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.");
+  assert.equal(skip?.rainPlan?.wanted.rainProb, 95);
+
+  // a dry late morning: moved, but only as early as 11 am
+  const lateMorning = ritualWindow(days(["2026-10-24", "2026-10-25"], (d, h) => (h < 14 ? 15 : 80)), slot);
+  assert.equal(lateMorning?.rainPlan?.kind, "moved");
+  assert.deepEqual(lateMorning?.window, { from: "11:00", to: "14:00" });
+  assert.match(lateMorning?.rainPlan?.note || "", /so the sloth moved it to 11 am to 2 pm, the driest stretch that day/);
 
   const sunday = ritualWindow(days(["2026-10-24", "2026-10-25"], (d) => (d === "2026-10-24" ? 80 : 15)), slot);
   assert.equal(sunday?.rainPlan?.kind, "next_day");
   assert.equal(sunday?.date, "2026-10-25");
   assert.match(sunday?.rainPlan?.note || "", /on Saturday, so the sloth moved it to Sunday, 3 pm to 6 pm \(rain chance up to 15%\)/);
 
-  const wet = ritualWindow(days(["2026-10-24", "2026-10-25"], () => 85), slot);
-  assert.equal(wet?.rainPlan?.kind, "wet");
-  assert.equal(wet?.date, "2026-10-24");
-  assert.deepEqual(wet?.window, { from: "15:00", to: "18:00" });
-  assert.match(wet?.rainPlan?.note || "", /^No dry stretch this weekend: the driest few hours on Saturday still have a 85% chance of rain\. Bring an umbrella, or move it somewhere with a roof/);
-  for (const r of [moved, sunday, wet]) assert.ok(!/[—–]/.test(r?.rainPlan?.note || ""), "no dashes");
+  // a Sunday slot never moves into Monday
+  const sundaySlot = { date: "2026-10-25", from: "15:00", to: "19:00", hours: 3 };
+  const noMonday = ritualWindow(days(["2026-10-25", "2026-10-26"], (d) => (d === "2026-10-25" ? 80 : 5)), sundaySlot);
+  assert.equal(noMonday?.rainPlan?.kind, "skip");
+  assert.match(noMonday?.rainPlan?.note || "", /^Rain all afternoon on Sunday \(up to 80% between 11 am and 6:30 pm\)\. The sloth is skipping this one\./);
+
+  const patchy = ritualWindow(days(["2026-10-24", "2026-10-25"], (d, h) => (h % 2 ? 20 : 70)), slot);
+  assert.equal(patchy?.rainPlan?.kind, "skip");
+  assert.match(patchy?.rainPlan?.note || "", /^No dry two hours this afternoon on Saturday/);
+
+  for (const r of [skip, lateMorning, sunday, noMonday, patchy]) {
+    assert.ok(!/[\u2014\u2013]/.test(r?.rainPlan?.note || ""), "no dashes");
+    const h = Number(r?.window.from.slice(0, 2));
+    assert.ok(h >= 11 && h <= 18, `window starts in social hours: ${r?.window.from}`);
+  }
 
   assert.equal(ritualWindow(days(["2026-10-30"], () => 10), slot), null, "beyond the forecast");
   assert.deepEqual(["08:00", "12:00", "15:30", "00:00"].map(clockWords), ["8 am", "12 pm", "3:30 pm", "12 am"]);
+});
+
+test("social hours: weekend outdoor 11:00 to 18:30, weekday evenings 17:30 to 21:00 under a roof", () => {
+  assert.deepEqual(socialWindow("2026-10-24"), { from: "11:00", to: "18:30" });
+  assert.deepEqual(socialWindow("2026-10-23", { outdoor: false }), { from: "17:30", to: "21:00" });
+  assert.deepEqual(socialWindow("2026-10-23"), { from: "17:30", to: "18:30" }, "a weekday outdoor plan gets only the light part of the evening");
+  assert.deepEqual(clipToSocial("2026-10-24", { from: "15:00", to: "19:00" }), { from: "15:00", to: "18:30" });
+  assert.deepEqual(clipToSocial("2026-10-24", { from: "07:00", to: "10:00" }), { from: "11:00", to: "18:30" }, "a crew that said 7 am still gets a social hour");
+  assert.deepEqual(SOCIAL_HOURS.weekendOutdoor, { from: "11:00", to: "18:30" });
 });

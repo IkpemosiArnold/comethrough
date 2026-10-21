@@ -99,7 +99,7 @@
  * @property {number} seq             bumped on every change (the ICS SEQUENCE)
  * @property {string} expiresAt
  * @property {string} [ritualFor]     the "YYYY-MM-DD" rhythm slot a ritual plan fills
- * @property {{ kind: "moved"|"next_day"|"wet", note: string, wanted: { date: string, from: string, to: string, rainProb: number|null } }} [rainPlan]  set on a ritual whose own window was wet: what the sloth did about it, in plain words
+ * @property {{ kind: "moved"|"next_day"|"covered"|"skip", note: string, wanted: { date: string, from: string, to: string, rainProb: number|null } }} [rainPlan]  set on a ritual whose own window was wet: what the sloth did about it, in plain words. A "skip" ritual has status "cancelled" and stays out of calendars
  */
 
 /**
