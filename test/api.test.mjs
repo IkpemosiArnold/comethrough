@@ -41,7 +41,7 @@ let webDir = "";
 
 before(async () => {
   webDir = await fs.mkdtemp(path.join(os.tmpdir(), "ct-web-"));
-  await fs.writeFile(path.join(webDir, "index.html"), "<!doctype html><title>Come Through</title>");
+  await fs.writeFile(path.join(webDir, "index.html"), '<!doctype html><title>Come Through</title><noscript><a href="?basic=1">Open the basic version</a></noscript>');
   await fs.mkdir(path.join(webDir, "assets"), { recursive: true });
   await fs.writeFile(path.join(webDir, "assets", "index-AbCdEf12.js"), `export const app = ${JSON.stringify("come through ".repeat(400))};\n`);
   const cfg = { ...config({ PUBLIC_URL: "https://api.comethrough.test", WEB_URL: "https://comethrough.test", WEB_ORIGIN: "https://comethrough.test", TICK_SECRET: "s3cret-tick", STATIC_DIR: webDir }), imageMaxBytes: 4096 };
@@ -240,6 +240,52 @@ test("RSVP, ride pods, the one-event file and the feed", async () => {
   const again = await call("GET", new URL(S.cal).pathname, { headers: { "if-none-match": /** @type {string} */ (feed.headers.get("etag")) } });
   assert.equal(again.status, 304);
   assert.equal((await call("GET", "/cal/not-a-real-token-at-all.ics")).status, 404);
+});
+
+test("Opera Mini and phones without JavaScript: plain pages to see the plan, say going and join", async () => {
+  const MINI = "Opera/9.80 (Android; Opera Mini/36.2.2254/119.132; U; en) Presto/2.12.423 Version/12.16";
+  const get = async (/** @type {string} */ p, ua = MINI) => {
+    const r = await fetch(base + p, { headers: { "user-agent": ua } });
+    return { status: r.status, text: await r.text(), type: r.headers.get("content-type") };
+  };
+  const post = async (/** @type {string} */ p, /** @type {Record<string,string>} */ form) => {
+    const r = await fetch(base + p, { method: "POST", redirect: "manual", headers: { "user-agent": MINI, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(form).toString() });
+    return { status: r.status, location: r.headers.get("location") || "" };
+  };
+  // a member opens the plan link from the chat in Opera Mini: a plain page with a form, no scripts
+  const plan = await get(`/c/${S.slug}/p/${S.beach}?t=${S.kene}`);
+  assert.equal(plan.status, 200);
+  assert.match(plan.type || "", /^text\/html/);
+  assert.match(plan.text, /<h1>Beach day<\/h1>/);
+  assert.match(plan.text, /<form method="post" action="\/basic\/rsvp\//);
+  assert.ok(!/<script/i.test(plan.text), "no JavaScript at all");
+  assert.match(plan.text, /https:\/\/wa\.me\/\?text=/);
+  const said = await post(`/basic/rsvp/${S.beach}`, { t: S.kene, rsvp: "maybe" });
+  assert.equal(said.status, 303);
+  assert.match(said.location, new RegExp(`^/c/${S.slug}/p/${S.beach}\\?t=.*&basic=1$`));
+  assert.equal((await call("GET", `/api/plans/${S.beach}`, { token: S.kene })).json.plan.you, "maybe");
+  assert.match((await get(said.location)).text, /You said maybe/);
+  // a guest with the invite link joins from the plain page and lands back on the plan
+  const guest = await get(`/c/${S.slug}/p/${S.beach}?t=${S.invite}`);
+  assert.match(guest.text, /Join .* to say you're coming/);
+  const joined = await post(`/basic/join/${S.slug}`, { t: S.invite, name: "Funmi", area: "Yaba", next: S.beach });
+  assert.equal(joined.status, 303);
+  const after = await get(joined.location);
+  assert.match(after.text, /Are you coming\?/);
+  // the crew page lists plans; ?basic=1 works in any browser; Chrome gets the app
+  assert.match((await get(`/c/${S.slug}?t=${S.kene}`)).text, /Coming up/);
+  const chrome = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+  assert.match((await get(`/c/${S.slug}?t=${S.kene}&basic=1`, chrome)).text, /Coming up/);
+  const app = await get(`/c/${S.slug}/p/${S.beach}?t=${S.kene}`, chrome);
+  assert.match(app.text, /<title>Come Through<\/title>/);
+  assert.ok(app.text.includes(`href="/c/${S.slug}/p/${S.beach}?t=${S.kene}&amp;basic=1"`), "the noscript link keeps the key and adds basic=1");
+  // the join link works; starting a crew says it needs the full app
+  assert.match((await get(`/c/${S.slug}/join?t=${S.invite}`)).text, /<h2>Join /);
+  assert.match((await get("/")).text, /This part needs the full app/);
+  assert.equal((await get("/assets/missing.js")).status, 404, "files are not app pages");
+  // a link with no key explains itself; a bad key is a plain error page
+  assert.equal((await get(`/c/${S.slug}/p/${S.beach}`)).status, 401);
+  assert.equal((await get(`/c/${S.slug}/p/${S.beach}?t=nope`)).status, 403);
 });
 
 test("edits: only the creator or host; a cancel tells who was coming", async () => {

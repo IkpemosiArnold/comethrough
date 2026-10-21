@@ -28,6 +28,7 @@ import { createWebPush } from "../adapters/push.mjs";
 import { openStore } from "../adapters/store.mjs";
 import { BASE_HEADERS, HttpFail, clientIp, makeLimiter, parseMultipart, readBody, readJson, sendJson, sniffImage, tokenOf } from "./http.mjs";
 import { staticHandler } from "./static.mjs";
+import { APP_ROUTE, PAGE_ROUTE, basicHandler, wantsBasic } from "./basic.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +52,7 @@ export const RATE = {
 export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
   const limiter = makeLimiter(now);
   const serveStatic = staticHandler(cfg.staticDir);
+  const serveBasic = basicHandler({ service, webUrl: cfg.webUrl });
   const ownOrigin = new URL(cfg.publicUrl).origin;
   const allowedOrigins = new Set(cfg.webOrigins.map((o) => new URL(o).origin).filter((o) => o !== ownOrigin));
   const sweep = setInterval(() => limiter.sweep(), 3_600_000);
@@ -186,7 +188,15 @@ export function createApi({ service, cfg, now = Date.now, log = () => {} }) {
         } else sendJson(res, status, wrapped.body);
         return;
       }
-      if (serveStatic && (await serveStatic(req, res, url.pathname))) {
+      // Opera Mini and phones without JavaScript get plain pages for the links in the chat
+      if (url.pathname.startsWith("/basic/") || (req.method === "GET" && (PAGE_ROUTE.test(url.pathname) || APP_ROUTE.test(url.pathname)) && wantsBasic(req, url))) {
+        limit("api", ip);
+        if (await serveBasic(req, res, url)) {
+          status = res.statusCode;
+          return;
+        }
+      }
+      if (serveStatic && (await serveStatic(req, res, url.pathname, url.search))) {
         status = 200;
         return;
       }

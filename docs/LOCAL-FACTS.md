@@ -268,6 +268,54 @@ and does that:
 The messages are in `web/src/lib/share.js`, tested in `test/share.test.mjs`. No claim is made
 about WhatsApp's market share in Nigeria here, because none was checked for this pass.
 
+## Opera and Opera Mini
+
+**Opera is about a fifth of Nigerian mobile browsing.** Statcounter, mobile browser share in
+Nigeria (CSV from gs.statcounter.com, checked 21 Oct 2026): Opera 19.91% in July 2026, 22.3%
+in August, 18.05% in September and 19.4% for October so far; Chrome 64 to 68%, Safari 9 to
+13%. Statcounter does not split Opera Mini from Opera for Android, so how many of those
+people use Opera Mini is unknown.
+
+**Opera for Android** is built on Chromium (Opera's blog, 31 Mar 2016:
+https://blogs.opera.com/mobile/2016/03/brand-new-tab-switcher-web-app-discovery-opera-36-android/),
+and supports what the app uses, per MDN's browser compatibility data (@mdn/browser-compat-data
+8.1.6) and caniuse:
+
+| Feature the app uses | Opera for Android | Source |
+|---|---|---|
+| Service worker (offline shell, the share target) | Yes, since 27 | MDN BCD; caniuse.com/serviceworkers |
+| Push API (nudges) | Yes, PushManager since 29 | MDN BCD; caniuse.com/push-api; Opera blog, 15 Jun 2016 |
+| Install from the web app manifest | Yes, since 26 | MDN BCD |
+| Share target (share a flyer to the app) | Yes, since 63 | MDN BCD |
+
+The app detects features instead of browsers (`web/src/lib/platform.js`), so nothing is
+switched off for Opera. **Not tested on a real Opera for Android phone** (Opera is not
+installed on this machine and the Playwright browser was not used). Push in Opera goes to
+whatever push service Opera gives the subscription; the server's `web-push` library sends to
+any standard endpoint, but an Opera delivery has not been seen yet (DEPLOY.md, phone
+checklist).
+
+**Opera Mini in extreme mode cannot run the app.** Opera's own page (help.opera.com/en/
+opera-mini-and-javascript/, checked 21 Oct 2026): "During the transcoding process, JavaScript
+is executed by the server", timers run for about 5 seconds, and extreme is the default
+savings mode in Opera Mini 11 and later. There is no service worker. So:
+
+- When the browser is Opera Mini (its User-Agent says "Opera Mini", or Opera's proxy sends
+  `X-OperaMini-Phone-UA`, both documented by Opera), the links people tap in the group chat
+  are answered with **plain HTML pages made on the server** (`src/server/basic.mjs`): the
+  plan (when, where, the price or entry, the weather, the rain note, who is going), a form
+  with "I'm going", "Maybe" and "Not going", a "Share on WhatsApp" link, the crew's coming
+  plans, and a join form (name and area) for an invite link. Forms post and redirect, with no
+  JavaScript at all.
+- Any other page (starting a crew, adding a plan) says it needs the full app and suggests
+  Chrome, or Opera with data savings off or on high.
+- Any browser with JavaScript turned off sees a `<noscript>` link to the same basic version,
+  with the page's own key kept in the link.
+
+Tested in `test/api.test.mjs` with an Opera Mini User-Agent: view, say maybe, join from an
+invite and land back on the plan, the crew page, and the noscript link. Not tested in real
+Opera Mini, which only runs on phones.
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

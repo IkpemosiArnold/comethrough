@@ -21,7 +21,7 @@ const TYPES = {
 
 /**
  * @param {string} dir
- * @returns {null | ((req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, pathname: string) => Promise<boolean>)}
+ * @returns {null | ((req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, pathname: string, search?: string) => Promise<boolean>)}
  *   null when the folder does not exist; the handler resolves false when it did not answer
  */
 export function staticHandler(dir) {
@@ -30,7 +30,7 @@ export function staticHandler(dir) {
   /** compressed copies, made once per file version: the app's first load on mobile data is about a third of its raw size */
   /** @type {Map<string, Buffer>} */
   const packed = new Map();
-  return async (req, res, pathname) => {
+  return async (req, res, pathname, search = "") => {
     if (req.method !== "GET" && req.method !== "HEAD") return false;
     let rel;
     try {
@@ -56,9 +56,16 @@ export function staticHandler(dir) {
     const ext = path.extname(file).toLowerCase();
     const name = path.basename(file);
     const immutable = /[.-][A-Za-z0-9_-]{8,}\.(js|css|woff2|png|svg|jpg|webp)$/.test(name) && file.includes(`${path.sep}assets${path.sep}`);
-    const enc = COMPRESSIBLE.includes(ext) && st.size > 512 ? pickEncoding(req.headers["accept-encoding"]) : null;
+    let enc = COMPRESSIBLE.includes(ext) && st.size > 512 ? pickEncoding(req.headers["accept-encoding"]) : null;
     let body = null;
-    if (enc) {
+    if (name === "index.html" && search) {
+      // the <noscript> link keeps this page's own address (with its ?t= key) and adds basic=1
+      const q = new URLSearchParams(search);
+      q.set("basic", "1");
+      const html = (await fsp.readFile(file, "utf8")).replace('href="?basic=1"', `href="${`${pathname}?${q}`.replace(/&/g, "&amp;").replace(/"/g, "%22")}"`);
+      enc = pickEncoding(req.headers["accept-encoding"]);
+      body = enc ? compress(Buffer.from(html), enc, { fast: true }) : Buffer.from(html);
+    } else if (enc) {
       const key = `${file}:${st.mtimeMs}:${st.size}:${enc}`;
       body = packed.get(key) ?? null;
       if (!body) {
