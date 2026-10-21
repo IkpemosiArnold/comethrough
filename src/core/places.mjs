@@ -21,6 +21,7 @@ import { DEFAULT_TZ, DAY } from "./time.mjs";
  * @property {number} lon
  * @property {string} [address]
  * @property {{ type: "node"|"way"|"relation", id: number, tags: Record<string,string> }} [osm]
+ * @property {boolean} [outdoor]  known to be an outdoor spot (the curated list says so) even if its OSM tags do not
  */
 /**
  * @typedef {object} Traveller
@@ -174,7 +175,7 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
       return {
         candidate: c, key, travel, maxMin, spreadMin, meanMin,
         cost: maxMin + SPREAD_WEIGHT * spreadMin,
-        green: isGreen(tags),
+        green: isGreen(tags) || c.outdoor === true,
         vibe: vibeFit(tags, vibeTags),
         budget: budgetFit(tags, budget),
         variety: varietyPenalty(key, recent, now),

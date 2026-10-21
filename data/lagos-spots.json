@@ -1,0 +1,568 @@
+{
+ "about": "Named outdoor spots in Lagos for the ritual's place search, merged with live Overpass results. Coordinates come from OpenStreetMap through the service named in each source (© OpenStreetMap contributors, ODbL). Built by scripts/build-spots.mjs; never edit coordinates by hand.",
+ "builtAt": "2026-10-21",
+ "missing": [
+  "Lekki Conservation Centre",
+  "Ndubuisi Kanu Park, Ikeja",
+  "Johnson Jakande Tinubu Park, Ikeja",
+  "Elegushi Beach, Lekki",
+  "Landmark Beach, Oniru",
+  "Atican Beach, Lekki",
+  "Alpha Beach, Lekki",
+  "Eleko Beach, Ibeju-Lekki",
+  "Jhalobia Recreation Park, Ikeja",
+  "Omu Resort, Lekki",
+  "Lagos Yacht Club",
+  "Dreamworld Africana",
+  "Lekki Leisure Lake",
+  "Point of No Return, Badagry"
+ ],
+ "spots": [
+  {
+   "name": "Muri Okunola Park",
+   "kind": "park",
+   "area": "Victoria Island",
+   "lat": 6.43782,
+   "lon": 3.425083,
+   "osm": {
+    "type": "way",
+    "id": 224073907,
+    "tags": {
+     "name": "Muri Okunola Park",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Muri Okunola Park, Victoria Island",
+    "url": "https://photon.komoot.io/api/?q=Muri+Okunola+Park%2C+Victoria+Island&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Freedom Park",
+   "kind": "park",
+   "area": "Lagos Island",
+   "lat": 6.448819,
+   "lon": 3.396531,
+   "osm": {
+    "type": "way",
+    "id": 363761802,
+    "tags": {
+     "name": "Freedom Park",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Freedom Park, Lagos Island",
+    "url": "https://photon.komoot.io/api/?q=Freedom+Park%2C+Lagos+Island&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Ikoyi Park",
+   "kind": "park",
+   "area": "Ikoyi",
+   "lat": 6.458611,
+   "lon": 3.445556,
+   "osm": {
+    "type": "node",
+    "id": 501245159,
+    "tags": {
+     "name": "Ikoyi Park",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Ikoyi Park, Ikoyi",
+    "url": "https://photon.komoot.io/api/?q=Ikoyi+Park%2C+Ikoyi&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Love Garden, UNILAG",
+   "kind": "garden",
+   "area": "Yaba",
+   "lat": 6.519868,
+   "lon": 3.398554,
+   "osm": {
+    "type": "node",
+    "id": 10944364898,
+    "tags": {
+     "name": "Love Garden, UNILAG",
+     "amenity": "fixme"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Love Garden, UNILAG",
+    "url": "https://photon.komoot.io/api/?q=Love+Garden%2C+UNILAG&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lufasi Nature Park",
+   "kind": "nature",
+   "area": "Ajah",
+   "lat": 6.463581,
+   "lon": 3.654754,
+   "osm": {
+    "type": "way",
+    "id": 785409189,
+    "tags": {
+     "name": "Lufasi Nature Park",
+     "tourism": "zoo"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Lufasi Nature Park, Lekki",
+    "url": "https://photon.komoot.io/api/?q=Lufasi+Nature+Park%2C+Lekki&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Tafawa Balewa Square",
+   "kind": "square",
+   "area": "Lagos Island",
+   "lat": 6.447074,
+   "lon": 3.40151,
+   "osm": {
+    "type": "way",
+    "id": 671991288,
+    "tags": {
+     "name": "Tafawa Balewa Square",
+     "landuse": "recreation_ground"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Tafawa Balewa Square, Lagos",
+    "url": "https://photon.komoot.io/api/?q=Tafawa+Balewa+Square%2C+Lagos&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Tarkwa Bay",
+   "kind": "beach",
+   "area": "Tarkwa Bay",
+   "lat": 6.399855,
+   "lon": 3.395623,
+   "osm": {
+    "type": "node",
+    "id": 501287402,
+    "tags": {
+     "name": "Tarkwa Bay",
+     "natural": "bay"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Tarkwa Bay, Lagos",
+    "url": "https://photon.komoot.io/api/?q=Tarkwa+Bay%2C+Lagos&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Oniru Private Beach",
+   "kind": "beach",
+   "area": "Victoria Island",
+   "lat": 6.422845,
+   "lon": 3.442198,
+   "osm": {
+    "type": "node",
+    "id": 6033848839,
+    "tags": {
+     "name": "Oniru Private Beach",
+     "natural": "beach"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Oniru Beach, Lagos",
+    "url": "https://photon.komoot.io/api/?q=Oniru+Beach%2C+Lagos&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "La Campagne Tropicana",
+   "kind": "beach",
+   "area": "Ibeju-Lekki",
+   "lat": 6.394891,
+   "lon": 4.186767,
+   "osm": {
+    "type": "way",
+    "id": 1482805449,
+    "tags": {
+     "name": "La Campagne Tropicana",
+     "leisure": "beach_resort"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "La Campagne Tropicana, Ibeju-Lekki",
+    "url": "https://photon.komoot.io/api/?q=La+Campagne+Tropicana%2C+Ibeju-Lekki&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lagos National Stadium",
+   "kind": "sport",
+   "area": "Surulere",
+   "lat": 6.497142,
+   "lon": 3.364988,
+   "osm": {
+    "type": "way",
+    "id": 215667109,
+    "tags": {
+     "name": "Lagos National Stadium",
+     "leisure": "stadium"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "National Stadium, Surulere",
+    "url": "https://photon.komoot.io/api/?q=National+Stadium%2C+Surulere&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Teslim Balogun Stadium",
+   "kind": "sport",
+   "area": "Surulere",
+   "lat": 6.499771,
+   "lon": 3.360784,
+   "osm": {
+    "type": "way",
+    "id": 1434311438,
+    "tags": {
+     "name": "Teslim Balogun Stadium",
+     "building": "stadium"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Teslim Balogun Stadium, Surulere",
+    "url": "https://photon.komoot.io/api/?q=Teslim+Balogun+Stadium%2C+Surulere&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lagos Polo Club",
+   "kind": "sport",
+   "area": "Ikoyi",
+   "lat": 6.445466,
+   "lon": 3.42171,
+   "osm": {
+    "type": "way",
+    "id": 1373911826,
+    "tags": {
+     "name": "Lagos Polo Club",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Lagos Polo Club, Ikoyi",
+    "url": "https://photon.komoot.io/api/?q=Lagos+Polo+Club%2C+Ikoyi&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Ikoyi Club Golf Course",
+   "kind": "sport",
+   "area": "Ikoyi",
+   "lat": 6.449375,
+   "lon": 3.422618,
+   "osm": {
+    "type": "way",
+    "id": 146601504,
+    "tags": {
+     "name": "Ikoyi Club Golf Course",
+     "leisure": "golf_course"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Ikoyi Club Golf Course",
+    "url": "https://photon.komoot.io/api/?q=Ikoyi+Club+Golf+Course&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Gani Fawehinmi Park",
+   "kind": "park",
+   "area": "Ojota",
+   "lat": 6.593536,
+   "lon": 3.381319,
+   "osm": {
+    "type": "way",
+    "id": 521865195,
+    "tags": {
+     "name": "Gani Fawehinmi Park",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Gani Fawehinmi Park, Ojota",
+    "url": "https://photon.komoot.io/api/?q=Gani+Fawehinmi+Park%2C+Ojota&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Ilashe",
+   "kind": "beach",
+   "area": "Ilashe",
+   "lat": 6.406476,
+   "lon": 3.278869,
+   "osm": {
+    "type": "node",
+    "id": 6288951028,
+    "tags": {
+     "name": "Ilashe",
+     "place": "village"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Ilashe",
+    "url": "https://photon.komoot.io/api/?q=Ilashe&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Arts and Craft Market",
+   "kind": "market",
+   "area": "Lekki",
+   "lat": 6.434277,
+   "lon": 3.505355,
+   "osm": {
+    "type": "node",
+    "id": 6731599985,
+    "tags": {
+     "name": "Arts and Craft Market",
+     "shop": "gift"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Arts and Craft Market",
+    "url": "https://photon.komoot.io/api/?q=Arts+and+Craft+Market&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lakowe Lakes Golf & Country Estate",
+   "kind": "sport",
+   "area": "Lekki-Epe",
+   "lat": 6.452504,
+   "lon": 3.742377,
+   "osm": {
+    "type": "way",
+    "id": 790376953,
+    "tags": {
+     "name": "Lakowe Lakes Golf & Country Estate",
+     "leisure": "golf_course"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Lakowe Lakes Golf",
+    "url": "https://photon.komoot.io/api/?q=Lakowe+Lakes+Golf&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Mobolaji Johnson Arena",
+   "kind": "sport",
+   "area": "Lagos Island",
+   "lat": 6.442697,
+   "lon": 3.401929,
+   "osm": {
+    "type": "way",
+    "id": 560546942,
+    "tags": {
+     "name": "Mobolaji Johnson Arena",
+     "leisure": "stadium"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Mobolaji Johnson Arena",
+    "url": "https://photon.komoot.io/api/?q=Mobolaji+Johnson+Arena&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Whispering Palms Hotel and Resort",
+   "kind": "park",
+   "area": "Badagry",
+   "lat": 6.415576,
+   "lon": 3.045057,
+   "osm": {
+    "type": "way",
+    "id": 1530678909,
+    "tags": {
+     "name": "Whispering Palms Hotel and Resort",
+     "leisure": "resort"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Whispering Palms, Badagry",
+    "url": "https://photon.komoot.io/api/?q=Whispering+Palms%2C+Badagry&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Agege Stadium",
+   "kind": "sport",
+   "area": "Agege",
+   "lat": 6.623534,
+   "lon": 3.330093,
+   "osm": {
+    "type": "way",
+    "id": 135655797,
+    "tags": {
+     "name": "Agege Stadium",
+     "leisure": "stadium"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Agege Stadium",
+    "url": "https://photon.komoot.io/api/?q=Agege+Stadium&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lighthouse Beach",
+   "kind": "beach",
+   "area": "Tarkwa Bay",
+   "lat": 6.394245,
+   "lon": 3.39188,
+   "osm": {
+    "type": "node",
+    "id": 4755886706,
+    "tags": {
+     "name": "Lighthouse Beach",
+     "tourism": "attraction"
+    }
+   },
+   "source": {
+    "service": "photon",
+    "query": "Lighthouse Beach, Lagos",
+    "url": "https://photon.komoot.io/api/?q=Lighthouse+Beach%2C+Lagos&limit=8&lat=6.5&lon=3.4",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Atlas Beach",
+   "kind": "beach",
+   "area": null,
+   "lat": 6.416334,
+   "lon": 3.394344,
+   "osm": {
+    "type": "node",
+    "id": 5246332302,
+    "tags": {
+     "name": "Atlas Beach",
+     "natural": "beach"
+    }
+   },
+   "source": {
+    "service": "overpass",
+    "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
+    "url": "https://overpass-api.de/api/interpreter",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Suntan Beach",
+   "kind": "beach",
+   "area": null,
+   "lat": 6.391598,
+   "lon": 2.838967,
+   "osm": {
+    "type": "node",
+    "id": 13950768025,
+    "tags": {
+     "name": "Suntan Beach",
+     "natural": "beach"
+    }
+   },
+   "source": {
+    "service": "overpass",
+    "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
+    "url": "https://overpass-api.de/api/interpreter",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Lekki Conservation Center",
+   "kind": "park",
+   "area": null,
+   "lat": 6.436233,
+   "lon": 3.535662,
+   "osm": {
+    "type": "way",
+    "id": 312105197,
+    "tags": {
+     "name": "Lekki Conservation Center",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "overpass",
+    "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
+    "url": "https://overpass-api.de/api/interpreter",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Victoria Garden City Recreational Park",
+   "kind": "park",
+   "area": null,
+   "lat": 6.465439,
+   "lon": 3.551389,
+   "osm": {
+    "type": "way",
+    "id": 570559575,
+    "tags": {
+     "name": "Victoria Garden City Recreational Park",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "overpass",
+    "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
+    "url": "https://overpass-api.de/api/interpreter",
+    "checkedAt": "2026-10-21"
+   }
+  },
+  {
+   "name": "Tinubu Square",
+   "kind": "park",
+   "area": null,
+   "lat": 6.45386,
+   "lon": 3.389306,
+   "osm": {
+    "type": "way",
+    "id": 748641728,
+    "tags": {
+     "name": "Tinubu Square",
+     "leisure": "park"
+    }
+   },
+   "source": {
+    "service": "overpass",
+    "query": "named parks, gardens, nature reserves and beaches in the Lagos bounding box",
+    "url": "https://overpass-api.de/api/interpreter",
+    "checkedAt": "2026-10-21"
+   }
+  }
+ ]
+}
