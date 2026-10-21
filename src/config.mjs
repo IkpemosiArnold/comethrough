@@ -1,0 +1,79 @@
+// @ts-check
+// All settings come from the environment (12-factor). In development, a .env file in the
+// working directory is read first; variables already set in the environment win. Nothing
+// here depends on where the repo lives on disk. See .env.example for every variable.
+
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * Read KEY=VALUE lines from a .env file into process.env without overwriting what is set.
+ * Supports comments, blank lines, `export KEY=...` and single or double quotes.
+ * @param {string} [file]
+ */
+export function loadDotEnv(file = path.resolve(".env")) {
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch {
+    return false;
+  }
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!m || line.trim().startsWith("#")) continue;
+    let v = m[2];
+    if (/^(['"]).*\1$/.test(v)) v = v.slice(1, -1);
+    else v = v.replace(/\s+#.*$/, "");
+    if (process.env[m[1]] === undefined) process.env[m[1]] = v;
+  }
+  return true;
+}
+
+const num = (/** @type {string|undefined} */ v, /** @type {number} */ d) => (v != null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : d);
+const list = (/** @type {string|undefined} */ v) => String(v || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+/**
+ * The resolved configuration.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function config(env = process.env) {
+  const port = num(env.PORT, 8790);
+  const publicUrl = (env.PUBLIC_URL || `http://localhost:${port}`).replace(/\/+$/, "");
+  return {
+    port,
+    /** where this API is reachable; calendar links are built from it */
+    publicUrl,
+    /** where the web app lives; invite links point there, and CORS allows only these origins */
+    webUrl: (env.WEB_URL || publicUrl).replace(/\/+$/, ""),
+    webOrigins: list(env.WEB_ORIGIN || env.WEB_URL || ""),
+    dataDir: path.resolve(env.DATA_DIR || ".data"),
+    mongoUri: env.MONGODB_URI || "",
+    mongoDb: env.MONGODB_DB || "comethrough",
+    gemini: {
+      key: env.GEMINI_API_KEY || "",
+      model: env.GEMMA_MODEL || "gemma-4-26b-a4b-it",
+      fallbacks: list(env.GEMMA_FALLBACKS ?? "gemma-4-31b-it"),
+      visionModel: env.GEMMA_VISION_MODEL || "",
+      timeoutMs: num(env.GEMMA_TIMEOUT_MS, 25000),
+    },
+    geocoder: {
+      provider: /** @type {"nominatim"|"photon"} */ (env.GEOCODER === "photon" ? "photon" : "nominatim"),
+      nominatimUrl: env.NOMINATIM_URL || "https://nominatim.openstreetmap.org",
+      photonUrl: env.PHOTON_URL || "https://photon.komoot.io",
+      countryCodes: env.GEOCODE_COUNTRY || "ng",
+    },
+    overpassUrl: env.OVERPASS_URL || "https://overpass-api.de/api/interpreter",
+    openMeteoUrl: env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast",
+    /** sent in User-Agent to OpenStreetMap services, as their usage policies ask */
+    contact: env.CONTACT || "https://github.com/IkpemosiArnold/comethrough",
+    tickSecret: env.TICK_SECRET || "",
+    /** proxies in front that append to X-Forwarded-For: 3 on Render behind Cloudflare (measured for Selects), 0 locally */
+    trustProxyHops: num(env.TRUST_PROXY_HOPS, env.RENDER ? 3 : 0),
+    imageMaxBytes: num(env.IMAGE_MAX_BYTES, 5 * 1024 * 1024),
+    uidDomain: env.UID_DOMAIN || "comethrough.tech",
+    /** "universal" (m.uber.com/ul) or "web" (m.uber.com/looking) */
+    uberLinkStyle: env.UBER_LINK_STYLE === "web" ? "web" : "universal",
+  };
+}
+
+/** @typedef {ReturnType<typeof config>} Config */
