@@ -90,12 +90,13 @@ Not found in OSM under their names on 21 Oct 2026: Elegushi Beach (only a road),
 
 ```sh
 npm install
-npm test               # 127 tests: core, adapters (fakes and a local HTTP server), service, API end to end
+npm test               # 165 tests: core, city packs, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
 npm run smoke          # the live calls above (needs GEMINI_API_KEY)
 node scripts/pidgin-eval.mjs                # 16 Pidgin and mixed English inputs, live, per-field accuracy
+node scripts/cities-check.mjs [city ...]    # a crew in Lagos, London, Berlin, Nairobi, Bengaluru and New York, live (LOCAL-FACTS.md, "Beyond Lagos")
 node scripts/events-check.mjs <url> ...     # real event pages through the link reader
 npm run e2e -- <base> <event link>          # the whole flow over HTTP (scripts/e2e.mjs)
 node scripts/push-check.mjs <base>          # real Web Push through headless Chrome and FCM

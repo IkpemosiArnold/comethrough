@@ -68,9 +68,13 @@ Gemma runs through the Gemini API (free tier) with a server-held key. Google may
 ```js
 Crew   { id, slug, name, vibe, vibeTags: [string], budget: "free"|"cheap"|"any",
          rhythm: { every: "1w"|"2w"|"4w", day: 0..6, window: { from: "15:00", to: "19:00" }, anchor?: "YYYY-MM-DD" } | null,
-         areas: [{ label, lat, lon }], tz: "Africa/Lagos", createdAt, inviteToken }
+         areas: [{ label, lat, lon }], tz: "Europe/Berlin", createdAt, inviteToken,
+         region: { center: { lat, lon } | null, countryCode: "DE" | null, city: "Berlin" | null,
+                   timezone: "Europe/Berlin", tzSource: "open-meteo"|"browser"|"legacy"|"utc" } }
+         // region is derived once from the crew's areas (docs/CITY-PACKS.md) and picks the
+         // city pack; a crew without one is in Lagos (tz "Africa/Lagos"), as every crew was
 Member { id, crewId, name, area: { label, lat, lon } | { label, lat: null, lon: null }, token, calToken, joinedAt }
-Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end, tz: "Africa/Lagos",
+Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end, tz: the crew's zone,
          place: { name, address, lat, lon, osm?: { type, id, tags }, outdoor: bool, private: bool },
          price: { text, free: bool } | null, host: memberId | null, hostName: string | null, bring: [string],
          source: { url?, text?, image?: bool }, why: string | null, invite: string | null,
@@ -98,16 +102,16 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 
 | Method | Path | Auth | Request | Response |
 |---|---|---|---|---|
-| POST | `/api/crews` | none | `{ sentence }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }] }, confidence: { name, vibe, rhythm, areas }, low: [field], notes: [string], ai: bool }` (Gemma reads the sentence; areas are geocoded; nothing is saved). `ai: false` means Gemma was busy: the draft is empty and the form is filled by hand |
-| POST | `/api/crews` | none | `{ confirm: draft, organiser?: { name, area } }` | `201 { crew, inviteUrl, inviteToken, member?, memberToken?, calendarUrl?, webcalUrl? }` |
-| GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, inviteToken, createdAt }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
+| POST | `/api/crews` | none | `{ sentence, hint?: { tz } }` | `200 { draft: { name, vibe, vibeTags, budget, rhythm, areas: [{ label, lat, lon }], region }, pack: PackView, confidence: { name, vibe, rhythm, areas }, low: [field], notes: [string], ai: bool }` (Gemma reads the sentence; areas are geocoded; nothing is saved). `hint.tz` is the visitor's own zone: none, or "Africa/Lagos", starts the crew in Lagos as before; any other zone looks the areas up anywhere, the visitor's country first. `ai: false` means Gemma was busy: the draft is empty and the form is filled by hand |
+| POST | `/api/crews` | none | `{ confirm: draft, hint?: { tz }, organiser?: { name, area } }` | `201 { crew, inviteUrl, inviteToken, member?, memberToken?, calendarUrl?, webcalUrl? }` (the crew keeps `draft.region`, its centre moved to the confirmed areas; with no region, the hint decides, and with no hint, Lagos) |
+| GET | `/api/crews/:slug` | invite or member | | `{ crew: { id, slug, name, vibe, vibeTags, budget, rhythm, areas: [{ label }], tz, region: { center, countryCode, city, timezone }, pack: PackView, inviteToken, createdAt }, members: [{ id, name, area: { label } }], plans: [PlanView], you: { id, name, area: { label } } \| null }` |
 | POST | `/api/crews/:slug/members` | invite | `{ name, area }` where area is a label ("Yaba") or `{ label, lat, lon }` from `/api/areas` | `201 { member, memberToken, memberUrl, calendarUrl, webcalUrl, notes }` (`memberUrl` is `/c/<slug>?t=<memberToken>`) |
-| GET | `/api/areas?q=Yab` | none (rate limited) | | `{ results: [{ label, detail, lat, lon }] }` (Photon type-ahead for neighbourhoods and towns, biased to Lagos, cached; falls back to any place) |
+| GET | `/api/areas?q=Yab&near=6.48,3.42&cc=NG` or `&tz=Europe/Berlin` | none (rate limited) | | `{ results: [{ label, detail, lat, lon, country?, city? }] }` (Photon type-ahead for neighbourhoods and towns, cached; falls back to any place). Biased to `near` (the crew's centre) and kept to `cc` when given; else by the visitor's zone `tz`: none or Lagos searches Lagos as before, any other searches anywhere |
 | POST | `/api/crews/:slug/plans/parse` | member | multipart: `text`, `url`, `image` (JPEG, PNG, WebP or HEIC, at most 5 MB) and optionally `thumb` (the browser's ~400 px JPEG or WebP copy of the image, at most 200 KB, kept as the flyer thumbnail); or JSON `{ text, url }` | `200 { draft: PlanDraft, confidence: { field: 0..1 }, low: [field], notes: [string], ai: bool, model }`. `draft.source.imageUrl` is the flyer thumbnail (or a link's own https image); send `draft.source` back unchanged on create so the plan keeps it |
 | POST | `/api/crews/:slug/plans` | member | `{ plan: PlanDraft }` (the confirmed, possibly edited draft) | `201 { plan: PlanView }` |
 | PATCH | `/api/plans/:id` | member | `{ rsvp: "going"\|"maybe"\|null }` and/or edits `{ title, start, end, place, price, bring, status }` (edits: the creator, the host, or anyone for a ritual) | `{ plan: PlanView }` |
 | GET | `/api/plans/:id` | invite or member | | `{ plan: PlanView, members, crew, you }` (one plan, same visibility rules) |
-| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }], rides: [{ id, name, blurb, links: { android, ios, web }, dropoff: false }] }` (the host of a hosted plan is not in a pod; `rides` lists Bolt, inDrive and LagRide in that order) |
+| GET | `/api/plans/:id/pods` | member | | `{ pods: [Pod], unplaced: [{ id, name }], rides: [{ id, name, blurb, links: { android, ios, web }, dropoff: false }], directions: { android, ios, web } \| null }` (the host of a hosted plan is not in a pod; `rides` is the crew's pack's verified list: Bolt, inDrive and LagRide in Lagos, none elsewhere; `directions` opens a maps app: a geo: URI, Apple Maps, Google Maps) |
 | GET | `/api/flyers/:flyerId` | none (the id is an unguessable capability) | | the flyer thumbnail image, cached for a year |
 | GET | `/api/plans/:id/event.ics?t=<member token>` | member | | one-event calendar file (`text/calendar`, download) for "add to my calendar" after "I'm going" |
 | GET | `/cal/:calToken.ics` | calendar | | the member's subscribed feed (all crew plans; going ones marked) |
@@ -116,6 +120,8 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 | DELETE | `/api/members/:id/push-subscription` | that member | `{ endpoint }` | `204` |
 | POST | `/api/tick` | `Bearer TICK_SECRET` | | `{ rituals, weatherChecked, rainAlerts, pushes, expired }`; idempotent |
 | GET | `/healthz` | none | | `{ ok, store, ai, push, you }` (`you` is the client address the rate limits see; check it after a deploy) |
+
+`PackView` is what the web app may know about the crew's city pack: `{ id: "lagos"|"default", name, directions: bool (no ride app named), example, areaPlaceholder, pricePlaceholder, city, countryCode }`.
 
 `PlanDraft` is a Plan without ids and bookkeeping: `{ kind, title, start, end, tz, place, price, host, hostName, bring, source }`; unknown fields are `null`, never guessed.
 

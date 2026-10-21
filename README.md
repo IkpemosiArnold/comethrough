@@ -11,6 +11,8 @@ themselves out. If nobody plans anything, a sloth does it for you.
 Lagos, where the hard part of meeting up is rarely the wanting. It is the asking, the
 waiting for answers, the choosing of a place and the traffic.
 
+**Built for my crew in Lagos. Works in your city; deepest where there's a city pack.**
+
 <p>
   <img src="docs/screens/real/17-crew-home.png" width="260" alt="A crew's home screen: rain is likely all Saturday afternoon, so the sloth picked Nike Art Gallery, somewhere with a roof, from 3 to 6pm">
   <img src="docs/screens/real/19-ritual-rain.png" width="260" alt="The sloth's plan at Nike Art Gallery, with the note that rain is likely from 3 pm to 6:30 pm (up to 90%), and Entry: check at the gate">
@@ -34,14 +36,15 @@ What the app claims about Lagos, and where each claim comes from, is in
   details and highlights what it guessed.
 - **Tap once.** "I'm going" or "Maybe". Saying nothing is a fine answer.
 - **Rides sort themselves.** People going from nearby areas are grouped into ride pods with a
-  leave-by time, the address to copy, and buttons for Bolt and inDrive (the apps people use in
-  Lagos since Uber left Nigeria in September 2026). No ride app here takes a drop-off from a
-  link, so the app says so and you paste it. Ride times are labelled as estimates, and "How
-  we guess" shows the assumption.
+  leave-by time and the address to copy. In Lagos there are buttons for Bolt and inDrive (the
+  apps people use since Uber left Nigeria in September 2026); no ride app there takes a
+  drop-off from a link, so the app says so and you paste it. In a city with no pack, no app
+  is named, and "Get directions" opens your maps app. Ride times are labelled as estimates,
+  and "How we guess" shows the assumption.
 - **The sloth's ritual.** If the crew has a regular day and nobody planned anything, Come
   Through picks a green spot near the middle of the crew from OpenStreetMap, checks the
   weather, and posts the plan two or three days ahead. If rain is coming, it moves to a
-  drier stretch inside the hours people actually go out (11 am to 6:30 pm at the
+  drier stretch inside the hours people actually go out (in Lagos, 11 am to 6:30 pm at the
   weekend), and when there is none it skips the week and says why.
 - **WhatsApp first.** Plans travel the way Lagos crews already talk: every "tell the crew"
   button opens WhatsApp with the plan's link in the message (after you post a plan, after
@@ -61,17 +64,39 @@ decision about fairness.
 | Read the crew's setup sentence | Gemma 4 | Language |
 | Explain the sloth's pick and write its invite | Gemma 4, checked by code | Language; any number not in the facts is thrown away |
 | Turn "friday 7" into a date and time | Code | A model should never do date arithmetic |
-| Find neighbourhoods and venues on the map | Photon (OpenStreetMap), cached | Facts |
-| Find parks and beaches near the crew | Overpass (OpenStreetMap), plus 38 checked Lagos spots from OpenStreetMap and Wikidata | Open data |
+| Find neighbourhoods and venues on the map; the crew's city | Photon and Nominatim (OpenStreetMap), cached | Facts |
+| The crew's time zone | Open-Meteo (`timezone=auto`) | Open data |
+| Find parks and beaches near the crew | Overpass (OpenStreetMap), plus 38 checked Lagos spots in Lagos, or Wikidata's parks and beaches nearby elsewhere | Open data |
 | Pick the weather window | Open-Meteo | Open data |
 | Road distances and which bridge a trip takes | OSRM (OpenStreetMap), cached | Open data |
 | Choose a fair place, group rides, set leave-by times | Code, with tests | Fairness and arithmetic |
 | Calendar files and feeds | Code (RFC 5545) | Standards |
 
 The code is split so this stays true. `src/core` is pure and has no network, clock or
-randomness (a test enforces it). `src/adapters` wraps each outside service and has a fake
-for tests. `src/app` puts them together, and `src/server` is plain HTTP. The web app in
+randomness (a test enforces it), and it names no city: what is local lives in
+`src/packs`. `src/adapters` wraps each outside service and has a fake for tests. `src/app`
+puts them together, and `src/server` is plain HTTP. The web app in
 `web/` is Preact and Vite.
+
+## City packs
+
+Come Through has a global core and city packs. Every crew gets a region from its own
+neighbourhoods (the country and city from OpenStreetMap, the time zone from Open-Meteo), and
+the region picks a pack:
+
+- **Lagos** has a pack: 38 checked spots, sourced entry fees, Bolt, inDrive and LagRide,
+  Lagos traffic bands and the lagoon bridges, the hours people go out, Pidgin and "VI" in
+  the prompts, and naira. Every claim has a source and a date in
+  [docs/LOCAL-FACTS.md](docs/LOCAL-FACTS.md).
+- **Anywhere else** gets the default pack, which makes no local claims: parks and beaches
+  from OpenStreetMap and Wikidata near the crew, travel times from OSRM labelled as rough,
+  "Get directions" and "Copy address" instead of naming a ride app nobody has checked,
+  generic social hours, your own time zone, and prices as the source writes them.
+
+Tested live in London, Berlin, Nairobi, Bengaluru and New York, with Lagos as the control
+([docs/LOCAL-FACTS.md, "Beyond Lagos"](docs/LOCAL-FACTS.md#beyond-lagos)). To add your city,
+see [docs/CITY-PACKS.md](docs/CITY-PACKS.md): spots with sources, ride apps with dated
+sources, and traffic notes.
 
 ## Privacy
 
@@ -105,7 +130,7 @@ For the real thing, copy `.env.example` to `.env`, add `GEMINI_API_KEY`
 (aistudio.google.com/apikey) and run `npm run dev`.
 
 ```sh
-npm test                 # 127 tests: core, adapters, service and the HTTP API
+npm test                 # 165 tests: core, city packs, adapters, service and the HTTP API
 npm run typecheck        # tsc over the JSDoc types
 npm run e2e -- http://localhost:3000 <event link>   # the whole flow against a running server
 ```
@@ -125,7 +150,8 @@ checks after deploy, and the list of things to try on a real phone are in
 - [docs/SPEC.md](docs/SPEC.md): the product and the API contract
 - [docs/DESIGN.md](docs/DESIGN.md): the look (a hand-painted Lagos afternoon)
 - [docs/NOTES.md](docs/NOTES.md): engineering notes, live test results and open items
-- [docs/LOCAL-FACTS.md](docs/LOCAL-FACTS.md): every claim about Lagos, with its source and the date it was checked
+- [docs/LOCAL-FACTS.md](docs/LOCAL-FACTS.md): every claim about Lagos, with its source and the date it was checked, and the live tests beyond Lagos
+- [docs/CITY-PACKS.md](docs/CITY-PACKS.md): how to add a city pack
 
 ## Credits
 
@@ -137,7 +163,9 @@ checks after deploy, and the list of things to try on a real phone are in
   [openstreetmap.org/copyright](https://www.openstreetmap.org/copyright).
 - **Photon** by komoot: geocoding and type-ahead over OpenStreetMap data.
 - **Overpass API**: green spaces from OpenStreetMap.
-- **Wikidata**: coordinates for Lagos spots OpenStreetMap does not have by name (CC0).
+- **Wikidata**: coordinates for Lagos spots OpenStreetMap does not have by name, and parks
+  and beaches near crews in other cities (CC0).
+- **Nominatim** (OpenStreetMap): the city a new crew is in, one lookup per crew.
 - **OSRM**: road routes over OpenStreetMap data, for travel times ([project-osrm.org](https://project-osrm.org/)).
 - **Open-Meteo**: weather forecasts. Weather data by
   [Open-Meteo.com](https://open-meteo.com/), licensed under CC BY 4.0.

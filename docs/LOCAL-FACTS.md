@@ -398,6 +398,134 @@ machine cannot load a Tix page; the flyer path itself is tested.
 
 **Instagram** stays "share the picture instead" (empty page to servers, checked 21 Oct 2026).
 
+## Beyond Lagos
+
+The app now has a global core and city packs (docs/CITY-PACKS.md). Lagos keeps everything
+above; any other city gets the default pack, which makes no local claim it cannot source.
+On 21 Oct 2026 we started a crew in five cities and in Lagos as the control, with
+`node scripts/cities-check.mjs`: the app's own service code against the live services
+(Gemma gemma-4-26b-a4b-it, Photon, Nominatim, Overpass, Wikidata, OSRM, Open-Meteo), in
+memory, one crew per city, about two minutes each, with Gemma calls 5 s apart.
+
+Each run: Gemma reads a crew sentence in local style; the areas go on the map and the crew
+gets its region; two friends join from nearby areas; the area type-ahead is tried near the
+crew; the forecast is fetched in the crew's zone; the sloth picks a place for the next
+rhythm day; Gemma reads a plan in local words; everyone says "going" and the ride pods are
+read back.
+
+| City | Crew sentence | Region (country, city, zone) | The sloth's pick | Plan in local words |
+|---|---|---|---|---|
+| Lagos (control) | "The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki" | NG, Lagos, Africa/Lagos; the Lagos pack | Gani Fawehinmi Park, Ikeja, Sat 3 to 6 pm; skipped for rain (up to 90%) | "suya at Glover Court friday 8pm, about 3k each": Fri 23 Oct 20:00 +01:00, pinned at Glover Court, Falomo |
+| London | "The Peckham lot, every other Sunday, somewhere green, cheap, around Peckham and Brixton" | GB, London, Europe/London | Myatt's Fields Park (Camberwell), Sun 25 Oct 3 to 5 pm GMT (after the daylight fix below; first run: 4 to 7 pm), everyone within 8 min | "pints at the Montague Arms saturday 7pm, a fiver each": Sat 24 Oct 19:00 +01:00 (still BST), pinned at The Montagu Arms, New Cross Gate; "a fiver each" kept as written |
+| Berlin | "the Kreuzberg lot, every other Sunday, somewhere green, cheap" | DE, Berlin, Europe/Berlin | Schlesischer Busch (Wikidata), Sun 25 Oct; skipped for rain (up to 80%) | "Späti hang at Görli on sunday 3pm, bring your own beer": Sun 25 Oct 15:00 **+01:00** (the clocks go back that morning), pinned at Görlitzer Park |
+| Nairobi | "Campus crew, every Saturday afternoon, somewhere outside, around Kilimani and Westlands" | KE, Nairobi, Africa/Nairobi | Central Park, Sat 24 Oct 1 to 4 pm (+03:00), everyone within 9 min | "nyama choma at Kilimani saturday 2pm, 500 bob each": Sat 24 Oct 14:00 +03:00, pinned at Kilimani; "500 bob" kept as written |
+| Bengaluru | "Office gang, every other Saturday, somewhere green, around Indiranagar and Koramangala" | IN, Bengaluru, Asia/Kolkata | Lalbagh Botanical Garden (Wikidata), Sat 24 Oct; skipped for rain (up to 99%) | "filter coffee at Brahmin's Coffee Bar sunday 8am": Sun 25 Oct 08:00 +05:30, pinned in Shankarapuram |
+| New York | "The Brooklyn crew, every other Sunday, a park, cheap, around Park Slope and Williamsburg" | US, New York, America/New_York | Star Spangled Playground (Bedford-Stuyvesant), Sun 25 Oct 3 to 6 pm (-04:00), everyone within 11 min | "rooftop drinks 10/31 at 7pm, $15 cover": Sat 31 Oct 19:00 -04:00 (10/31 read month first), no venue, "$15 cover" kept |
+
+Every zone came from Open-Meteo (`tzSource: "open-meteo"`); every city name from one
+Nominatim reverse lookup at city level.
+
+**Geocoding found the right neighbourhoods.** Friends' areas landed where they are:
+Camberwell and Clapham; Neukölln and Friedrichshain; Kileleshwa and Lavington; HSR Layout
+and Jayanagar; Bushwick and Crown Heights; Surulere and Ikeja. The type-ahead near the crew
+gave "Clapham (London Borough of Lambeth)", "Friedrichshain (Berlin)", "Lavington (Kilimani
+division, Nairobi)", "Jayanagar (Bangalore South)" and "Crown Heights (Brooklyn, New York)"
+first. Two traps found on the way and fixed:
+- Photon's first "Kilimani" is a village in Tanzania's Mara Region, and its second
+  "Indiranagar" is in Maharashtra, nearer Kolkata (the city in Bengaluru's zone name) than
+  the Bengaluru one. Each name now gets up to five candidates, the visitor's country first,
+  and the set of areas within 50 km of each other wins.
+- Photon calls Peckham's city "London Borough of Southwark" and gives Indiranagar no city.
+  The crew's city now comes from Nominatim at city level ("Greater London", read as London;
+  "Bengaluru"). One request per new crew, inside Nominatim's one-a-second rule.
+
+**Places are real and near.** Every pick above is a real park within about 11 minutes of
+everyone. Where Overpass answered, it gave 132 (London) to 148 (Berlin) named green places
+within 6 km; Wikidata added 39 to 42 notable parks, gardens and beaches. Two weaknesses:
+- The public Overpass instances failed for Bengaluru and New York in this run (at capacity,
+  or no answer in 25 s), so Wikidata carried those crews alone, and once Wikidata itself
+  took over 15 s (now 25 s). The pick is only as good as what answers.
+- OpenStreetMap's `leisure=garden` includes small community and vegetable gardens ("Guava
+  Tree and Kales" in Nairobi, "Onion Garden" in London). None was picked here, because
+  fairness and the green bonus favoured real parks, but nothing stops one being picked.
+
+**Times are local.** Each forecast came back in the crew's zone (its hours start at local
+midnight; the run's local time was 14:26 in Lagos, 14:28 in London, 15:30 in Berlin, 16:32
+in Nairobi, 19:03 in Bengaluru and 09:35 in New York). Berlin's and London's plans on
+Sunday 25 Oct carry +01:00 and +00:00, after the clocks go back that morning; Saturday's
+London pint is still +01:00. Calendar files write these in UTC (daylight saving zones) or
+with a generated VTIMEZONE (Lagos, Nairobi, Kolkata: one offset all year).
+
+**Found by the run and fixed: parks after dark.** London's first pick was 4 pm to 7 pm on
+25 October, when the sun sets there at about 4:45 pm. The forecast now includes Open-Meteo's
+`is_day`, and an outdoor window is cut to the hours that start in daylight. Lagos is
+unchanged: its earliest sunset (18:25) comes after its 18:30 social cut-off at the hour.
+
+**Found while fixing that: Open-Meteo's hour labels across a clock change.** Asked for
+`timezone=Europe/London` for 24 to 26 October, Open-Meteo answered with one offset for the
+whole response (`utc_offset_seconds: 3600`, 72 hours, no 25-hour day) and a sunset on the
+25th of "17:46"; asked in GMT, the light ends at 16:46. So after the clocks change, every
+hour was labelled an hour late, in London and Berlin from 25 October and in New York from
+1 November. Each hour is now put back on its true instant (the label minus
+`utc_offset_seconds`) and labelled in the crew's zone. A re-run gave London 3 pm to 5 pm GMT.
+Lagos has one offset all year, so nothing changes there.
+
+**When every source of places fails.** In one Berlin re-run, Overpass and Wikidata both
+failed for the members' centre, and the sloth made no plan ("no_places"). Nothing wrong is
+posted: the slot stays due for the next two days, and the heartbeat (every three hours)
+tries again. Lagos never meets this, because its checked spots are on disk.
+
+**Rides show directions and "Copy address", and name no app.** Outside Lagos the pods came
+back with `rides: []` and a directions link per platform, for example for Myatt's Fields Park:
+- Android, a geo: URI, `geo:0,0?q=51.473333%2C-0.103333(Myatt's%20Fields%20Park)`, which opens
+  the phone's own maps app (Android's common intents, "Show a location on a map",
+  https://developer.android.com/guide/components/intents-common#Maps, checked 21 Oct 2026);
+- iPhone, Apple's unified Maps URL, `https://maps.apple.com/directions?destination=...&mode=driving`
+  (https://developer.apple.com/documentation/mapkit/unified-map-urls, checked 21 Oct 2026; the
+  older Map Links page now redirects there; Maps opens it on iOS 18.4 and later, Apple Maps
+  on the web before that);
+- elsewhere, Google's Maps URL, `https://www.google.com/maps/dir/?api=1&destination=...&travelmode=driving`
+  (https://developers.google.com/maps/documentation/urls/get-started, "Last updated
+  2026-10-20"; it opens the Google Maps app when installed, else the browser).
+Both https forms answered HTTP 200 from this machine on 21 Oct 2026. Lagos still shows Bolt,
+inDrive and LagRide, sourced above. No other city names a provider, because none has been
+checked: Bolt, Uber and others do run in some of these cities, but "runs in London" needs a
+dated source in a London pack, not a guess here.
+
+**Travel times say what they are.** Outside Lagos: "A rough estimate, not live traffic:
+2 km by road, at OSRM's driving time with empty roads, so allow for traffic", plus pickups and
+the 15 minutes to spare. No traffic bands, no rush hours, no bridges are claimed. Lagos keeps
+its bands and the lagoon ("12.1 km by road at about 18 km/h in Saturday afternoon traffic").
+
+**Gemma read local-style sentences correctly.** All six crew sentences gave the right
+rhythm (every other Saturday or Sunday; every Saturday afternoon as 1 to 5 pm in Nairobi),
+vibe word and budget; every area named came back, including Kreuzberg from "the Kreuzberg
+lot" once the prompt outside Lagos said a neighbourhood in the group's name counts. All six
+plan sentences gave the right day and time in the crew's zone, the venue (or none, for New
+York's rooftop), and the price as written: "about 3k each", "a fiver each", "500 bob each",
+"$15 cover". Prompts outside Lagos name the crew's city and country and carry no Pidgin
+hints; Nigeria and Ghana get Pidgin hints wherever they are.
+
+**Weather.** London and Berlin forecasts (feels like 6 to 12 C in the afternoon) and Bengaluru's (rain up to
+99%) were read the same way as Lagos's. Two sloth picks were skipped for rain (Berlin,
+Bengaluru), as in Lagos, with the reason given.
+
+### Still Lagos-only, and why
+
+- **Ride apps.** Only Lagos has a verified list. Elsewhere "Get directions" and "Copy
+  address" are honest; a provider button needs a dated source per city.
+- **Curated spots and entry fees.** Only Lagos has a checked list, because OpenStreetMap
+  lacked most of the places Lagos crews go by name. Elsewhere OpenStreetMap and Wikidata are
+  used as they are, and entry is "check at the gate" unless OpenStreetMap tags a fee.
+- **Traffic bands and the lagoon.** Lagos's numbers are local assumptions, written down.
+  Elsewhere OSRM's empty-road time is shown as exactly that.
+- **Social hours.** Lagos's 18:30 cut-off comes from its sunsets. Elsewhere the generic hours
+  (weekends 11 am to 7 pm, weekday evenings 5:30 to 9 pm) are cut to daylight.
+- **Pidgin and "VI".** Lagos's prompt hints are about how people in Lagos write. Nigeria
+  and Ghana elsewhere get Pidgin hints; other cities get none, because we have not checked
+  what local slang to teach.
+- **The brand voice.** "Come through" stays everywhere: it is the name.
+
 ## Also found and fixed in this pass
 
 - **The naira sign.** Gemma read the test flyer's "GATE ₦3,000" as "Gate ‸3,000" (U+2038, a
@@ -422,3 +550,5 @@ machine cannot load a Tix page; the flyer path itself is tested.
 - The traffic bands are assumptions; no source for Saturday traffic was found.
 - Whether Rida runs in Lagos.
 - How much of Opera's share in Nigeria is Opera Mini.
+- Beyond Lagos: the directions links on real phones (Android's chooser for geo:, iPhones
+  older than iOS 18.4), and any city's ride apps.
