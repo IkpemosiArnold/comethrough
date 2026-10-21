@@ -186,9 +186,10 @@ function IdeasCard({ slug }) {
           {ideas.map((idea) => (
             <li key={idea.id} class="idea">
               <p class="idea-title">{idea.title}</p>
+              {idea.when && <p class="idea-when">{idea.when}{idea.place?.name && !idea.title.includes(idea.place.name) ? ` at ${idea.place.name}` : ''}</p>}
               {idea.reason && <p class="idea-why">{idea.reason}</p>}
-              {idea.source?.name && (
-                <p class="idea-src">From {idea.source.url ? <a href={idea.source.url} target="_blank" rel="noopener">{idea.source.name}</a> : idea.source.name}</p>
+              {idea.source?.credit && (
+                <p class="idea-src">{idea.source.url ? <a href={idea.source.url} target="_blank" rel="noopener">{idea.source.credit}</a> : idea.source.credit}</p>
               )}
               {idea.draft && (
                 <button class="btn secondary idea-btn" onClick={() => make(idea)} disabled={!!busy}>

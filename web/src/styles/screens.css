@@ -157,8 +157,6 @@
 
 /* ---------- Confirm (crew draft) ---------- */
 
-.confirm-head { display: flex; gap: var(--s-2); align-items: flex-start; margin: var(--s-2) 0 var(--s-5) calc(var(--s-2) * -1); }
-.confirm-head p { margin-top: var(--s-2); }
 .display-input { font-family: var(--font-display); font-size: var(--t-xl); line-height: 1.1; padding-top: 10px; padding-bottom: 10px; }
 .seg { gap: var(--s-2); }
 .rhythm-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3) var(--s-2); margin-top: var(--s-4); }
@@ -186,7 +184,7 @@ fieldset.field legend { padding: 0; }
 .add-area .btn { min-height: 52px; }
 
 /* The highlighter: guesses look like someone ran a marker over them */
-.confirm-field, .draft-field { position: relative; }
+.draft-field { position: relative; }
 .unsure > .field > .label, .unsure > fieldset > legend, .unsure .label {
   background-image: linear-gradient(transparent 58%, var(--highlight) 58%, var(--highlight) 94%, transparent 94%);
   background-repeat: no-repeat;
@@ -216,27 +214,13 @@ fieldset.field legend { padding: 0; }
 
 .invite { display: grid; gap: var(--s-5); padding-top: calc(var(--safe-t) + var(--s-8)); }
 .invite-sloth { margin-bottom: calc(var(--s-4) * -1); }
-.link-box { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-2) var(--s-3) var(--s-4); border-radius: var(--r-md); }
-.link-text { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--ink-2); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
 .invite-next { margin-top: var(--s-4); padding-top: var(--s-5); border-top: 1px dashed var(--line); display: grid; gap: var(--s-2); }
 
 /* ---------- Join ---------- */
 
-.join-head { padding-top: var(--s-8); margin-bottom: var(--s-6); }
 .join-who { margin-top: var(--s-4); gap: var(--s-3); }
-.crew-facts { margin-top: var(--s-4); display: grid; gap: 4px; color: var(--ink-2); }
-.crew-facts li { padding-left: 18px; position: relative; }
-.crew-facts li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 8px; height: 8px; border-radius: 50%; background: var(--danfo); box-shadow: 0 0 0 1.5px var(--ink); }
 
-.joined-head { padding-top: var(--s-6); display: grid; gap: var(--s-3); margin-bottom: var(--s-6); }
-.nudge { display: grid; gap: var(--s-3); }
-.nudge-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--danfo); color: var(--on-danfo); display: grid; place-items: center; transform: rotate(-6deg); }
 .nudge-actions { gap: var(--s-2); margin-top: var(--s-1); }
-.nudge-on { display: flex; gap: var(--s-2); align-items: center; font-weight: 650; color: var(--ink); }
-.ios-steps { counter-reset: s; display: grid; gap: var(--s-2); }
-.ios-steps li { counter-increment: s; padding-left: 30px; position: relative; }
-.ios-steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--wall); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
-.inline-icon { display: inline-flex; vertical-align: -4px; padding: 0 2px; }
 
 .cal-more { margin-top: var(--s-4); border-radius: var(--r-md); background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
 .cal-more summary {
@@ -543,7 +527,6 @@ a.ritual:active { transform: scale(0.98); }
 .why-sloth { position: absolute; right: 12px; top: -26px; }
 .why-title { font-family: var(--font-display); font-weight: 400; font-size: var(--t-lg); margin-bottom: var(--s-2); color: var(--on-canopy); }
 .why p { color: var(--on-canopy); line-height: 1.55; }
-.why .why-privacy { margin-top: var(--s-3); opacity: 0.85; color: var(--on-canopy); }
 
 .bring { margin-bottom: var(--s-8); }
 .bring-list { gap: var(--s-2); }
@@ -671,7 +654,7 @@ a.ritual:active { transform: scale(0.98); }
 /* First look at the draft: fields settle in, then the highlighter strokes the guesses */
 .draft-intro .draft-field { animation: field-in 320ms var(--ease-out) both; animation-delay: calc(var(--i) * 45ms + 60ms); }
 @keyframes field-in { from { opacity: 0; transform: translateY(8px); } }
-.draft-intro .unsure .label, .confirm-card .unsure .label, .confirm-card .unsure legend {
+.draft-intro .unsure .label {
   animation: marker 520ms var(--ease-out) both;
   animation-delay: calc(var(--i, 3) * 45ms + 380ms);
 }
@@ -724,9 +707,8 @@ a.ritual:active { transform: scale(0.98); }
   .action-bar.state-going .cal-btn, .action-bar.state-going .going-pill { animation: fade-in 200ms ease both; }
   .answer-menu { animation: fade-in 150ms ease both; }
   .mic.on svg, .ellipsis i { animation: none; }
-  .draft-intro .unsure .label, .confirm-card .unsure .label, .confirm-card .unsure legend { animation: none; }
+  .draft-intro .unsure .label { animation: none; }
 }
-.confirm-you { margin-top: var(--s-4); }
 .pod-actions { display: grid; gap: var(--s-2); }
 .ride-apps { display: flex; gap: var(--s-2); }
 .ride-apps .btn { min-width: 0; }
@@ -868,6 +850,7 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .idea { display: grid; gap: 2px; padding: var(--s-4) 0; }
 .idea + .idea { border-top: 1px solid var(--line); }
 .idea-title { font-weight: 700; }
+.idea-when { font-size: var(--t-sm); font-weight: 650; color: var(--ink); }
 .idea-why { color: var(--ink-2); font-size: var(--t-sm); line-height: 1.45; }
 .idea-src { color: var(--ink-3); font-size: var(--t-xs); }
 .idea-btn { justify-self: start; margin-top: var(--s-2); min-height: 44px; }

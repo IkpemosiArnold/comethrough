@@ -1,16 +1,31 @@
+import { useState } from 'preact/hooks';
 import { useLocation, match } from './lib/router.js';
 import { Toaster } from './ui/toast.jsx';
 import { DataToggle } from './ui/DataToggle.jsx';
 import { Sloth } from './ui/Sloth.jsx';
-import { Start } from './screens/Start.jsx';
 import { CrewGate, JoinRoute } from './screens/CrewGate.jsx';
 import { getCrew, saveCrew } from './lib/store.js';
-import { AddPlan } from './screens/AddPlan.jsx';
 import { PlanPage } from './screens/PlanPage.jsx';
 import { OneTapIn, OneTapMaybe } from './screens/OneTap.jsx';
-import { ShareTarget } from './screens/ShareTarget.jsx';
 import { NotFound } from './screens/NotFound.jsx';
-import { How } from './screens/How.jsx';
+
+// Screens only the organiser needs load on first use, so a friend arriving from WhatsApp
+// downloads only the crew, the plan and the one-tap answer.
+function lazy(load, name) {
+  let C = null;
+  let pending = null;
+  return function Lazy(props) {
+    const [, ready] = useState(0);
+    if (C) return <C {...props} />;
+    if (!pending) pending = load().then((m) => { C = m[name]; });
+    pending.then(() => ready(1));
+    return <div class="column" aria-busy="true" />;
+  };
+}
+const Start = lazy(() => import('./screens/Start.jsx'), 'Start');
+const AddPlan = lazy(() => import('./screens/AddPlan.jsx'), 'AddPlan');
+const ShareTarget = lazy(() => import('./screens/ShareTarget.jsx'), 'ShareTarget');
+const How = lazy(() => import('./screens/How.jsx'), 'How');
 
 const ROUTES = [
   ['/', Start],

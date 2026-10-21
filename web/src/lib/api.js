@@ -71,10 +71,10 @@ function normaliseIdeas(list) {
     id: x.id || `idea-${i}`,
     title: String(x.title),
     reason: x.reason || x.why || '',
-    when: x.when || null,
+    when: typeof x.when === 'string' ? x.when : null,
     place: x.place || null,
-    source: x.source && (x.source.name || x.source.url) ? { name: x.source.name || null, url: x.source.url || null } : null,
-    draft: x.draft || x.plan || null,
+    source: x.source && (x.source.name || x.source.url) ? { name: x.source.name || null, url: x.source.url || null, credit: x.source.credit || (x.source.name ? `From ${x.source.name}` : null) } : null,
+    draft: x.draftPlan || x.draft || null,
   }));
 }
 
