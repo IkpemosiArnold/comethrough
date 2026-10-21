@@ -140,12 +140,15 @@ test("overpass: a bounded named-green query, failover between endpoints, unnamed
     { type: "node", id: 3, lat: 6.44, lon: 3.45, tags: { name: "Oniru Private Beach", natural: "beach", access: "private" } },
   ] };
   assert.deepEqual(readOverpass(json), [{ name: "Freedom Park", lat: 6.45, lon: 3.4, osm: { type: "way", id: 1, tags: { name: "Freedom Park", leisure: "park", fee: "yes" } } }]);
-  const f = scripted([[504, "busy"], [504, "busy"], [504, "busy"], [200, json]]);
-  const op = createOverpass({ urls: ["https://a.test/api", "https://b.test/api"], contact: "t", cache: memoryCache(), fetchImpl: f, sleep: noSleep });
+  const f = scripted([[502, "at capacity"], [0, "hung"], [200, json]]);
+  const op = createOverpass({ urls: ["https://a.test/api", "https://b.test/api", "https://c.test/api"], contact: "t", cache: memoryCache(), fetchImpl: f, sleep: noSleep });
   const r = await op.greenNear({ lat: 6.4785, lon: 3.4217 }, 5000);
   assert.equal(r.length, 1);
-  assert.equal(f.calls.length, 4);
-  assert.ok(f.calls[3].url.startsWith("https://b.test"), "fails over to the second endpoint");
+  assert.deepEqual(f.calls.map((c) => new URL(c.url).host), ["a.test", "b.test", "c.test"], "one attempt each, then the next endpoint");
+  await op.greenNear({ lat: 6.4785, lon: 3.4217 }, 5000);
+  assert.equal(f.calls.length, 3, "cached");
+  const all = createOverpass({ urls: ["https://a.test/api"], contact: "t", cache: memoryCache(), fetchImpl: scripted([[504, "busy"]]) });
+  await assert.rejects(all.greenNear({ lat: 6.4, lon: 3.4 }, 5000), /answered 504/);
   assert.match(decodeURIComponent(f.calls[0].init.body), /^data=\[out:json\]/);
 });
 

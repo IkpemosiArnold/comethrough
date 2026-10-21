@@ -15,7 +15,7 @@
 
 import { cleanConfidence, lowFields } from "./plans.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
-import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf } from "./time.mjs";
+import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
 
 export const PROMPT_NAMES = ["parse-crew", "parse-plan", "explain-pick", "write-invite", "parse-feedback"];
 
@@ -98,6 +98,12 @@ export const FEEDBACK_SCHEMA = {
 export const MAX_TOKENS = { "parse-crew": 400, "parse-plan": 600, "explain-pick": 200, "write-invite": 250, "parse-feedback": 250 };
 
 // ---------------------------------------------------------------- shared checks
+
+/** Flyers shout: "GROOVE SESSIONS" reads better as "Groove Sessions" (short words like "DJ" stay). */
+export function calmCaps(s) {
+  if (!s || /[a-z]/.test(s) || !/[A-Z]{3}/.test(s)) return s;
+  return s.toLowerCase().replace(/(^|[\s(/&+-])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase()).replace(/\b(Dj|Mc|Vip|Ft|Lgbt|Nyc|Uk|Usa|Vi)\b/g, (w) => w.toUpperCase());
+}
 
 const text = (/** @type {any} */ v, max = 200) => (typeof v === "string" && v.trim() && !/^(null|none|n\/a|unknown)$/i.test(v.trim()) ? v.replace(/\s+/g, " ").trim().slice(0, max) : null);
 const norm = (/** @type {string} */ s) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
@@ -254,6 +260,12 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     date = d.date;
     dateConf = Math.min(c.date ?? 0.5, 0.7);
   }
+  // a flyer that says "SUN 25 OCT" must agree with itself; if the day and the date clash, ask
+  const said = weekdayInWords(d.dateWords);
+  if (date && said != null && /\d/.test(String(d.dateWords)) && weekdayOf(date) !== said) {
+    notes.push(`"${d.dateWords}" names ${DAY_NAMES[said]}, but ${date} is a ${DAY_NAMES[weekdayOf(date)]}. Check the date.`);
+    dateConf = Math.min(dateConf, 0.3);
+  }
   if (date && daysBetween(today, date) < 0) {
     notes.push(`The date ${date} has passed.`);
     dateConf = Math.min(dateConf, 0.3);
@@ -274,10 +286,10 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   let startConf = start ? Math.min(dateConf, timeConf) : 0;
   let endConf = end ? Math.min(startConf, c.time ?? 0.7) : 0;
 
-  let title = text(d.title, 120);
+  let title = calmCaps(text(d.title, 120));
   let titleConf = title ? c.title ?? 0.6 : 0;
-  let venue = text(d.venueName, 120);
-  let address = text(d.address, 200);
+  let venue = calmCaps(text(d.venueName, 120));
+  let address = calmCaps(text(d.address, 200));
   let priceText = text(d.priceText, 60);
   let free = d.free === true || (priceText ? /\bfree\b/i.test(priceText) : false);
   let hostName = text(d.hostName, 60);

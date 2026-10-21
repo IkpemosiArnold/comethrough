@@ -172,9 +172,9 @@ export function resolveDateWords(text, today) {
     if (daysBetween(today, s) < -60) s = `${year + 1}-${pad(m)}-${pad(d)}`;
     return isDate(s) ? s : null;
   };
-  const dm = t.match(/^(?:\w+day )?(\d{1,2})(?:st|nd|rd|th)?(?: of)? ([a-z]{3})[a-z]*(?: (\d{4}))?$/);
+  const dm = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]* )?(\d{1,2})(?:st|nd|rd|th)?(?: of)? ([a-z]{3})[a-z]*(?: (\d{4}))?$/);
   if (dm && MONTHS.includes(dm[2])) return withYear(pick(Number(dm[1]), MONTHS.indexOf(dm[2]) + 1), dm[3]);
-  const md = t.match(/^(?:\w+day )?([a-z]{3})[a-z]* (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/);
+  const md = t.match(/^(?:(?:sun|mon|tue|wed|thu|fri|sat)[a-z]* )?([a-z]{3})[a-z]* (\d{1,2})(?:st|nd|rd|th)?(?: (\d{4}))?$/);
   if (md && MONTHS.includes(md[1])) return withYear(pick(Number(md[2]), MONTHS.indexOf(md[1]) + 1), md[3]);
   // Nigeria writes day first: 23/10 is 23 October
   const num = t.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
@@ -221,4 +221,10 @@ export function isAmbiguousTime(text) {
   const t = String(text || "").toLowerCase().replace(/\s+/g, "").replace(/ish$/, "");
   const m = t.match(/^(\d{1,2})(?:[:.](\d{2}))?$/);
   return !!m && Number(m[1]) >= 1 && Number(m[1]) <= 11;
+}
+
+/** The weekday (0 to 6) named in date words ("SUN 25 OCT" gives 0), or null. */
+export function weekdayInWords(text) {
+  const m = String(text || "").toLowerCase().match(/\b(sun|mon|tue|wed|thu|fri|sat)(?:day|s|n|nes|rs|ur|urday|sday|nesday|day)?\b/);
+  return m ? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].indexOf(m[1]) : null;
 }

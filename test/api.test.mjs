@@ -48,7 +48,7 @@ before(async () => {
     geocoder: fakeGeocoder(),
     places: fakeOverpass([PLACES.freedom, PLACES.jakande, PLACES.muri]),
     pages: fakePageMeta(),
-    spots: [],
+    spots: [{ name: "Tarkwa Bay", kind: "beach", lat: 6.3999, lon: 3.3956, osm: { type: "node", id: 1, tags: { name: "Tarkwa Bay", natural: "bay" } } }],
     prompts: loadPrompts(),
     ids: makeIds(),
     cfg,
@@ -166,7 +166,9 @@ test("push: subscribe, then new plans and pods buzz the right people once", asyn
   assert.deepEqual(ai.calls.at(-1).messages[1].images[0].mimeType, "image/png");
   assert.equal(parsed.json.draft.start, "2026-10-24T14:00:00+01:00");
   assert.equal(parsed.json.draft.place.outdoor, true);
-  const created = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: { ...parsed.json.draft, place: { ...parsed.json.draft.place, lat: 6.3999, lon: 3.3956 } } } });
+  assert.deepEqual([parsed.json.draft.place.lat, parsed.json.draft.place.lon], [6.3999, 3.3956], "a known spot is pinned without a geocode");
+  assert.ok(parsed.json.notes.includes("Pinned at Tarkwa Bay."));
+  const created = await call("POST", `/api/crews/${S.slug}/plans`, { token: S.tolu, body: { plan: parsed.json.draft } });
   S.beach = created.json.plan.id;
   assert.deepEqual(push.sent.map((m) => m.endpoint).sort(), ["https://push.example/ada", "https://push.example/kene"]);
   assert.match(push.sent[0].title, /^New plan: Beach day$/);

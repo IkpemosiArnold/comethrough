@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <rect width="900" height="900" fill="#2b1a47"/>
+  <circle cx="700" cy="230" r="170" fill="#ffb21f"/>
+  <text x="60" y="170" font-family="Georgia" font-style="italic" font-size="72" fill="#ffd6ec">Sunday</text>
+  <text x="60" y="330" font-family="Impact, Arial Black" font-size="150" fill="#ffffff">GROOVE</text>
+  <text x="60" y="480" font-family="Impact, Arial Black" font-size="150" fill="#ffb21f">SESSIONS</text>
+  <text x="60" y="570" font-family="Arial" font-weight="bold" font-size="46" fill="#ffffff">LIVE BAND + DJ KOLO</text>
+  <text x="60" y="680" font-family="Arial" font-weight="bold" font-size="52" fill="#ffd6ec">SUN 25 OCT · 6PM</text>
+  <text x="60" y="760" font-family="Arial" font-size="44" fill="#ffffff">FREEDOM PARK, LAGOS ISLAND</text>
+  <text x="60" y="840" font-family="Arial" font-size="40" fill="#ffb21f">Gate: N5,000 · Bring a mat</text>
+</svg>

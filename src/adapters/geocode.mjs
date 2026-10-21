@@ -9,8 +9,13 @@
 import { cached, fetchJson, throttle, userAgent } from "./http.mjs";
 
 /** @typedef {import("./http.mjs").Cache} Cache */
-/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number } }} GeoResult */
-/** @typedef {{ search(q: string, opts?: { limit?: number }): Promise<GeoResult[]>, lookup(q: string): Promise<GeoResult|null> }} Geocoder */
+/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string }} GeoResult */
+/**
+ * @typedef {object} Geocoder
+ * @property {(q: string, opts?: { limit?: number, areas?: boolean }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
+ * @property {(q: string) => Promise<GeoResult|null>} lookup      a venue or an address
+ * @property {(q: string) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
+ */
 
 /** Lagos: where results are biased. */
 export const LAGOS_BIAS = { lat: 6.52, lon: 3.38 };
@@ -34,6 +39,7 @@ export function readPhoton(json, { countryCode = "NG" } = {}) {
         lat,
         lon,
         ...(p.osm_type && p.osm_id ? { osm: { type: OSM_TYPES[/** @type {keyof typeof OSM_TYPES} */ (p.osm_type)] || p.osm_type, id: p.osm_id } } : {}),
+        ...(p.osm_key ? { cls: p.osm_key } : {}),
       };
     })
     .filter((/** @type {any} */ r) => r.label && Number.isFinite(r.lat) && Number.isFinite(r.lon));
@@ -49,6 +55,7 @@ export function readNominatim(json) {
       lat: Number(r.lat),
       lon: Number(r.lon),
       ...(r.osm_type && r.osm_id ? { osm: { type: OSM_TYPES[/** @type {keyof typeof OSM_TYPES} */ (r.osm_type)] || r.osm_type, id: Number(r.osm_id) } } : {}),
+      ...(r.category ? { cls: r.category } : {}),
     };
   }).filter((r) => r.label && Number.isFinite(r.lat) && Number.isFinite(r.lon));
 }
@@ -63,10 +70,12 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
   const nominatimGate = throttle(1100); // "an absolute maximum of 1 request per second"
   const country = countryCodes.split(",")[0] || "";
 
-  const photon = (/** @type {string} */ q, /** @type {number} */ limit) =>
+  const photon = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas) =>
     photonGate(async () => {
       const u = new URL("/api/", photonUrl);
       u.searchParams.set("q", q);
+      // places only: suburbs, neighbourhoods, towns (the smoke test's "Yaba, Lagos" otherwise found a college first)
+      if (areas) u.searchParams.set("osm_tag", "place");
       u.searchParams.set("limit", String(Math.min(10, limit * 2)));
       u.searchParams.set("lat", String(bias.lat));
       u.searchParams.set("lon", String(bias.lon));
@@ -74,7 +83,7 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
       return readPhoton(await fetchJson(u.href, { headers, timeoutMs: 8000, retries: 1, fetchImpl }), { countryCode: country }).slice(0, limit);
     });
 
-  const nominatim = (/** @type {string} */ q, /** @type {number} */ limit) =>
+  const nominatim = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas) =>
     nominatimGate(async () => {
       const u = new URL("/search", nominatimUrl);
       u.searchParams.set("q", q);
@@ -82,20 +91,24 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
       u.searchParams.set("limit", String(limit));
       if (countryCodes) u.searchParams.set("countrycodes", countryCodes);
       u.searchParams.set("viewbox", "2.70,6.75,4.40,6.35"); // prefer Lagos, without excluding elsewhere
-      return readNominatim(await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl }));
+      const rs = readNominatim(await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl }));
+      return areas ? rs.filter((r) => r.cls === "place" || r.cls === "boundary") : rs;
     });
 
-  const search = async (/** @type {string} */ q, { limit = 5 } = {}) => {
+  const search = async (/** @type {string} */ q, { limit = 5, areas = false } = {}) => {
     const query = norm(String(q || "")).slice(0, 120);
     if (query.length < 2) return [];
-    return cached(cache, `geo:${provider}:${limit}:${query}`, TTL, () => (provider === "nominatim" ? nominatim(query, limit) : photon(query, limit)));
+    return cached(cache, `geo:${provider}:${areas ? "area" : "any"}:${limit}:${query}`, TTL, () => (provider === "nominatim" ? nominatim(query, limit, areas) : photon(query, limit, areas)));
   };
+  // a bare name reads better with the city ("Yaba" -> "Yaba, Lagos")
+  const withCity = (/** @type {string} */ q) => (/lagos/i.test(q) ? q : `${q}, Lagos`);
   return {
     search,
     async lookup(q) {
-      // a bare neighbourhood name reads better with the city ("Yaba" -> "Yaba, Lagos")
-      const query = /lagos/i.test(q) ? q : `${q}, Lagos`;
-      return (await search(query, { limit: 1 }))[0] ?? null;
+      return (await search(withCity(q), { limit: 1 }))[0] ?? null;
+    },
+    async lookupArea(q) {
+      return (await search(withCity(q), { limit: 1, areas: true }))[0] ?? (await search(withCity(q), { limit: 1 }))[0] ?? null;
     },
   };
 }

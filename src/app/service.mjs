@@ -143,7 +143,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const label = clip(area, 60);
     if (!label) return { area: null, note: null };
     try {
-      const hit = await geocoder.lookup(label);
+      const hit = await geocoder.lookupArea(label);
       if (hit) return { area: { label, lat: hit.lat, lon: hit.lon }, note: null };
     } catch (e) {
       log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
@@ -151,9 +151,21 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { area: { label, lat: null, lon: null }, note: `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.` };
   }
 
+  /** A curated spot with this name ("FREEDOM PARK" on a flyer is Freedom Park), or null. */
+  function knownSpot(name) {
+    const n = normName(name);
+    if (n.length < 4) return null;
+    return spots.find((s) => normName(s.name) === n || normName(s.name).replace(/ (park|beach|garden)$/, "") === n) ?? null;
+  }
+
   /** Put a plan's place on the map when it has a name or an address but no pin. */
   async function pinPlace(place) {
     if (!place || isLatLon(place) || !(place.address || place.name) || (/'s place$/.test(place.name || "") && !place.address)) return { place, note: null };
+    const spot = !place.private && knownSpot(place.name);
+    if (spot) {
+      const outdoor = place.outdoor || ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"].includes(spot.kind);
+      return { place: { ...place, name: spot.name, lat: spot.lat, lon: spot.lon, outdoor, ...(spot.osm ? { osm: spot.osm } : {}) }, note: `Pinned at ${spot.name}${outdoor && !place.outdoor ? ", an outdoor spot, so the weather is watched" : ""}.` };
+    }
     try {
       const hit = await geocoder.lookup(place.address || place.name);
       if (hit) return { place: { ...place, lat: hit.lat, lon: hit.lon }, note: `Pinned on the map at ${hit.label}${hit.detail ? `, ${hit.detail}` : ""}. Check it.` };
@@ -269,7 +281,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const query = clip(q, 80);
     if (!query || query.length < 2) return { results: [] };
     try {
-      return { results: (await geocoder.search(query, { limit: 5 })).map((r) => ({ label: r.label, detail: r.detail, lat: r.lat, lon: r.lon })) };
+      let rs = await geocoder.search(query, { limit: 5, areas: true });
+      if (!rs.length) rs = await geocoder.search(query, { limit: 5 });
+      return { results: rs.map((r) => ({ label: r.label, detail: r.detail, lat: r.lat, lon: r.lon })) };
     } catch {
       return { results: [] };
     }
@@ -648,6 +662,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return `${day} at ${h}${p.mi ? `:${String(p.mi).padStart(2, "0")}` : ""}${p.h < 12 ? "am" : "pm"}`;
   }
 }
+
+const normName = (/** @type {any} */ s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 /** A trimmed single-line string up to max characters, or null. */
 function clip(v, max) {

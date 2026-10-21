@@ -63,8 +63,8 @@ export function config(env = process.env) {
       photonUrl: env.PHOTON_URL || "https://photon.komoot.io",
       countryCodes: env.GEOCODE_COUNTRY || "ng",
     },
-    /** comma-separated; the second is tried when the first is at capacity */
-    overpassUrls: list(env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter"),
+    /** comma-separated; each is tried in turn when the one before is at capacity or slow */
+    overpassUrls: list(env.OVERPASS_URL || "https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter,https://overpass.private.coffee/api/interpreter"),
     openMeteoUrl: env.OPEN_METEO_URL || "https://api.open-meteo.com/v1/forecast",
     /** sent in User-Agent to OpenStreetMap services, as their usage policies ask */
     contact: env.CONTACT || "https://github.com/IkpemosiArnold/comethrough",

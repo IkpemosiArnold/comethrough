@@ -136,3 +136,19 @@ test("feedback: only what the comment says", () => {
   assert.equal(r.feedback.time, null);
   assert.ok(groundedShare("Freedom Park", "not freedom park again") === 1);
 });
+
+test("flyer text: shouting calmed, and a weekday that clashes with the date is flagged", async () => {
+  const { calmCaps } = await import("../src/core/tasks.mjs");
+  assert.equal(calmCaps("GROOVE SESSIONS"), "Groove Sessions");
+  assert.equal(calmCaps("LIVE BAND + DJ KOLO"), "Live Band + DJ Kolo");
+  assert.equal(calmCaps("Wine and monopoly"), "Wine and monopoly");
+  // the smoke test's flyer: "SUN 25 OCT" is a Sunday, so it resolves by code
+  const ok = readPlan({ title: "GROOVE SESSIONS", dateWords: "SUN 25 OCT", date: "2026-10-25", startTime: "6PM", venueName: "FREEDOM PARK", confidence: { date: 1, time: 1 } }, { image: { mimeType: "image/png", data: "" }, today, member });
+  assert.equal(ok.draft.start, "2026-10-25T18:00:00+01:00");
+  assert.equal(ok.draft.title, "Groove Sessions");
+  assert.equal(ok.draft.place.name, "Freedom Park");
+  assert.deepEqual(ok.low, []);
+  const clash = readPlan({ title: "x", dateWords: "SAT 25 OCT", date: "2026-10-25", startTime: "6PM", confidence: { date: 1, time: 1 } }, { image: { mimeType: "image/png", data: "" }, today, member });
+  assert.ok(clash.low.includes("start"));
+  assert.match(clash.notes[0], /names Saturday, but 2026-10-25 is a Sunday/);
+});

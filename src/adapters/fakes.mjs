@@ -97,7 +97,8 @@ export function fakeGeocoder({ areas = OFFLINE_AREAS } = {}) {
     if (t.length < 2) return [];
     return areas.filter((a) => a.label.toLowerCase().startsWith(t) || a.label.toLowerCase().includes(t)).slice(0, limit);
   };
-  return { search, lookup: async (q) => (await search(q, { limit: 1 }))[0] ?? null };
+  const lookup = async (/** @type {string} */ q) => (await search(q, { limit: 1 }))[0] ?? null;
+  return { search, lookup, lookupArea: lookup };
 }
 
 /** @param {any[]} [candidates] */
