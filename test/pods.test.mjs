@@ -86,3 +86,19 @@ test("Bolt gets copyable text, since it has no destination deep link", () => {
   assert.equal(pods[0].solo, true);
   assert.equal(pods[0].boltText, "Tolu's place, 12 Herbert Macaulay Way, Yaba");
 });
+
+test("ride times say what they assume, and a place with no pin uses where it roughly is", async () => {
+  const { estimateText } = await import("../src/core/pods.mjs");
+  const plan = { start: "2026-10-23T19:00:00+01:00", tz: "Africa/Lagos", place: { name: "Tolu's place", address: null, lat: null, lon: null } };
+  const going = [{ id: "b", name: "Amaka", area: AREAS.lekki }];
+  assert.equal(podsForPlan(plan, going).pods[0].travelMin, null, "no pin and no hint: no guess");
+  const { pods } = podsForPlan(plan, going, { near: { label: "Yaba", ...AREAS.yaba } });
+  const p = pods[0];
+  assert.ok(p.travelMin > 60, "Lekki to Yaba on a Friday evening crosses the lagoon in rush hour");
+  assert.equal(p.uberUrl, null, "never a ride link to a guessed spot");
+  assert.equal(p.estimate.band, "peak");
+  assert.equal(p.estimate.approxTo, "Yaba");
+  assert.equal(p.estimate.lagoonMin, 20);
+  assert.match(p.estimate.text, /^A guess from the map, not live traffic: [\d.]+ km of road at about 13 km\/h in rush hour traffic, 20 min for the bridge\. The exact address is not on the map, so this is from Yaba\. Leave-by adds 15 min to spare\.$/);
+  assert.equal(estimateText({ roadKm: 4, band: "weekend", crossesLagoon: false }), "A guess from the map, not live traffic: 4 km of road at about 22 km/h in weekend traffic.");
+});

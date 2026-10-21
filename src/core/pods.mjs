@@ -9,7 +9,7 @@
 // when a neighbour's car is full. Ties break on member ids, so the result never depends on
 // input order.
 
-import { centroid, crossesLagoon, haversineKm, travelEstimate } from "./geo.mjs";
+import { LAGOS_TRAFFIC, centroid, crossesLagoon, haversineKm, travelEstimate } from "./geo.mjs";
 import { DEFAULT_TZ, MINUTE, parseInstant, toIsoLocal, localParts } from "./time.mjs";
 
 /** @typedef {import("./types.mjs").Pod} Pod */
@@ -108,9 +108,16 @@ export function boltText(place) {
 
 /**
  * Ride pods for a plan: who rides together, when to leave and the ride links.
+ *
+ * Travel times are estimates (see travelEstimate in geo.mjs), and each pod says what was
+ * assumed, so the UI can show it one tap away: the traffic band, the road distance, the
+ * speed, the bridge penalty, and whether the destination itself was only approximate.
  * @param {{ start: string, tz?: string, place: { name: string|null, address: string|null, lat: number|null, lon: number|null } }} plan
  * @param {Rider[]} going  the members going (the caller filters rsvps)
- * @param {{ maxSize?: number, radiusKm?: number, bufferMin?: number, pickupMin?: number, uberStyle?: "looking"|"legacy" }} [opts]
+ * @param {{ maxSize?: number, radiusKm?: number, bufferMin?: number, pickupMin?: number, uberStyle?: "looking"|"legacy",
+ *           near?: { label: string, lat: number, lon: number } | null }} [opts]
+ *   near: where the place roughly is when it has no pin (a host's home is "near" the host's
+ *   neighbourhood); used for times only, never for the ride links
  */
 export function podsForPlan(plan, going, opts = {}) {
   const o = { ...POD_DEFAULTS, ...opts };
@@ -120,13 +127,16 @@ export function podsForPlan(plan, going, opts = {}) {
   const placed = going.filter((r) => r.area && Number.isFinite(r.area.lat) && Number.isFinite(r.area.lon));
   const unplaced = going.filter((r) => !placed.includes(r)).map((r) => ({ id: r.id, name: r.name }));
   const hasDest = Number.isFinite(place?.lat) && Number.isFinite(place?.lon);
+  const near = !hasDest && o.near && Number.isFinite(o.near.lat) && Number.isFinite(o.near.lon) ? o.near : null;
+  const dest = hasDest ? /** @type {any} */ (place) : near;
   const uberUrl = hasDest ? uberLink(place, { style: o.uberStyle }) : null;
   const bolt = boltText(place || {});
 
   const pods = clusterRiders(placed, o).map((g) => {
     const pickup = /** @type {{lat:number,lon:number}} */ (centroid(g.map((r) => /** @type {any} */ (r.area))));
     // traffic is judged an hour before the start, when people are on the road
-    const est = hasDest ? travelEstimate(pickup, /** @type {any} */ (place), { at: startMs - 60 * MINUTE, tz }) : null;
+    const judgedAt = startMs - 60 * MINUTE;
+    const est = dest ? travelEstimate(pickup, dest, { at: judgedAt, tz }) : null;
     const travelMin = est ? est.minutes + o.pickupMin * (g.length - 1) : null;
     let leaveBy = null;
     if (travelMin != null && Number.isFinite(startMs)) {
@@ -143,6 +153,17 @@ export function podsForPlan(plan, going, opts = {}) {
       leaveBy,
       travelMin,
       crossesLagoon: !!est?.crossesLagoon,
+      estimate: est ? {
+        band: est.band,
+        roadKm: est.roadKm,
+        speedKmh: LAGOS_TRAFFIC.speedKmh[est.band],
+        lagoonMin: est.crossesLagoon ? LAGOS_TRAFFIC.lagoonPenaltyMin[est.band] : 0,
+        pickupMin: o.pickupMin * (g.length - 1),
+        bufferMin: o.bufferMin,
+        judgedAt: toIsoLocal(judgedAt, tz),
+        approxTo: near ? near.label : null,
+        text: estimateText(est, { pickupMin: o.pickupMin * (g.length - 1), bufferMin: o.bufferMin, approxTo: near ? near.label : null }),
+      } : null,
       uberUrl,
       boltText: bolt,
       shareText: shareText({ names, fromLabel, leaveBy, travelMin, place, tz }),
@@ -165,4 +186,16 @@ function shareText({ names, fromLabel, leaveBy, travelMin, place, tz }) {
   const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
   if (!when) return `${who}: heading to ${where} from ${fromLabel}.`;
   return `${who}: leave ${fromLabel} by ${when} for ${where} (about ${travelMin} min).`;
+}
+
+const BAND_WORDS = { peak: "rush hour traffic", day: "daytime traffic", weekend: "weekend traffic", night: "light night traffic" };
+
+/** The assumptions behind a travel time, in plain words for the "how we guess" line. No dashes. */
+export function estimateText(est, { pickupMin = 0, bufferMin = 0, approxTo = null } = {}) {
+  const parts = [`${est.roadKm} km of road at about ${LAGOS_TRAFFIC.speedKmh[/** @type {keyof typeof LAGOS_TRAFFIC.speedKmh} */ (est.band)]} km/h in ${BAND_WORDS[/** @type {keyof typeof BAND_WORDS} */ (est.band)]}`];
+  if (est.crossesLagoon) parts.push(`${LAGOS_TRAFFIC.lagoonPenaltyMin[/** @type {keyof typeof LAGOS_TRAFFIC.lagoonPenaltyMin} */ (est.band)]} min for the bridge`);
+  if (pickupMin) parts.push(`${pickupMin} min to pick each other up`);
+  const head = `A guess from the map, not live traffic: ${parts.join(", ")}.`;
+  const tail = [approxTo ? `The exact address is not on the map, so this is from ${approxTo}.` : "", bufferMin ? `Leave-by adds ${bufferMin} min to spare.` : ""].filter(Boolean).join(" ");
+  return tail ? `${head} ${tail}` : head;
 }

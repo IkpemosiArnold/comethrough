@@ -96,6 +96,10 @@ export function validateDraft(draft, { tz = DEFAULT_TZ } = {}) {
     private: typeof p.private === "boolean" ? p.private : kind === "hosted",
   };
   if (typeof p.private !== "boolean") filled.push("place.private");
+  // where an unpinned place roughly is (its neighbourhood), for ride times and weather only
+  if (place.lat == null && p.near && typeof p.near === "object" && isLatLon(p.near) && str(p.near.label, 60)) {
+    /** @type {any} */ (place).near = { label: str(p.near.label, 60), lat: Number(p.near.lat), lon: Number(p.near.lon) };
+  }
   if (p.osm && ["node", "way", "relation"].includes(p.osm.type) && Number.isFinite(p.osm.id)) {
     place.osm = { type: p.osm.type, id: p.osm.id, tags: Object.fromEntries(Object.entries(p.osm.tags || {}).filter(([k, v]) => typeof k === "string" && typeof v === "string").slice(0, 40)) };
   }
@@ -288,6 +292,7 @@ export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = nul
     expiresAt: plan.expiresAt,
   };
   if (plan.ritualFor) view.ritualFor = plan.ritualFor;
+  if (plan.rainPlan) view.rainPlan = plan.rainPlan;
   if (isMember) view.eventIcsUrl = eventIcsUrl;
   if (plan.weather && !plan.weather.ok && plan.status !== "cancelled") {
     const text = `Heads up: ${plan.weather.summary.toLowerCase()} for ${plan.title}.${planUrl ? ` ${planUrl}` : ""}`;
