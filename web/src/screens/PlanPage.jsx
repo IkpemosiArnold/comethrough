@@ -185,6 +185,7 @@ export function PlanPage({ params, query }) {
           <li><Avatar member={host} /><span>{host.id === meId ? "You're hosting" : `${firstName(host.name)} is hosting`}</span></li>
         )}
       </ul>
+      {w && outdoor && <p class="fine wx-credit">Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a></p>}
 
       <section class="who" aria-labelledby="who-title" ref={branchRef}>
         <div class="row spread">

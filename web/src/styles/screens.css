@@ -757,3 +757,6 @@ a.ritual:active { transform: scale(0.98); }
 .data-toggle button { border: 0; background: transparent; color: #333; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
 .data-toggle button[aria-pressed='true'] { background: #fff; color: #000; }
 .retry-btn { margin-top: var(--s-3); }
+.credits { margin-top: var(--s-4); }
+.credits a, .wx-credit a { color: inherit; }
+.wx-credit { margin: calc(-1 * var(--s-6)) 0 var(--s-6); }

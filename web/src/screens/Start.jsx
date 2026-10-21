@@ -149,6 +149,11 @@ export function Start({ query }) {
           <li><b>Plans come in lazy.</b> A flyer, a link or one sentence. Everyone taps once and rides sort themselves.</li>
         </ol>
         <p class="how-note">Got a regular day? If nobody plans anything, the sloth picks a green spot near the middle of the crew, checks the weather, and posts it.</p>
+        <p class="fine credits">
+          Places and maps © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, found with Photon and Overpass.
+          Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).
+          Plans read by Gemma. <a href="https://github.com/IkpemosiArnold/comethrough" target="_blank" rel="noopener">Open source</a> (MIT).
+        </p>
       </section>
     </div>
   );
