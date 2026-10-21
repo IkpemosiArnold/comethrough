@@ -14,13 +14,14 @@ import { Dots } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
 
 const EXAMPLE = 'The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki';
-const UNSURE = 0.7;
+const UNSURE = 0.6;
 
 export function Start({ query }) {
   const [step, setStep] = useState('describe'); // describe | reading | confirm | creating | invite
   const [sentence, setSentence] = useState(query.get('s') || '');
   const [draft, setDraft] = useState(null);
   const [created, setCreated] = useState(null);
+  const [me, setMe] = useState({ name: '', area: null });
   const [error, setError] = useState(null);
   const speech = useSpeech(setSentence);
   const crews = myCrews().filter((c) => c.memberId);
@@ -44,10 +45,18 @@ export function Start({ query }) {
   async function create() {
     setStep('creating');
     try {
-      const { confidence, ...clean } = draft;
-      const res = await api.createCrew(clean);
+      const { confidence, low, ...clean } = draft;
+      const organiser = me.name.trim() && me.area?.label?.trim()
+        ? { name: me.name.trim(), area: me.area.lat != null ? me.area : me.area.label.trim() }
+        : null;
+      const res = await api.createCrew(clean, organiser);
       saveCrew(res.crew.slug, { name: res.crew.name, invite: res.crew.inviteToken, inviteUrl: res.inviteUrl, organiser: true });
-      if (res.member) saveCrew(res.crew.slug, { memberId: res.member.id, memberName: res.member.name, memberToken: res.member.calToken });
+      if (res.member && res.memberToken) {
+        saveCrew(res.crew.slug, {
+          memberId: res.member.id, memberName: res.member.name, memberToken: res.memberToken,
+          calendarUrl: res.calendarUrl, webcalUrl: res.webcalUrl,
+        });
+      }
       setCreated(res);
       setStep('invite');
       window.scrollTo(0, 0);
@@ -63,6 +72,8 @@ export function Start({ query }) {
       <Confirm
         draft={draft}
         setDraft={setDraft}
+        me={me}
+        setMe={setMe}
         busy={step === 'creating'}
         error={error}
         onBack={() => { setStep('describe'); setError(null); }}
@@ -143,8 +154,8 @@ export function Start({ query }) {
   );
 }
 
-function Unsure({ conf, children, note = "Gemma wasn't sure about this one." }) {
-  const unsure = conf != null && conf < UNSURE;
+function Unsure({ conf, low, children, note = "Gemma wasn't sure about this one." }) {
+  const unsure = low || (conf != null && conf < UNSURE);
   return (
     <div class={`confirm-field${unsure ? ' unsure' : ''}`}>
       {children}
@@ -153,8 +164,9 @@ function Unsure({ conf, children, note = "Gemma wasn't sure about this one." }) 
   );
 }
 
-function Confirm({ draft, setDraft, busy, error, onBack, onCreate }) {
+function Confirm({ draft, setDraft, me, setMe, busy, error, onBack, onCreate }) {
   const c = draft.confidence || {};
+  const low = (f) => (draft.low || []).includes(f);
   const set = (patch) => setDraft({ ...draft, ...patch });
   const r = draft.rhythm;
   const [newArea, setNewArea] = useState(null);
@@ -183,14 +195,14 @@ function Confirm({ draft, setDraft, busy, error, onBack, onCreate }) {
       </header>
 
       <div class="confirm-card surface stack" style={{ '--stack': 'var(--s-6)' }}>
-        <Unsure conf={c.name}>
+        <Unsure conf={c.name} low={low('name')}>
           <label class="field">
             <span class="label">Crew name</span>
             <input class="input display-input" value={draft.name} maxLength={40} onInput={(e) => set({ name: e.currentTarget.value })} autocapitalize="words" />
           </label>
         </Unsure>
 
-        <Unsure conf={c.rhythm} note="Gemma couldn't find a regular day. Pick one, or leave it.">
+        <Unsure conf={c.rhythm} low={low('rhythm')} note="Gemma couldn't find a regular day. Pick one, or leave it.">
           <fieldset class="field">
             <legend class="label">How often you link up</legend>
             <div class="row wrap seg">
@@ -219,7 +231,7 @@ function Confirm({ draft, setDraft, busy, error, onBack, onCreate }) {
           </fieldset>
         </Unsure>
 
-        <Unsure conf={c.vibe}>
+        <Unsure conf={c.vibe} low={low('vibe')}>
           <label class="field">
             <span class="label">The vibe</span>
             <input class="input" value={draft.vibe} maxLength={80} onInput={(e) => set({ vibe: e.currentTarget.value })} />
@@ -227,7 +239,7 @@ function Confirm({ draft, setDraft, busy, error, onBack, onCreate }) {
           </label>
         </Unsure>
 
-        <Unsure conf={c.areas} note="Gemma guessed the areas. Add where people actually live.">
+        <Unsure conf={c.areas} low={low('areas')} note="Gemma guessed the areas. Add where people actually live.">
           <div class="field">
             <span class="label" id="areas-label">Where the crew lives</span>
             <ul class="row wrap area-chips" aria-labelledby="areas-label">
@@ -251,6 +263,21 @@ function Confirm({ draft, setDraft, busy, error, onBack, onCreate }) {
         </Unsure>
       </div>
 
+      <section class="surface confirm-you stack" style={{ '--stack': 'var(--s-4)' }} aria-labelledby="you-title">
+        <div>
+          <h2 id="you-title" class="display display-sm">And you?</h2>
+          <p class="hint">Add yourself now and skip the join step. You can leave this empty.</p>
+        </div>
+        <label class="field">
+          <span class="label">Your name</span>
+          <input class="input" value={me.name} onInput={(e) => setMe({ ...me, name: e.currentTarget.value })} autocomplete="given-name" autocapitalize="words" maxLength={40} placeholder="What the crew calls you" />
+        </label>
+        <div class="field">
+          <label class="label" for="me-area">Your area</label>
+          <AreaInput id="me-area" value={me.area} onChange={(a) => setMe({ ...me, area: a })} />
+        </div>
+      </section>
+
       {error && <p class="error-text" role="alert">{error}</p>}
 
       <div class="bottom-bar">
@@ -272,6 +299,7 @@ function Invite({ created }) {
     toast(ok ? 'Link copied' : "Couldn't copy. Press and hold the link instead.");
   }
   const joinHref = `/c/${crew.slug}?t=${encodeURIComponent(crew.inviteToken)}`;
+  const isMember = !!created.memberToken;
   return (
     <div class="column screen-enter invite">
       <div class="invite-sloth"><Sloth size={96} mood="awake" /></div>
@@ -291,8 +319,14 @@ function Invite({ created }) {
       </div>
 
       <div class="invite-next">
-        <p class="muted">You're not in it yet either. Join so you show up when you say you're going.</p>
-        <a class="btn ghost block" href={joinHref} onClick={(e) => { e.preventDefault(); navigate(joinHref); }}>Join it yourself</a>
+        {isMember ? (
+          <a class="btn ghost block" href={`/c/${crew.slug}`}>Go to {crew.name}</a>
+        ) : (
+          <>
+            <p class="muted">You're not in it yet either. Join so you show up when you say you're going.</p>
+            <a class="btn ghost block" href={joinHref} onClick={(e) => { e.preventDefault(); navigate(joinHref); }}>Join it yourself</a>
+          </>
+        )}
       </div>
     </div>
   );

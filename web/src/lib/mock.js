@@ -1,5 +1,5 @@
-// The mock backend for ?mock=1. Shapes match docs/SPEC.md exactly, so swapping to the
-// real server changes nothing in the screens. State lives in sessionStorage for the tab.
+// The mock backend for ?mock=1. It answers with the wire shapes in docs/SPEC.md, so the demo
+// runs through the same client code as the real server. State lives in sessionStorage for the tab.
 
 import { saveCrew, getCrew as storedCrew, sessionGet, sessionSet } from './store.js';
 
@@ -104,66 +104,82 @@ function load() {
 }
 function save(db) { sessionSet('ct.mockdb', JSON.stringify(db)); }
 
-function meId(slug) { return storedCrew(slug)?.memberId || null; }
+const tokenFor = (id) => 'tok_' + id;
+const memberFrom = (token) => (token && token.startsWith('tok_') ? token.slice(4) : null);
+function err(status, message, code = 'mock') {
+  const e = new Error(message);
+  e.status = status;
+  e.code = code;
+  throw e;
+}
 
-// ---------- crews ----------
-
-export async function draftCrew(sentence) {
-  await wait(1400);
-  const s = sentence.toLowerCase();
-  const first = sentence.split(/[,.]/)[0].trim();
-  const name = first.length > 2 && first.length < 32 ? first.replace(/^\w/, (c) => c.toUpperCase()) : 'The crew';
-  const every = /every other|fortnight|every two/.test(s) ? '2w' : /month/.test(s) ? '4w' : /every|weekly/.test(s) ? '1w' : null;
-  const dayIdx = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].findIndex((d) => s.includes(d));
-  const found = AREAS.filter(([l]) => s.includes(l.toLowerCase().split(' ')[0])).slice(0, 4).map(([l, , lat, lon]) => ({ label: l, lat, lon }));
-  const vibeBits = [];
-  if (/outside|outdoor|park|beach/.test(s)) vibeBits.push('Outside');
-  if (/cheap|budget|broke/.test(s)) vibeBits.push('cheap');
-  if (/chill|lazy|calm/.test(s)) vibeBits.push('chill');
+// PlanView: what a viewer may see, plus names and the viewer's own answer
+function view(db, plan, viewerId) {
+  const name = (id) => db.members.find((m) => m.id === id)?.name;
+  const going = Object.entries(plan.rsvps).filter(([, v]) => v === 'going').map(([id]) => name(id)).filter(Boolean);
+  const maybe = Object.entries(plan.rsvps).filter(([, v]) => v === 'maybe').map(([id]) => name(id)).filter(Boolean);
+  const w = plan.weather;
   return {
-    name,
-    vibe: vibeBits.length ? vibeBits.join(' and ').replace(/^\w/, (c) => c.toUpperCase()) : 'Easy and low-key',
-    rhythm: every ? { every, day: dayIdx >= 0 ? dayIdx : 6, window: { from: '15:00', to: '19:00' } } : null,
-    areas: found.length ? found : [area('Yaba')],
-    confidence: { name: name === 'The crew' ? 0.3 : 0.85, rhythm: every ? 0.9 : 0.4, areas: found.length ? 0.9 : 0.3, vibe: 0.75 },
+    ...plan,
+    going, maybe,
+    you: viewerId ? plan.rsvps[viewerId] || null : null,
+    eventIcsUrl: viewerId ? '/mock/event.ics' : undefined,
+    headsUp: w && !w.ok ? { text: `Heads up: ${w.summary.toLowerCase()} for ${plan.title}.`, whatsappUrl: `https://wa.me/?text=${encodeURIComponent(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}.`)}` } : null,
+    place: plan.place?.private && !viewerId ? { ...plan.place, address: null, lat: null, lon: null, hidden: true } : plan.place,
   };
 }
 
-export async function createCrew(draft) {
-  await wait(700);
-  const db = load();
-  const slug = (draft.name || 'crew').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'crew';
-  db.crew = { ...db.crew, ...draft, slug, id: 'c-new', inviteToken: 'inv_' + Math.random().toString(36).slice(2, 8) };
-  db.members = [];
-  db.plans = db.plans.filter((p) => p.kind === 'ritual').map((p) => ({ ...p, rsvps: {} }));
-  db.members = [];
-  save(db);
-  return { crew: db.crew, inviteUrl: `${location.origin}/c/${slug}?t=${db.crew.inviteToken}` };
-}
+// ---------- crews ----------
 
-export async function getCrew(slug) {
-  await wait(350);
-  const db = load();
-  // The demo crew answers to any slug, so shared demo links never 404.
-  const { crew, members, plans } = db;
-  return { crew: { ...crew, slug }, members, plans: plans.filter((p) => p.status !== 'cancelled').sort((a, b) => a.start.localeCompare(b.start)) };
-}
-
-export async function join(slug, { name, area: a }) {
-  await wait(800);
-  const db = load();
-  const id = 'm' + Math.random().toString(36).slice(2, 7);
-  const member = { id, crewId: db.crew.id, name, area: typeof a === 'string' ? area(a) : a, calToken: 'cal_' + id, joinedAt: new Date().toISOString() };
-  db.members.push({ id, name, area: { label: member.area.label }, joinedAt: member.joinedAt });
-  save(db);
+function draftCrew(sentence) {
+  const s = sentence.toLowerCase();
+  const first = sentence.split(/[,.]/)[0].trim();
+  const vague = first.split(/\s+/).length > 5 || first.length < 3;
+  const name = vague ? 'The crew' : first.replace(/^\w/, (c) => c.toUpperCase());
+  const every = /every other|fortnight|every two/.test(s) ? '2w' : /month/.test(s) ? '4w' : /every|weekly/.test(s) ? '1w' : null;
+  const dayIdx = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].findIndex((d) => s.includes(d));
+  const found = AREAS.filter(([l]) => s.includes(l.toLowerCase().split(' ')[0])).slice(0, 4).map(([l, , lat, lon]) => ({ label: l, lat, lon }));
+  const tags = [];
+  if (/outside|outdoor|park|beach/.test(s)) tags.push('outdoors');
+  if (/cheap|budget|broke/.test(s)) tags.push('cheap');
+  if (/chill|lazy|calm/.test(s)) tags.push('chill');
+  const vibe = tags.length ? tags.join(' and ').replace(/^\w/, (c) => c.toUpperCase()).replace('Outdoors', 'Outside') : 'Easy and low-key';
+  const confidence = { name: vague ? 0.3 : 0.85, rhythm: every ? 0.9 : 0.35, areas: found.length ? 0.9 : 0.3, vibe: tags.length ? 0.8 : 0.4 };
   return {
-    member,
+    draft: {
+      name, vibe, vibeTags: tags, budget: tags.includes('cheap') ? 'cheap' : 'any',
+      rhythm: every ? { every, day: dayIdx >= 0 ? dayIdx : 6, window: { from: '15:00', to: '19:00' } } : null,
+      areas: found.length ? found : [area('Yaba')],
+    },
+    confidence,
+    low: Object.entries(confidence).filter(([, v]) => v < 0.6).map(([k]) => k),
+  };
+}
+
+function createCrew(db, { confirm, organiser }) {
+  const slug = (confirm.name || 'crew').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'crew';
+  const inviteToken = 'inv_' + Math.random().toString(36).slice(2, 8);
+  db.crew = { ...db.crew, ...confirm, slug, id: 'c-new', inviteToken };
+  db.members = [];
+  db.plans = [];
+  const out = { crew: db.crew, inviteUrl: `${location.origin}/c/${slug}?t=${inviteToken}`, inviteToken };
+  if (organiser?.name) Object.assign(out, addMember(db, organiser));
+  return out;
+}
+
+function addMember(db, { name, area: a }) {
+  const id = 'm' + Math.random().toString(36).slice(2, 7);
+  const ar = typeof a === 'string' ? area(a) : (a?.lat != null ? a : area(a?.label || ''));
+  const member = { id, crewId: db.crew.id, name, area: ar, calToken: 'cal_' + id, joinedAt: new Date().toISOString() };
+  db.members.push({ id, name, area: { label: ar.label }, joinedAt: member.joinedAt });
+  return {
+    member, memberToken: tokenFor(id), memberUrl: `${location.origin}/c/${db.crew.slug}?m=${tokenFor(id)}`,
     calendarUrl: `${location.origin}/cal/${member.calToken}.ics`,
     webcalUrl: `webcal://${location.host}/cal/${member.calToken}.ics`,
   };
 }
 
-export async function geocode(text) {
+export async function areas(text) {
   await wait(150);
   const t = text.trim().toLowerCase();
   if (!t) return [];
@@ -175,72 +191,41 @@ export async function geocode(text) {
 
 // ---------- plans ----------
 
-export async function parsePlan(slug, { text, url, image }) {
-  await wait(image ? 2600 : 1500);
+function parsePlan(viewer, { text, url, image }) {
   const sat = nextDow(6, 1), fri = nextDow(5, 1);
-  if (image || (url && /flyer|groove|instagram|ig/.test(url))) {
-    return {
-      kind: 'found', title: 'Highlife on the Lagoon', start: lagosDate(sat + 7, 17), end: lagosDate(sat + 7, 22),
+  const pack = (draft, confidence, notes = []) => ({
+    draft: { tz: 'Africa/Lagos', host: null, hostName: null, bring: [], price: null, ...draft },
+    confidence, low: Object.entries(confidence).filter(([, v]) => v < 0.6).map(([k]) => k), notes,
+  });
+  if (image) {
+    return pack({
+      kind: 'found', title: 'Highlife on the Lagoon', start: lagosDate(sat + 7, 17), end: null,
       place: { name: 'Terra Kulture Arena', address: '1376 Tiamiyu Savage St, Victoria Island', lat: 6.4262, lon: 3.4237, outdoor: false, private: false },
-      price: { text: '₦10,000, or ₦8,000 early bird', free: false }, host: null, bring: [],
-      source: { url: url || undefined, image: !!image }, why: null,
-      confidence: { title: 0.95, start: 0.55, end: 0.4, place: 0.9, price: 0.85 },
-      notes: { start: "The flyer says \"Sat 31st\" with no month. We guessed the next one.", end: 'No end time on the flyer.' },
-    };
+      price: { text: '₦10,000, or ₦8,000 early bird', free: false }, source: { url: url || undefined, image: true },
+    }, { title: 0.95, start: 0.5, end: 0.2, place: 0.9, price: 0.85 },
+    ['The flyer says "Sat 31st" with no month, so the date is the next Saturday the 31st.', 'There is no end time on the flyer.']);
   }
   if (url) {
-    return {
+    return pack({
       kind: 'found', title: 'Lagos Photo Walk: Lagos Island', start: lagosDate(sat, 8), end: lagosDate(sat, 11),
       place: { name: 'Tinubu Square', address: 'Broad St, Lagos Island', lat: 6.4531, lon: 3.3895, outdoor: true, private: false },
-      price: { text: 'Free', free: true }, host: null, bring: ['Water', 'Comfortable shoes'], source: { url },
-      confidence: { title: 0.9, start: 0.85, end: 0.8, place: 0.65, price: 0.95 },
-      notes: { place: 'The page names two meeting points. We picked the first.' },
-    };
+      price: { text: 'Free', free: true }, bring: ['Water', 'Comfortable shoes'], source: { url },
+    }, { title: 0.9, start: 0.85, end: 0.8, place: 0.55, price: 0.95 }, ['The page names two meeting points. This is the first one.']);
   }
   const s = (text || '').toLowerCase();
   const hosted = /\bmine\b|my place|at mine|bring/.test(s);
-  return {
-    kind: hosted ? 'hosted' : 'quick',
-    title: hosted ? 'Wine and Monopoly at yours' : (text || 'Hang out').replace(/\?$/, '').replace(/^who'?s up for /i, '').replace(/^\w/, (c) => c.toUpperCase()),
-    start: hosted ? lagosDate(fri, 19) : lagosDate(0, 20), end: null,
-    place: hosted ? { name: 'Your place', address: '', lat: null, lon: null, outdoor: false, private: true } : { name: '', address: '', lat: null, lon: null, outdoor: true, private: false },
-    price: null, host: meId(slug), bring: hosted ? ['A bottle'] : [], source: { text },
-    confidence: { title: 0.8, start: 0.85, end: 0.2, place: hosted ? 0.5 : 0.2 },
-    notes: hosted ? { place: 'Add your address. Only your crew sees it.' } : { place: 'No place in the message.' },
-  };
-}
-
-export async function createPlan(slug, draft) {
-  await wait(600);
-  const db = load();
-  const me = meId(slug) || 'm0';
-  const plan = {
-    id: 'p-' + Math.random().toString(36).slice(2, 8), crewId: db.crew.id, tz: 'Africa/Lagos', why: null, invite: null, weather: null,
-    status: 'on', rsvps: { [me]: 'going' }, createdBy: me, createdAt: new Date().toISOString(), bring: [], ...draft,
-  };
-  delete plan.notes;
-  if (plan.place?.outdoor && plan.start) plan.weather = { checkedAt: new Date().toISOString(), summary: 'Dry most of the day', rainProb: 15, tempC: 30, ok: true };
-  db.plans.push(plan);
-  save(db);
-  return plan;
-}
-
-export async function getPlan(slug, id) {
-  await wait(300);
-  const db = load();
-  const plan = db.plans.find((p) => p.id === id);
-  if (!plan) { const e = new Error("That plan isn't here any more. It may have ended."); e.status = 404; throw e; }
-  return { ...plan, members: db.members, crew: { ...db.crew, slug } };
-}
-
-export async function rsvp(slug, id, value) {
-  await wait(250);
-  const db = load();
-  const plan = db.plans.find((p) => p.id === id);
-  const me = meId(slug) || 'm0';
-  if (value) plan.rsvps[me] = value; else delete plan.rsvps[me];
-  save(db);
-  return plan;
+  const me = db0().members.find((m) => m.id === viewer);
+  if (hosted) {
+    return pack({
+      kind: 'hosted', title: 'Wine and Monopoly at yours', start: lagosDate(fri, 19), end: null,
+      place: { name: me ? `${me.name.split(' ')[0]}'s place` : 'Your place', address: null, lat: null, lon: null, outdoor: false, private: true },
+      host: viewer, hostName: me?.name || null, bring: ['A bottle'], source: { text },
+    }, { title: 0.8, start: 0.85, end: 0.2, place: 0.4 }, ['Add your address. Only the crew sees it.']);
+  }
+  return pack({
+    kind: 'quick', title: (text || 'Hang out').replace(/\?$/, '').replace(/^who'?s (up|down) for /i, '').replace(/^\w/, (c) => c.toUpperCase()),
+    start: lagosDate(0, 20), end: null, place: { name: null, address: null, lat: null, lon: null, outdoor: true, private: false }, source: { text },
+  }, { title: 0.8, start: 0.7, end: 0.2, place: 0.2 }, ['No place in the message.']);
 }
 
 const km = (a, b) => {
@@ -250,37 +235,105 @@ const km = (a, b) => {
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
-export async function pods(slug, id) {
-  await wait(400);
-  const db = load();
-  const plan = db.plans.find((p) => p.id === id);
-  if (!plan || !plan.place?.lat) return [];
-  const going = Object.entries(plan.rsvps).filter(([, v]) => v === 'going').map(([mid]) => db.members.find((m) => m.id === mid)).filter(Boolean);
-  if (going.length < 2) return [];
-  // Group by nearest of a few hubs; good enough for a mock
+function pods(db, plan) {
+  if (!plan || !plan.place?.lat) return { pods: [], unplaced: [] };
+  // The host is already there, so the host never needs a ride.
+  const going = Object.entries(plan.rsvps).filter(([mid, v]) => v === 'going' && mid !== plan.host).map(([mid]) => db.members.find((m) => m.id === mid)).filter(Boolean);
   const hubs = [area('Yaba'), area('Lekki Phase 1'), area('Ikeja'), area('Surulere')];
   const groups = new Map();
   for (const m of going) {
     const a = area(m.area.label);
     const hub = hubs.reduce((best, h) => (km(a, h) < km(a, best) ? h : best), hubs[0]);
-    if (!groups.has(hub.label)) groups.set(hub.label, { hub, ids: [] });
-    groups.get(hub.label).ids.push(m.id);
+    if (!groups.has(hub.label)) groups.set(hub.label, { hub, people: [] });
+    groups.get(hub.label).people.push(m);
   }
   const dest = plan.place;
-  return [...groups.values()].map(({ hub, ids }) => {
+  const list = [...groups.values()].map(({ hub, people }) => {
     const travelMin = Math.round(km(hub, dest) * 3.2 + 12);
     const leave = new Date(new Date(plan.start).getTime() - (travelMin + 10) * 60e3);
     leave.setUTCMinutes(Math.floor(leave.getUTCMinutes() / 5) * 5, 0, 0);
+    const crossesLagoon = (hub.lon > 3.41) !== (dest.lon > 3.41) || (hub.lat > 6.47 && dest.lat < 6.46);
     return {
-      memberIds: ids, fromLabel: hub.label, leaveBy: leave.toISOString(), travelMin,
+      memberIds: people.map((p) => p.id), names: people.map((p) => p.name), fromLabel: hub.label, solo: people.length === 1,
+      leaveBy: leave.toISOString(), travelMin, crossesLagoon,
       uberUrl: `https://m.uber.com/looking?drop[0]=${encodeURIComponent(JSON.stringify({ latitude: dest.lat, longitude: dest.lon, addressLine1: dest.name, addressLine2: dest.address }))}`,
       boltText: `${dest.name}, ${dest.address}`,
+      shareText: `Leaving ${hub.label} by ${leave.toISOString()} for ${plan.title}`,
     };
   });
+  return { pods: list, unplaced: [] };
+}
+
+let _db;
+function db0() { return _db || (_db = load()); }
+
+// The router: method + path, like the real server
+export async function handle(method, path, { body, form, token }) {
+  const db = load();
+  _db = db;
+  const viewer = memberFrom(token);
+  const url = new URL(path, location.origin);
+  const p = url.pathname;
+  let m;
+  if (form) body = { text: form.get('text') || undefined, url: form.get('url') || undefined, image: form.get('image') || undefined };
+
+  if (method === 'POST' && p === '/api/crews') {
+    await wait(body.sentence ? 1500 : 700);
+    if (body.sentence) return draftCrew(body.sentence);
+    const out = createCrew(db, body);
+    save(db);
+    return out;
+  }
+  if (method === 'GET' && (m = p.match(/^\/api\/crews\/([^/]+)$/))) {
+    await wait(350);
+    const you = viewer ? db.members.find((x) => x.id === viewer) : null;
+    const plans = db.plans.filter((x) => x.status !== 'cancelled').sort((a, b) => a.start.localeCompare(b.start)).map((x) => view(db, x, viewer));
+    // The demo crew answers to any slug, so shared demo links never 404.
+    return { crew: { ...db.crew, slug: decodeURIComponent(m[1]) }, members: db.members, plans, you: you ? { id: you.id, name: you.name } : null };
+  }
+  if (method === 'POST' && (m = p.match(/^\/api\/crews\/([^/]+)\/members$/))) {
+    await wait(800);
+    if (!body.name?.trim()) err(400, 'Add your name so the crew knows who is coming.');
+    const out = addMember(db, body);
+    save(db);
+    return out;
+  }
+  if (method === 'POST' && p.endsWith('/plans/parse')) {
+    await wait(body.image ? 2600 : 1500);
+    return parsePlan(viewer, body);
+  }
+  if (method === 'POST' && p.endsWith('/plans')) {
+    await wait(600);
+    const me = viewer || 'm0';
+    const draft = body.plan;
+    const plan = {
+      id: 'p-' + Math.random().toString(36).slice(2, 8), crewId: db.crew.id, tz: 'Africa/Lagos', why: null, invite: null, weather: null,
+      status: 'on', rsvps: { [me]: 'going' }, createdBy: me, createdAt: new Date().toISOString(), bring: [], confidence: {}, ...draft,
+    };
+    if (plan.source?.image && !plan.source.imageUrl) plan.source = { ...plan.source, imageUrl: '/mock/flyer-highlife.svg' };
+    if (plan.place?.outdoor && plan.start) plan.weather = { checkedAt: new Date().toISOString(), summary: 'Dry most of the day', rainProb: 15, tempC: 30, ok: true };
+    db.plans.push(plan);
+    save(db);
+    return { plan: view(db, plan, viewer) };
+  }
+  if (method === 'PATCH' && (m = p.match(/^\/api\/plans\/([^/]+)$/))) {
+    await wait(250);
+    const plan = db.plans.find((x) => x.id === m[1]);
+    if (!plan) err(404, "That plan isn't here any more.");
+    const me = viewer || 'm0';
+    if ('rsvp' in body) { if (body.rsvp) plan.rsvps[me] = body.rsvp; else delete plan.rsvps[me]; }
+    save(db);
+    return { plan: view(db, plan, viewer) };
+  }
+  if (method === 'GET' && (m = p.match(/^\/api\/plans\/([^/]+)\/pods$/))) {
+    await wait(400);
+    return pods(db, db.plans.find((x) => x.id === m[1]));
+  }
+  err(404, 'The demo does not know that request.');
 }
 
 export function _reset() { sessionSet('ct.mockdb', ''); }
 export function _seedMember(slug, id = 'm0') {
   const m = MEMBERS.find((x) => x[0] === id);
-  saveCrew(slug, { name: 'The Yaba Lot', memberId: id, memberName: m[1], memberToken: 'cal_' + id, invite: 'inv_demo', calendarUrl: `${location.origin}/cal/cal_${id}.ics` });
+  saveCrew(slug, { name: 'The Yaba Lot', memberId: id, memberName: m[1], memberToken: tokenFor(id), invite: 'inv_demo', calendarUrl: `${location.origin}/cal/cal_${id}.ics`, webcalUrl: `webcal://${location.host}/cal/cal_${id}.ics` });
 }

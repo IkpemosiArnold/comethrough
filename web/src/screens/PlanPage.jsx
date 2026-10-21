@@ -6,7 +6,7 @@ import { api, MOCK } from '../lib/api.js';
 import { getCrew } from '../lib/store.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
-import { copyText, whatsappUrl } from '../lib/platform.js';
+import { copyText, whatsappUrl, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
 import { haptic, prefersReducedMotion, springAnimate } from '../lib/spring.js';
 import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
@@ -20,7 +20,7 @@ import { toast } from '../ui/toast.jsx';
 export function PlanPage({ params, query }) {
   const { slug, id } = params;
   const mine = getCrew(slug);
-  const meId = mine?.memberId;
+  const meId = mine?.memberId || null;
   const [plan, setPlan] = useState(null);
   const [pods, setPods] = useState(null);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ export function PlanPage({ params, query }) {
   function load() {
     setError(null);
     api.getPlan(slug, id).then(setPlan).catch(setError);
-    api.pods(slug, id).then(setPods).catch(() => setPods([]));
+    api.pods(slug, id).then((r) => setPods(r.pods)).catch(() => setPods([]));
   }
   useEffect(load, [slug, id]);
   useEffect(() => {
@@ -59,7 +59,7 @@ export function PlanPage({ params, query }) {
   const rsvps = plan.rsvps || {};
   const going = Object.entries(rsvps).filter(([, v]) => v === 'going').map(([mid]) => byId[mid]).filter(Boolean);
   const maybe = Object.entries(rsvps).filter(([, v]) => v === 'maybe').map(([mid]) => byId[mid]).filter(Boolean);
-  const my = rsvps[meId] || null;
+  const my = meId ? rsvps[meId] || null : null;
   const host = plan.host && byId[plan.host];
   const crewName = plan.crew?.name || mine?.name || 'the crew';
   const invite = mine?.invite || plan.crew?.inviteToken;
@@ -89,7 +89,7 @@ export function PlanPage({ params, query }) {
       await api.rsvp(slug, id, next);
       const p = await api.pods(slug, id);
       setFreshPod(next === 'going');
-      setPods(p);
+      setPods(p.pods);
     } catch (e) {
       setPlan({ ...plan, rsvps });
       toast(e.message || "Couldn't save that. Try again.");
@@ -136,7 +136,7 @@ export function PlanPage({ params, query }) {
             <p class="strong">{w.summary}</p>
             <p class="small">{w.rainProb}% chance of rain. Worth a plan B.</p>
           </div>
-          <a class="btn ghost small-btn" href={whatsappUrl(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}. ${planUrl}`)} target="_blank" rel="noopener" data-external>Warn the crew</a>
+          <a class="btn ghost small-btn" href={plan.headsUp?.whatsappUrl || whatsappUrl(`Heads up: ${w.summary.toLowerCase()} for ${plan.title}. ${planUrl}`)} target="_blank" rel="noopener" data-external>Warn the crew</a>
         </div>
       )}
 
@@ -152,7 +152,13 @@ export function PlanPage({ params, query }) {
         </section>
       )}
       {plan.place?.lat == null && plan.place?.name && (
-        <p class="place-text-only"><Icon name="pin" size={20} /> {plan.place.name}{plan.place.address ? `, ${plan.place.address}` : ''}</p>
+        <div class="place-text-only">
+          <Icon name="pin" size={20} />
+          <div>
+            <p>{plan.place.name}{plan.place.address ? `, ${plan.place.address}` : ''}</p>
+            {plan.place.hidden && <p class="small muted">The address shows once you join the crew.</p>}
+          </div>
+        </div>
       )}
 
       <ul class="facts">
@@ -213,6 +219,8 @@ export function PlanPage({ params, query }) {
         </section>
       )}
 
+      {my === 'going' && <NudgeAsk slug={slug} />}
+
       {plan.why && (
         <section class="why" aria-labelledby="why-title">
           <div class="why-sloth" aria-hidden="true"><Sloth size={58} branch={false} mood="awake" /></div>
@@ -252,7 +260,7 @@ export function PlanPage({ params, query }) {
         menu={menu}
         setMenu={setMenu}
         answer={answer}
-        icsUrl={api.eventIcsUrl(slug, id)}
+        icsUrl={api.eventIcsUrl(slug, plan)}
         joinHref={`/c/${slug}/join${invite ? `?t=${encodeURIComponent(invite)}&` : '?'}next=${encodeURIComponent(`/c/${slug}/p/${id}`)}`}
         crewName={crewName}
         fileName={`${plan.title}.ics`}
@@ -261,9 +269,48 @@ export function PlanPage({ params, query }) {
   );
 }
 
+// Bolt documents no deep link with a destination, so we only open the app (Android) or its site.
+const BOLT_URL = /Android/i.test(navigator.userAgent)
+  ? 'intent://#Intent;scheme=bolt;package=ee.mtakso.client;S.browser_fallback_url=https%3A%2F%2Fbolt.eu;end'
+  : 'https://bolt.eu';
+
+// Once per device, right after the first "I'm going": the push opt-in, or the iPhone install hint.
+function NudgeAsk({ slug }) {
+  const [state, setState] = useState(() => {
+    try { if (localStorage.getItem('ct.nudgeAsked')) return 'hidden'; } catch { /* ignore */ }
+    if (notifyState() === 'granted' || notifyState() === 'denied') return 'hidden';
+    if (isIOS && !isStandalone) return 'ios';
+    return canPush ? 'ask' : 'hidden';
+  });
+  if (state === 'hidden') return null;
+  const done = () => { try { localStorage.setItem('ct.nudgeAsked', '1'); } catch { /* ignore */ } setState('hidden'); };
+  async function yes() {
+    setState('asking');
+    const r = await enablePush(api, slug);
+    if (r === 'granted') toast('Nudges are on');
+    done();
+  }
+  return (
+    <aside class="nudge-inline" aria-label="Notifications">
+      <Icon name="bell" size={22} />
+      <div class="grow">
+        {state === 'ios' ? (
+          <p><b>Want a nudge if this changes?</b> On iPhone, add Come Through to your Home Screen first: tap Share, then Add to Home Screen.</p>
+        ) : (
+          <p><b>Get a nudge if this plan changes?</b> Rain, a new time, or your ride.</p>
+        )}
+        <div class="row nudge-actions">
+          {state !== 'ios' && <button class="btn primary" onClick={yes} disabled={state === 'asking'}>Yes, nudge me</button>}
+          <button class="btn ghost" onClick={done}>{state === 'ios' ? 'Got it' : 'Not now'}</button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function PodCard({ pod, byId, meId, fresh, onBolt }) {
   const ref = useRef(null);
-  const people = pod.memberIds.map((m) => byId[m]).filter(Boolean);
+  const people = pod.memberIds.map((m, i) => byId[m] || { id: m, name: pod.names?.[i] || '?' });
   const others = people.filter((p) => p.id !== meId);
   useEffect(() => {
     if (!fresh || !ref.current || prefersReducedMotion()) return;
@@ -280,11 +327,15 @@ function PodCard({ pod, byId, meId, fresh, onBolt }) {
       </div>
       <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
       <p class="muted small">
-        About {pod.travelMin} min{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ''}.
+        About {pod.travelMin} min{others.length ? `, riding with ${nameList(others.map((o) => firstName(o.name)), 2)}` : ". Nobody near you yet, so it's a solo ride for now"}.
+        {pod.crossesLagoon ? ' The time allows for the bridge.' : ''}
       </p>
-      <div class="row pod-actions">
-        <a class="btn secondary grow" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>
-        <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy for Bolt</button>
+      <div class="pod-actions">
+        <a class="btn secondary" href={pod.uberUrl} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Book Uber</a>
+        <div class="bolt-pair">
+          <button class="btn secondary grow" onClick={() => onBolt(pod.boltText)}><Icon name="copy" size={20} /> Copy address</button>
+          <a class="btn ghost" href={BOLT_URL} target="_blank" rel="noopener" data-external>Open Bolt</a>
+        </div>
       </div>
     </div>
   );

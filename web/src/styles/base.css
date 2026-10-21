@@ -160,8 +160,8 @@ button, [role='button'], .chip, .btn {
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 .btn.ghost { --btn-bg: transparent; padding: 0 var(--s-3); }
-.btn.whatsapp { --btn-bg: var(--whatsapp); --btn-ink: #fff; box-shadow: 0 3px 0 #0a5a2f; }
-.btn.whatsapp:active { transform: translateY(2px); box-shadow: 0 1px 0 #0a5a2f; }
+.btn.whatsapp { --btn-bg: var(--whatsapp); --btn-ink: #fff; box-shadow: 0 3px 0 #08502a; }
+.btn.whatsapp:active { transform: translateY(2px); box-shadow: 0 1px 0 #08502a; }
 .btn.canopy { --btn-bg: var(--on-canopy); --btn-ink: var(--canopy); }
 
 .icon-btn {

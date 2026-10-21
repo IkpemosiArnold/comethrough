@@ -14,11 +14,11 @@ import { AreaInput } from '../ui/AreaInput.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
 
-const UNSURE = 0.7;
+const UNSURE = 0.6;
 const URL_RE = /https?:\/\/[^\s]+/i;
 const IG_RE = /(^|\/\/|\.)instagram\.com\/|instagr\.am\//i;
-const STATUS_IMAGE = ['Reading the flyer', 'Finding the date', 'Finding the place', 'Checking the price'];
-const STATUS_TEXT = ['Reading it', 'Working out the day', 'Finding the place'];
+const STATUS_IMAGE = ['reading the flyer', 'finding the date', 'finding the place', 'checking the price'];
+const STATUS_TEXT = ['reading it', 'working out the day', 'finding the place'];
 
 // Lagos is UTC+1 all year, so the conversion is fixed.
 function toParts(iso) {
@@ -115,7 +115,7 @@ export function AddPlan({ params, query }) {
     setStep('reading');
     try {
       const d = await api.parsePlan(slug, payload);
-      setDraft({ bring: [], ...d, place: d.place || { name: '', address: '', lat: null, lon: null, outdoor: false, private: false } });
+      setDraft({ ...d, bring: d.bring || [], place: { name: '', address: '', lat: null, lon: null, outdoor: false, private: false, ...(d.place || {}) } });
       setStep('draft');
       window.scrollTo(0, 0);
     } catch (e) {
@@ -137,7 +137,7 @@ export function AddPlan({ params, query }) {
   async function post() {
     setStep('posting');
     try {
-      const { notes, ...clean } = draft;
+      const { notes, confidence, low, ...clean } = draft;
       const plan = await api.createPlan(slug, clean);
       navigate(`/c/${slug}/p/${plan.id}?posted=1`, { replace: true });
     } catch (e) {
@@ -180,7 +180,7 @@ export function AddPlan({ params, query }) {
           )}
           <div class="reading-status" role="status" aria-live="polite">
             <Sloth size={64} mood="reading" branch={false} />
-            <p><b>Gemma</b> {list[status % list.length].replace(/^\w/, (c) => c.toLowerCase())}<Dots /></p>
+            <p><b>Gemma</b> is {list[status % list.length]}<Dots /></p>
           </div>
         </div>
       </div>
@@ -262,19 +262,20 @@ function ShareTip() {
   );
 }
 
-function Unsure({ conf, note, children, order = 0 }) {
-  const unsure = conf != null && conf < UNSURE;
+function Unsure({ conf, low, children, order = 0 }) {
+  const unsure = low || (conf != null && conf < UNSURE);
   return (
     <div class={`draft-field${unsure ? ' unsure' : ''}`} style={{ '--i': order }}>
       {children}
-      {unsure && <p class="unsure-note">{note || "Gemma wasn't sure. Check this one."}</p>}
+      {unsure && <p class="unsure-note">Gemma wasn't sure. Check this one.</p>}
     </div>
   );
 }
 
 function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) {
   const c = draft.confidence || {};
-  const n = draft.notes || {};
+  const isLow = (...f) => f.some((x) => (draft.low || []).includes(x) || (c[x] != null && c[x] < UNSURE));
+  const notes = Array.isArray(draft.notes) ? draft.notes : [];
   const set = (patch) => setDraft({ ...draft, ...patch });
   const setPlace = (patch) => set({ place: { ...draft.place, ...patch } });
   const s = toParts(draft.start), e = toParts(draft.end);
@@ -301,6 +302,12 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
         </div>
       </div>
 
+      {notes.length > 0 && (
+        <ul class="draft-notes" aria-label="Notes from Gemma">
+          {notes.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+      )}
+
       <div class="surface stack draft-card" style={{ '--stack': 'var(--s-5)' }}>
         <Unsure order={0}>
           <fieldset class="field">
@@ -313,14 +320,14 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
           </fieldset>
         </Unsure>
 
-        <Unsure conf={c.title} note={n.title} order={1}>
+        <Unsure low={isLow('title')} order={1}>
           <label class="field">
             <span class="label">Title</span>
-            <input class="input" value={draft.title} maxLength={80} onInput={(ev) => set({ title: ev.currentTarget.value })} />
+            <input class="input" value={draft.title || ''} maxLength={80} onInput={(ev) => set({ title: ev.currentTarget.value })} />
           </label>
         </Unsure>
 
-        <Unsure conf={Math.min(c.start ?? 1, c.end ?? 1)} note={n.start || n.end} order={2}>
+        <Unsure low={isLow('start')} order={2}>
           <div class="field">
             <span class="label" id="when-label">When</span>
             <div class="when-grid" role="group" aria-labelledby="when-label">
@@ -328,11 +335,11 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
                 <span>Day</span>
                 <input class="input" type="date" value={s.date} onInput={(ev) => set({ start: fromParts(ev.currentTarget.value, s.time), end: draft.end ? fromParts(ev.currentTarget.value, e.time) : null })} />
               </label>
-              <label class={`mini${c.start < UNSURE ? ' guess' : ''}`}>
+              <label class={`mini${isLow('start') ? ' guess' : ''}`}>
                 <span>Starts</span>
                 <input class="input" type="time" value={s.time} onInput={(ev) => set({ start: fromParts(s.date, ev.currentTarget.value) })} />
               </label>
-              <label class={`mini${c.end != null && c.end < UNSURE ? ' guess' : ''}`}>
+              <label class={`mini${isLow('end') ? ' guess' : ''}`}>
                 <span>Ends</span>
                 <input class="input" type="time" value={e.time} onInput={(ev) => set({ end: ev.currentTarget.value ? fromParts(s.date, ev.currentTarget.value) : null })} />
               </label>
@@ -340,13 +347,13 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
           </div>
         </Unsure>
 
-        <Unsure conf={c.place} note={n.place} order={3}>
+        <Unsure low={isLow('place')} order={3}>
           <div class="field">
             <label class="label" for="place-name">Where</label>
-            <input id="place-name" class="input" value={draft.place.name} placeholder="The place's name" onInput={(ev) => setPlace({ name: ev.currentTarget.value })} />
+            <input id="place-name" class="input" value={draft.place.name || ''} placeholder="The place's name" onInput={(ev) => setPlace({ name: ev.currentTarget.value })} />
             <div style={{ marginTop: '8px' }}>
               <AreaInput
-                value={{ label: draft.place.address }}
+                value={{ label: draft.place.address || '' }}
                 onChange={(a) => setPlace({ address: a.label, lat: a.lat ?? null, lon: a.lon ?? null })}
                 placeholder="Address or area"
                 label="Address or area"
@@ -368,7 +375,7 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, meId }) 
         </Unsure>
 
         {draft.kind !== 'hosted' && (
-          <Unsure conf={c.price} note={n.price} order={4}>
+          <Unsure low={isLow('price')} order={4}>
             <label class="field">
               <span class="label">Price</span>
               <input class="input" value={draft.price?.text || ''} placeholder="Free, or ₦5,000 at the gate" onInput={(ev) => { const t = ev.currentTarget.value; set({ price: t ? { text: t, free: /^free/i.test(t.trim()) } : null }); }} />

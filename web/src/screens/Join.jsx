@@ -36,10 +36,11 @@ export function Join({ params, query }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.join(slug, { name: name.trim(), area }, invite);
+      // A picked suggestion goes as { label, lat, lon }; typed text goes as a plain label.
+      const res = await api.join(slug, { name: name.trim(), area: area.lat != null ? area : area.label.trim() }, invite);
       saveCrew(slug, {
         name: data?.crew?.name, memberId: res.member.id, memberName: res.member.name,
-        memberToken: res.member.calToken, calendarUrl: res.calendarUrl, webcalUrl: res.webcalUrl,
+        memberToken: res.memberToken, calendarUrl: res.calendarUrl, webcalUrl: res.webcalUrl,
       });
       setJoined(res);
       window.scrollTo(0, 0);

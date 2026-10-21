@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
 import { getCrew, saveCrew } from '../lib/store.js';
-import { navigate } from '../lib/router.js';
-import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, DAYS, now } from '../lib/format.js';
+import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
 import { copyText, whatsappUrl } from '../lib/platform.js';
 import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
@@ -28,6 +27,7 @@ export function CrewHome({ params }) {
       setData(d);
       writeCache(slug, d);
       if (d?.crew?.name && d.crew.name !== mine?.name) saveCrew(slug, { name: d.crew.name });
+      if (d?.you?.id && d.you.id !== mine?.memberId) saveCrew(slug, { memberId: d.you.id, memberName: d.you.name });
     }).catch(setError);
   }
   useEffect(load, [slug]);
@@ -64,8 +64,8 @@ export function CrewHome({ params }) {
         )}
         {crew && (
           <p class="crew-sub">
-            {members.length} {members.length === 1 ? 'person' : 'of you'}
-            {crew.areas?.length ? `, around ${crew.areas.map((a) => a.label).join(' and ')}` : ''}
+            {members.length <= 1 ? 'Just you so far' : `${members.length} of you`}
+            {crew.areas?.length ? `, around ${nameList(crew.areas.map((a) => a.label), 3)}` : ''}
           </p>
         )}
       </header>
@@ -79,10 +79,20 @@ export function CrewHome({ params }) {
         <section class="coming" aria-labelledby="coming-title">
           <h2 id="coming-title" class="section-label">Coming up</h2>
           {rest.length === 0 ? (
-            <div class="empty">
-              <p class="display display-md">Nothing else on yet</p>
-              <p class="muted">That's allowed. Seen a flyer or got an idea? Add it and the crew taps once.</p>
-            </div>
+            members.length <= 1 ? (
+              <div class="empty">
+                <p class="display display-md">Bring the crew in first</p>
+                <p class="muted">Plans land better with people on the branch. Drop the invite link in the group chat.</p>
+                <a class="btn whatsapp" href={whatsappUrl(`Come through! Join ${crew?.name || 'the crew'} here: ${inviteUrl}`)} target="_blank" rel="noopener" data-external>
+                  <WhatsAppIcon /> Send the invite
+                </a>
+              </div>
+            ) : (
+              <div class="empty">
+                <p class="display display-md">Nothing else on yet</p>
+                <p class="muted">That's allowed. Seen a flyer or got an idea? Add it and the crew taps once.</p>
+              </div>
+            )
           ) : (
             <ol class="plan-list">
               {rest.map((p, i) => (
@@ -104,13 +114,6 @@ export function CrewHome({ params }) {
       </div>
     </div>
   );
-}
-
-function nextRhythmDay(rhythm) {
-  const n = now();
-  const lagos = new Date(n.getTime() + 3600e3);
-  const ahead = (rhythm.day - lagos.getUTCDay() + 7) % 7 || 7;
-  return new Date(n.getTime() + ahead * 86400e3);
 }
 
 function RitualPanel({ crew, ritual, byId, slug, meId }) {
@@ -137,13 +140,12 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
     );
   }
   if (!crew.rhythm) return null;
-  const day = nextRhythmDay(crew.rhythm);
   const dayName = DAYS[crew.rhythm.day];
   const postBy = DAYS[(crew.rhythm.day + 5) % 7];
   return (
     <div class="ritual planning">
       <div class="ritual-sloth" aria-hidden="true"><Sloth size={78} mood="sleepy" /></div>
-      <p class="ritual-kicker">Nobody's planned {dayName} yet</p>
+      <p class="ritual-kicker">{rhythmText(crew.rhythm)}</p>
       <h2 class="display ritual-title">The sloth is planning {dayName}<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></h2>
       <p class="ritual-when">By {postBy} it picks a green spot near the middle of the crew, checks the weather, and posts it here.</p>
     </div>

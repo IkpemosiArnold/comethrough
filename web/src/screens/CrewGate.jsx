@@ -5,8 +5,10 @@ import { CrewHome } from './CrewHome.jsx';
 
 export function CrewGate({ params, query }) {
   const t = query.get('t');
+  const m = query.get('m'); // a member's own link, e.g. opened on a second phone
   if (t) saveCrew(params.slug, { invite: t });
+  if (m) saveCrew(params.slug, { memberToken: m });
   const mine = getCrew(params.slug);
-  if (mine?.memberId) return <CrewHome params={params} query={query} />;
+  if (mine?.memberId || mine?.memberToken) return <CrewHome params={params} query={query} />;
   return <Join params={params} query={query} />;
 }

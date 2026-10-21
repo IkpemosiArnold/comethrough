@@ -18,7 +18,7 @@
   --paper: #f8faf1;       /* raised surfaces */
   --ink: #14302a;         /* text and the sign-painter shadow */
   --ink-2: #3d574e;       /* secondary text, 6:1 on wall */
-  --ink-3: #5d7369;       /* tertiary text, 4.6:1 on wall */
+  --ink-3: #4f655b;       /* tertiary text, 5.1:1 on wall */
   --line: rgb(20 48 42 / 0.14);
   --danfo: #ffc21a;       /* the one action colour */
   --danfo-press: #f2ae00;
@@ -30,7 +30,7 @@
   --lagoon: #1b6782;      /* weather and links */
   --fur: #7a5b3e;         /* the sloth */
   --fur-light: #c9a87f;
-  --whatsapp: #128c4a;    /* darker than brand green so white text passes AA */
+  --whatsapp: #0e7a3f;    /* darker than the brand green so white text passes AA (5.4:1) */
   --highlight: rgb(255 194 26 / 0.55);
   --scrim: rgb(14 30 25 / 0.45);
 

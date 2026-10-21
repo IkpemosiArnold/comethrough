@@ -1,11 +1,11 @@
-// The API client. Follows docs/SPEC.md. With ?mock=1 every call goes to ./mock.js instead,
-// so the UI can be built and demoed before the server exists.
+// The API client, following docs/SPEC.md ("HTTP API"). Responses are normalised here so the
+// screens see plain objects. With ?mock=1 every call goes to ./mock.js instead, which returns
+// the same wire shapes, so the demo and the real server run through the same code below.
 //
-// Auth (proposed in SPEC "UI requests"): the invite token rides as ?t= on crew reads and joins;
-// the member token (Member.calToken) rides as the X-Member-Token header on everything else.
+// Auth: `Authorization: Bearer <token>`, the member token when this phone has one for the
+// crew, otherwise the crew's invite token. The .ics download carries the token as ?t=.
 
-import { getCrew } from './store.js';
-import { sessionGet, sessionSet } from './store.js';
+import { getCrew, sessionGet, sessionSet } from './store.js';
 
 const q = new URLSearchParams(location.search);
 if (q.has('mock')) sessionSet('ct.mock', q.get('mock') === '0' ? '0' : '1');
@@ -18,113 +18,125 @@ async function mock() {
 }
 
 export class ApiError extends Error {
-  constructor(message, status) { super(message); this.status = status; }
+  constructor(message, status, code, fields) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.fields = fields;
+  }
 }
 
-function tokensFor(slug) {
+function bearer(slug, invite) {
   const c = slug ? getCrew(slug) : null;
-  return { member: c?.memberToken || null, invite: c?.invite || null };
+  return c?.memberToken || invite || c?.invite || null;
 }
 
-async function req(method, path, { slug, body, form, invite } = {}) {
-  const t = tokensFor(slug);
+async function req(method, path, { slug, invite, body, form, token } = {}) {
+  if (MOCK) return (await mock()).handle(method, path, { body, form, token: token || bearer(slug, invite) });
   const headers = {};
-  if (t.member) headers['X-Member-Token'] = t.member;
-  let url = path;
-  const inv = invite || t.invite;
-  if (inv && slug) url += (url.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(inv);
+  const t = token || bearer(slug, invite);
+  if (t) headers.Authorization = `Bearer ${t}`;
   let payload;
   if (form) payload = form;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
   let res;
   try {
-    res = await fetch(url, { method, headers, body: payload });
+    res = await fetch(path, { method, headers, body: payload });
   } catch {
-    throw new ApiError("Couldn't reach Come Through. Check your data and try again.", 0);
+    throw new ApiError("Couldn't reach Come Through. Check your data and try again.", 0, 'offline');
   }
+  if (res.status === 204) return null;
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
   if (!res.ok) {
-    const msg = data?.error || (res.status === 404 ? "That isn't here any more." : 'Something went wrong on our side. Try again in a minute.');
-    throw new ApiError(msg, res.status);
+    const e = data?.error;
+    const msg = (typeof e === 'string' ? e : e?.message) ||
+      (res.status === 404 ? "That isn't here any more." : res.status === 401 || res.status === 403 ? 'This link has stopped working. Ask the crew for a fresh one.' : 'Something went wrong on our side. Try again in a minute.');
+    throw new ApiError(msg, res.status, e?.code, e?.fields);
   }
   return data;
 }
 
+const enc = encodeURIComponent;
+
 export const api = {
-  // Step 1 of starting a crew: Gemma reads the sentence into a draft.
+  // Step 1 of starting a crew: Gemma reads the sentence. Nothing is saved yet.
   async draftCrew(sentence) {
-    if (MOCK) return (await mock()).draftCrew(sentence);
-    return req('POST', '/api/crews', { body: { sentence } });
+    const r = await req('POST', '/api/crews', { body: { sentence } });
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [] };
   },
-  // Step 2: the organiser confirms the (edited) draft.
-  async createCrew(draft) {
-    if (MOCK) return (await mock()).createCrew(draft);
-    return req('POST', '/api/crews', { body: { confirm: draft } });
+  // Step 2: the organiser confirms the edited draft, and can join in the same step.
+  async createCrew(draft, organiser) {
+    const r = await req('POST', '/api/crews', { body: { confirm: draft, ...(organiser ? { organiser } : {}) } });
+    return { ...r, crew: { ...r.crew, inviteToken: r.inviteToken || r.crew?.inviteToken } };
   },
+  // { crew, members, plans, you }
   async getCrew(slug, invite) {
-    if (MOCK) return (await mock()).getCrew(slug);
-    return req('GET', `/api/crews/${encodeURIComponent(slug)}`, { slug, invite });
+    return req('GET', `/api/crews/${enc(slug)}`, { slug, invite });
   },
+  // { member, memberToken, memberUrl, calendarUrl, webcalUrl }
   async join(slug, { name, area }, invite) {
-    if (MOCK) return (await mock()).join(slug, { name, area });
-    return req('POST', `/api/crews/${encodeURIComponent(slug)}/members`, { slug, invite, body: { name, area } });
+    return req('POST', `/api/crews/${enc(slug)}/members`, { token: invite || getCrew(slug)?.invite, body: { name, area } });
   },
-  // Proposed endpoint (UI requests): area type-ahead. Returns [{ label, detail, lat, lon }].
+  // Area type-ahead (Photon on the server, biased to Lagos): [{ label, detail, lat, lon }]
   async geocode(text, signal) {
-    if (MOCK) return (await mock()).geocode(text);
-    const res = await fetch(`/api/geocode?q=${encodeURIComponent(text)}`, { signal });
+    if (MOCK) return (await mock()).areas(text);
+    const res = await fetch(`/api/areas?q=${enc(text)}`, { signal });
     if (!res.ok) return [];
-    return res.json();
+    const data = await res.json();
+    return data.results || [];
   },
+  // A draft plan from text, a link and/or a flyer image
   async parsePlan(slug, { text, url, image }) {
-    if (MOCK) return (await mock()).parsePlan(slug, { text, url, image });
-    const form = new FormData();
-    if (text) form.append('text', text);
-    if (url) form.append('url', url);
-    if (image) form.append('image', image, image.name || 'flyer.jpg');
-    return req('POST', `/api/crews/${encodeURIComponent(slug)}/plans/parse`, { slug, form });
+    let opts;
+    if (image) {
+      const form = new FormData();
+      if (text) form.append('text', text);
+      if (url) form.append('url', url);
+      form.append('image', image, image.name || 'flyer.jpg');
+      opts = { slug, form };
+    } else {
+      opts = { slug, body: { text: text || undefined, url: url || undefined } };
+    }
+    const r = await req('POST', `/api/crews/${enc(slug)}/plans/parse`, opts);
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: r.notes || [] };
   },
   async createPlan(slug, draft) {
-    if (MOCK) return (await mock()).createPlan(slug, draft);
-    return req('POST', `/api/crews/${encodeURIComponent(slug)}/plans`, { slug, body: draft });
+    const r = await req('POST', `/api/crews/${enc(slug)}/plans`, { slug, body: { plan: draft } });
+    return r.plan;
   },
-  // Proposed endpoint (UI requests). Falls back to finding the plan in the crew read.
+  // There is no single-plan read in the contract, so the plan page reads the crew.
   async getPlan(slug, id) {
-    if (MOCK) return (await mock()).getPlan(slug, id);
-    try {
-      return await req('GET', `/api/plans/${encodeURIComponent(id)}`, { slug });
-    } catch (e) {
-      if (e.status !== 404) throw e;
-      const data = await api.getCrew(slug);
-      const plan = (data.plans || []).find((p) => p.id === id);
-      if (!plan) throw e;
-      return { ...plan, members: data.members, crew: data.crew };
-    }
+    const data = await api.getCrew(slug);
+    const plan = (data.plans || []).find((p) => p.id === id);
+    if (!plan) throw new ApiError("That plan isn't here any more. It may have ended.", 404);
+    return { ...plan, members: data.members || [], crew: data.crew, viewer: data.you };
   },
   async rsvp(slug, id, rsvp) {
-    if (MOCK) return (await mock()).rsvp(slug, id, rsvp);
-    return req('PATCH', `/api/plans/${encodeURIComponent(id)}`, { slug, body: { rsvp } });
+    const r = await req('PATCH', `/api/plans/${enc(id)}`, { slug, body: { rsvp } });
+    return r.plan;
   },
-  // One event as a calendar file. Works on Android and iPhone without subscribing.
-  eventIcsUrl(slug, id) {
-    if (MOCK) return `/mock/event.ics`;
-    const c = getCrew(slug);
-    const m = c?.memberToken ? `?m=${encodeURIComponent(c.memberToken)}` : '';
-    return `/api/plans/${encodeURIComponent(id)}/event.ics${m}`;
+  // { pods: [Pod], unplaced: [{ id, name }] }
+  async pods(slug, id) {
+    const r = await req('GET', `/api/plans/${enc(id)}/pods`, { slug });
+    return { pods: r?.pods || [], unplaced: r?.unplaced || [] };
   },
-  // Web Push. The server holds the VAPID key pair; the page asks for the public key.
+  // A single-event calendar file. Works on Android and iPhone without subscribing.
+  eventIcsUrl(slug, plan) {
+    if (plan.eventIcsUrl) return plan.eventIcsUrl;
+    if (MOCK) return '/mock/event.ics';
+    const t = getCrew(slug)?.memberToken;
+    return `/api/plans/${enc(plan.id)}/event.ics${t ? `?t=${enc(t)}` : ''}`;
+  },
+  // Web Push: the public VAPID key, then this browser's subscription for this member.
   async pushKey() {
     if (MOCK) return { publicKey: null };
     return req('GET', '/api/push/key');
   },
   async subscribePush(slug, subscription) {
-    if (MOCK) return { ok: true };
-    return req('POST', `/api/crews/${encodeURIComponent(slug)}/push`, { slug, body: { subscription } });
-  },
-  async pods(slug, id) {
-    if (MOCK) return (await mock()).pods(slug, id);
-    return req('GET', `/api/plans/${encodeURIComponent(id)}/pods`, { slug });
+    const c = getCrew(slug);
+    if (!c?.memberId) return null;
+    return req('POST', `/api/members/${enc(c.memberId)}/push-subscription`, { slug, body: { subscription } });
   },
 };
