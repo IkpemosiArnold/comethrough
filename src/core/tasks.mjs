@@ -19,6 +19,7 @@
 // With no Local, the prompts name no place and the readers make no local guesses.
 
 import { cleanConfidence, lowFields } from "./plans.mjs";
+import { cleanEventTitle } from "./titles.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
 import { ENERGY, HIGH_RISK, NEEDS, PLACE_KIND_NAMES, UNSOURCED_CLAIM, cleanTaste, hasSensitive } from "./taste.mjs";
 import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
@@ -453,7 +454,9 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
   let startConf = start ? Math.min(dateConf, timeConf) : 0;
   let endConf = end ? Math.min(startConf, c.time ?? 0.7) : 0;
 
-  let title = firstCap(calmCaps(text(d.title, 120)));
+  // a page's title keeps its site's tail ("... : Things to do in Lagos Every Sunday"); the event's own name does not
+  const siteless = (/** @type {string|null} */ v) => (pageMeta ? cleanEventTitle(v, { siteName: pageMeta.siteName }) : v);
+  let title = firstCap(calmCaps(siteless(text(d.title, 120))));
   let titleConf = title ? c.title ?? 0.6 : 0;
   let venue = calmCaps(text(d.venueName, 120));
   let address = calmCaps(text(d.address, 200));
@@ -479,7 +482,7 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
         endConf = 0.95;
       }
     }
-    if (ev.name) [title, titleConf] = [calmCaps(text(ev.name, 120)), 0.95];
+    if (ev.name) [title, titleConf] = [calmCaps(siteless(text(ev.name, 120))), 0.95];
     if (ev.venue || ev.address) [venue, address, placeConf] = [text(ev.venue, 120) ?? venue, tidyAddress(text(ev.address, 200)) ?? address, 0.95];
     if (ev.price || ev.free) [priceText, free, priceConf] = [text(ev.price, 60) ?? (ev.free ? "Free" : priceText), ev.free === true, 0.9];
     // the organiser picks the currency; a Lagos event priced in dollars (or, once seen, in
