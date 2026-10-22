@@ -55,7 +55,7 @@ export function App() {
     <div class="app">
       <aside class="desk-aside" aria-hidden="true">
         <div class="desk-aside-inner">
-          <Sloth size={150} />
+          <Sloth size={150} poke />
           <p class="display display-xl painted">Come through</p>
           <p class="desk-tag">The lazy way to link up. You send one sentence, your crew taps once.</p>
           <p class="desk-note">Made for your phone. Open this link there, or carry on here.</p>

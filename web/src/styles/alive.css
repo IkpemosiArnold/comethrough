@@ -1,0 +1,92 @@
+/* The small signs of life: the sloth blinks, reads and dozes, a leaf falls when you swing onto
+   the branch, a danfo pulls into your ride pod, rain drips on a wet plan, and the Status card is
+   taped to the wall. Taps answer on the first frame; everything ambient is slow and sparse,
+   moves only transform and opacity, pauses in a hidden tab and stops with reduced motion.
+   See docs/DESIGN.md, "Small signs of life". */
+
+/* ---------- The sloth ---------- */
+
+/* the body hangs from the hands, so a push swings it from there */
+.sloth-body { transform-origin: 60px 22px; }
+
+/* an awake sloth blinks, slowly, about every 7 seconds */
+.mood-awake .sloth-eyes { transform-box: fill-box; transform-origin: center; animation: blink 7.4s infinite; }
+@keyframes blink {
+  0%, 92% { transform: scaleY(1); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  94.5%, 95.5% { transform: scaleY(0.1); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  98.5%, 100% { transform: scaleY(1); }
+}
+
+/* while the sloth reads (a sentence or a flyer is with Gemma), its open eye follows the line,
+   then comes back for the next one. Only while something is being read. */
+.sloth-reading .sloth-pupil, .reading-status .sloth-pupil { animation: scan 1.9s infinite; }
+@keyframes scan {
+  0% { transform: translateX(-2.6px); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  72% { transform: translateX(2.6px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  86%, 100% { transform: translateX(-2.6px); }
+}
+
+/* asleep */
+.sloth-zzz text { font-family: var(--font-display); fill: var(--ink-2); opacity: 0; animation: zzz 3.6s var(--ease-out) infinite; }
+.sloth-zzz text:nth-child(2) { animation-delay: 1.2s; }
+.sloth-zzz text:nth-child(3) { animation-delay: 2.4s; }
+@keyframes zzz {
+  0% { opacity: 0; transform: translate(-3px, 5px); }
+  20%, 65% { opacity: 1; }
+  100% { opacity: 0; transform: translate(4px, -7px); }
+}
+
+/* a sloth you can poke: answers on pointer-down */
+.sloth-poke { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+
+/* ---------- The swing: a leaf shaken loose ---------- */
+
+.leaf-fall { position: absolute; z-index: 0; width: 22px; height: 14px; pointer-events: none; will-change: transform, opacity; }
+
+/* ---------- Rides: the danfo pulls in ---------- */
+
+/* the lane hides the bus until it pulls out from behind the faces; its padding leaves room for the braking overshoot */
+.danfo-lane { flex: 1; display: flex; justify-content: flex-end; align-self: center; min-width: 0; overflow: hidden; padding: 4px 14px 4px 0; margin-right: -14px; }
+.danfo { display: block; flex: none; }
+
+/* ---------- Rain on a wet plan: a few drops, then still ---------- */
+
+.rain-warn .drop, .rain-plan .drop, .ritual-wx .drop { animation: drip 1.3s linear 4 backwards; }
+.rain-warn .drop:nth-of-type(3), .rain-plan .drop:nth-of-type(3), .ritual-wx .drop:nth-of-type(3) { animation-delay: 0.45s; }
+.rain-warn .drop:nth-of-type(4), .rain-plan .drop:nth-of-type(4), .ritual-wx .drop:nth-of-type(4) { animation-delay: 0.9s; }
+@keyframes drip {
+  0% { opacity: 0; transform: translate(0.6px, -2.5px); }
+  30%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-0.6px, 2px); }
+}
+
+/* ---------- We came through: the card is taped to the wall ---------- */
+
+.status-drop { position: relative; width: fit-content; max-width: 100%; margin: var(--s-2) auto var(--s-4); }
+.status-drop .status-preview { margin: 0; animation: card-drop 560ms var(--ease-out) both; }
+@keyframes card-drop { from { opacity: 0; transform: translateY(-28px) rotate(-7deg) scale(1.03); } 35% { opacity: 1; } }
+.status-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 34%;
+  height: 22px;
+  margin-left: -17%;
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 18%, transparent);
+  transform: rotate(-4deg);
+  animation: tape-on 200ms var(--ease-out) 470ms backwards;
+}
+@keyframes tape-on { from { opacity: 0; transform: rotate(-4deg) scale(1.3); } }
+
+/* ---------- Quiet when nobody is looking ---------- */
+
+:root[data-hidden] *, :root[data-hidden] *::before, :root[data-hidden] *::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mood-awake .sloth-eyes, .sloth-reading .sloth-pupil, .reading-status .sloth-pupil, .rain-warn .drop, .rain-plan .drop, .ritual-wx .drop { animation: none; }
+  /* still asleep, still saying so */
+  .sloth-zzz text { animation: none; opacity: 1; }
+  .status-drop .status-preview { animation: fade-in 200ms ease both; }
+  .status-tape { animation: none; }
+}

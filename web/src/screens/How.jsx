@@ -7,7 +7,7 @@ export function How() {
   return (
     <div class="column screen-enter how-page">
       <TopBar backTo="/" title="" />
-      <div class="how-sloth" aria-hidden="true"><Sloth size={84} mood="awake" /></div>
+      <div class="how-sloth" aria-hidden="true"><Sloth size={84} mood="awake" poke /></div>
       <h1 class="display display-lg">How the sloth works</h1>
       <p class="lede">It reads, picks and writes, so nobody in the crew has to.</p>
 

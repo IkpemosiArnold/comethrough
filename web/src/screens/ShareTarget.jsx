@@ -30,7 +30,7 @@ export function ShareTarget({ query }) {
   if (!crews.length) {
     return (
       <div class="column screen-enter empty-page">
-        <Sloth size={100} />
+        <Sloth size={100} zzz />
         <h1 class="display display-lg">Join a crew first</h1>
         <p class="muted">Open your crew's link from the group chat, tap I'm going on any plan, then share the flyer again.</p>
         <a class="btn primary" href="/">Start a crew instead</a>

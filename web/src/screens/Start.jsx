@@ -171,7 +171,7 @@ export function Start({ query }) {
     <div class="column start screen-enter">
       <header class="start-hero">
         <div class="start-branch" aria-hidden="true">
-          <Sloth size={92} mood={reading ? 'reading' : 'sleepy'} class={reading ? 'sloth-reading' : ''} />
+          <Sloth size={92} mood={reading ? 'reading' : 'sleepy'} class={reading ? 'sloth-reading' : ''} poke />
         </div>
         <h1 class="display painted start-title">Come through</h1>
       </header>
@@ -508,7 +508,7 @@ function Invite({ created }) {
   const shareLabel = picking ? 'Share now' : plan && sharedEarly ? 'Share with the plan' : 'Send to the group chat';
   return (
     <div class="column screen-enter invite">
-      <div class="invite-sloth"><Sloth size={88} mood="awake" /></div>
+      <div class="invite-sloth" aria-hidden="true"><Sloth size={88} mood="awake" poke /></div>
       <h1 class="display display-xl painted paint-in">{crew.name} is ready</h1>
       <p class="lede">Friends don't need an app or an account.</p>
 

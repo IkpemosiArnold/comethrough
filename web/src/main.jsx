@@ -3,6 +3,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/screens.css';
 import './styles/growth.css';
+import './styles/alive.css';
 import { App } from './app.jsx';
 import { installLinkInterceptor } from './lib/router.js';
 import { MOCK } from './lib/api.js';
@@ -25,6 +26,13 @@ function watchKeyboard() {
   });
 }
 
+// Ambient motion pauses while the tab is hidden (styles/alive.css).
+function watchVisibility() {
+  const set = () => document.documentElement.toggleAttribute('data-hidden', document.hidden);
+  document.addEventListener('visibilitychange', set);
+  set();
+}
+
 async function boot() {
   // Demo mode: open a crew link and you're already a member, unless ?guest=1
   if (MOCK) {
@@ -40,6 +48,7 @@ async function boot() {
   }
   installLinkInterceptor();
   watchKeyboard();
+  watchVisibility();
   render(<App />, document.getElementById('app'));
 }
 boot();
