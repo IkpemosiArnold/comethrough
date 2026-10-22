@@ -235,7 +235,7 @@ for (const [n, p] of personas.entries()) {
     }
     r.timings.create = ms(t);
     const crew = await store.findOne("crews", { slug: made.crew.slug });
-    await service.subscribePush({ memberId: made.member.id, token: made.memberToken, body: { subscription: { endpoint: `https://push.eval.test/${p.id}`, keys: { p256dh: "eval-p256dh", auth: "eval-auth" } } } });
+    await service.subscribePush({ memberId: made.member.id, token: made.memberToken, body: { subscription: { endpoint: `https://push.eval.test/crew-${n + 1}`, keys: { p256dh: "eval-p256dh", auth: "eval-auth" } } } });
     t = performance.now();
     if (typeof service.kickFirstPick === "function") await service.kickFirstPick(crew.id, { force: true });
     const pick = await service.firstPick({ slug: made.crew.slug, token: made.memberToken, waitMs: BIG });
@@ -281,7 +281,7 @@ for (const [n, p] of personas.entries()) {
       setupDraft: r.draft, storedCrew: stored, members: await store.find("members", { crewId: stored.id }), plans: await store.find("plans", { crewId: stored.id }),
       pickView: plan ?? null, ideasCard: card, invite: plan?.invite ?? null, ics, push: push.sent.slice(pushBefore),
       planPage: pages.planPage?.body ?? null, oneTapPage: pages.oneTapPage?.body ?? null, crewPage: crewPage.body, whatsappShare: share ? decodeURIComponent(new URL(unescape(share)).searchParams.get("text") || "") : null,
-      appLogs: logs.filter((l) => l.persona === p.id),
+      appLogs: logs.filter((l) => l.persona === p.id).map(({ persona, ...l }) => l),
     };
   } catch (e) {
     r.error = String(/** @type {any} */ (e)?.stack || e).split("\n").slice(0, 3).join(" | ");
@@ -300,7 +300,7 @@ const logText = JSON.stringify(logs);
 for (const { p, r } of rows) {
   if (r.error) continue;
   // the cache entries written while this crew was being served
-  r.artifacts.appCache = cacheDump.filter((e) => e.persona === p.id);
+  r.artifacts.appCache = cacheDump.filter((e) => e.persona === p.id).map(({ persona, ...e }) => e);
   r.sentenceFoundIn = [...storeFiles.filter((f) => f.text.includes(p.sentence)).map((f) => f.file), ...(cacheText.includes(p.sentence) ? ["the app's cache"] : []), ...(logText.includes(p.sentence) ? ["the logs"] : [])];
 }
 await store.close?.();
