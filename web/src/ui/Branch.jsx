@@ -93,6 +93,10 @@ export function Branch({ going, meId, swingId, onSwung }) {
         dip.cancel();
       };
     }
+    // The catch shakes a leaf loose; it drifts down behind the faces.
+    const li = node.closest('[data-hanger]');
+    const lx = parseFloat(li.dataset.x) + 14;
+    dropLeaf(wrap.current, lx, branchY(lx) - 8);
     a && (a.onfinish = () => onSwung && onSwung());
   }, [swingId]);
 
@@ -133,4 +137,26 @@ export function Branch({ going, meId, swingId, onSwung }) {
       </div>
     </div>
   );
+}
+
+// A leaf falls the way leaves do: side to side, slowing at each turn, and fades near the
+// ground. Made and removed here, so the branch keeps no state for it.
+function dropLeaf(host, x, y) {
+  if (!host || !host.animate) return;
+  const leaf = document.createElement('span');
+  leaf.className = 'leaf-fall';
+  leaf.setAttribute('aria-hidden', 'true');
+  leaf.style.left = `${x}px`;
+  leaf.style.top = `${y}px`;
+  leaf.innerHTML = '<svg viewBox="0 0 22 14" width="22" height="14"><path d="M1 12c5-11 15-13 20-10-5 6-13 10-20 10z" fill="#3f8a5c"/></svg>';
+  host.insertBefore(leaf, host.firstChild);
+  const sway = 'cubic-bezier(0.45, 0, 0.55, 1)';
+  const a = leaf.animate([
+    { transform: 'translate(0, 0) rotate(-12deg)', opacity: 1, easing: sway },
+    { transform: 'translate(18px, 26px) rotate(38deg)', offset: 0.3, easing: sway },
+    { transform: 'translate(-6px, 54px) rotate(-24deg)', offset: 0.6, easing: sway },
+    { transform: 'translate(12px, 82px) rotate(28deg)', opacity: 1, offset: 0.85, easing: sway },
+    { transform: 'translate(6px, 98px) rotate(12deg)', opacity: 0 },
+  ], { duration: 1800, delay: 170, fill: 'backwards' });
+  a.onfinish = a.oncancel = () => leaf.remove();
 }

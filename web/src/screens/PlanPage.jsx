@@ -407,6 +407,12 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
     ref.current.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 450, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' });
     const me = ref.current.querySelector('.pod-me');
     me && springAnimate(me, [{ transform: 'scale(0.6)' }, { transform: 'scale(1)' }], { damping: 0.55, response: 0.5 }, { delay: 620 });
+    // the danfo pulls in from behind the faces and brakes at its stop
+    const bus = ref.current.querySelector('.danfo');
+    const lane = bus && bus.parentElement;
+    if (bus && lane) {
+      springAnimate(bus, [{ transform: `translateX(${-lane.clientWidth}px)` }, { transform: 'translateX(0)' }], { damping: 0.7, response: 0.7 }, { delay: 760 });
+    }
   }, [fresh, pod.fromLabel]);
   return (
     <div class="pod pod-mine" ref={ref}>
@@ -415,6 +421,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
           {people.slice(0, 4).map((p) => <Avatar key={p.id} member={p} size="lg" ring="var(--paper)" class={p.id === meId ? 'pod-me' : ''} />)}
           {people.length > 4 && <span class="more">+{people.length - 4}</span>}
         </div>
+        <span class="danfo-lane" aria-hidden="true"><Danfo /></span>
       </div>
       {pod.leaveBy
         ? <p class="pod-leave">Leave {pod.fromLabel} by <span class="display">{time(pod.leaveBy)}</span></p>
@@ -508,5 +515,21 @@ function ActionBar({ my, menu, setMenu, answer, waUrl }) {
         )}
       </div>
     </div>
+  );
+}
+
+// A danfo, Lagos's yellow bus with the black stripes, parked in your ride pod.
+function Danfo() {
+  return (
+    <svg class="danfo" width="58" height="34" viewBox="0 0 58 34">
+      <path d="M4 5h38c5 0 8 3 10 8l3 7v6a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2z" fill="#ffc21a" stroke="#14302a" stroke-width="1.5" />
+      <path d="M6 9h7v7H6zM15 9h7v7h-7zM24 9h7v7h-7zM33 9h7v7h-7z" fill="#14302a" />
+      <path d="M43 9h4c1.5 0 2.6 1 3.2 2.4L52 16h-9z" fill="#14302a" />
+      <path d="M3 19.5h52M3 22.5h52" stroke="#14302a" stroke-width="1.6" />
+      <circle cx="14" cy="28" r="4.5" fill="#14302a" />
+      <circle cx="14" cy="28" r="1.7" fill="#f8faf1" />
+      <circle cx="44" cy="28" r="4.5" fill="#14302a" />
+      <circle cx="44" cy="28" r="1.7" fill="#f8faf1" />
+    </svg>
   );
 }
