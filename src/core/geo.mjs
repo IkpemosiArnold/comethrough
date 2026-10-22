@@ -110,3 +110,34 @@ export function travelEstimate(from, to, { at, tz = "UTC", model = FREE_FLOW, ro
 export const tripKey = (/** @type {LatLon} */ a, /** @type {LatLon} */ b) => `${a.lat.toFixed(4)},${a.lon.toFixed(4)}>${b.lat.toFixed(4)},${b.lon.toFixed(4)}`;
 
 const round1 = (/** @type {number} */ x) => Math.round(x * 10) / 10;
+
+/** A crew's areas this far apart are not one crew's neighbourhoods without asking (Lekki Phase I and Ibeju-Lekki are 38 km apart). */
+export const AREA_SPREAD_KM = 25;
+
+/**
+ * Pick one candidate per area name so the picks sit together: every candidate of every
+ * name (the best three of each) is tried as the anchor, and each name takes its best
+ * candidate (the geocoder's own order) within maxKm of the anchor. The anchor that places
+ * the most names wins, then the one whose picks rank best, then the one whose picks are
+ * closest, then the earlier name's. A name with no candidate near the anchor gets null (the
+ * caller asks about it). Pure.
+ * @template {LatLon} T
+ * @param {T[][]} lists  candidates per name, best first
+ * @param {number} [maxKm]
+ * @returns {{ anchor: T|null, picks: (T|null)[] }}
+ */
+export function clusterAreas(lists, maxKm = AREA_SPREAD_KM) {
+  /** @type {{ anchor: T|null, picks: (T|null)[], n: number, rank: number, km: number }} */
+  let best = { anchor: null, picks: lists.map(() => null), n: 0, rank: Infinity, km: Infinity };
+  for (const list of lists) {
+    for (const anchor of list.slice(0, 3)) {
+      const idx = lists.map((l) => l.findIndex((r) => haversineKm(anchor, r) <= maxKm));
+      const picks = idx.map((i, k) => (i >= 0 ? lists[k][i] : null));
+      const n = picks.filter(Boolean).length;
+      const rank = idx.reduce((s, i) => s + (i >= 0 ? i : 0), 0);
+      const km = picks.reduce((s, p) => s + (p ? haversineKm(anchor, p) : 0), 0);
+      if (n > best.n || (n === best.n && (rank < best.rank || (rank === best.rank && km < best.km - 1e-9)))) best = { anchor, picks, n, rank, km };
+    }
+  }
+  return { anchor: best.anchor, picks: best.picks };
+}

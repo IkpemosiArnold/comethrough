@@ -20,7 +20,7 @@ import { directionsLinks, ridesForApi } from "../src/core/rides.mjs";
 import { PROMPT_NAMES, localisePrompt, readPlan } from "../src/core/tasks.mjs";
 import { resolveDateWords, zonedToMs } from "../src/core/time.mjs";
 import { GENERIC_SOCIAL_HOURS, socialWindow } from "../src/core/weather.mjs";
-import { DEFAULT, LAGOS, LAGOS_REGION, cleanRegion, hintRegion, packFor, regionOf } from "../src/packs/index.mjs";
+import { DEFAULT, LAGOS, LAGOS_REGION, cleanRegion, hintRegion, localeRegion, packFor, regionOf } from "../src/packs/index.mjs";
 import { LAGOS_LOCAL } from "../src/packs/lagos/index.mjs";
 import { makePlan } from "./fixtures/plans.mjs";
 
@@ -38,10 +38,13 @@ test("the pack follows the region; a crew from before regions is in Lagos", () =
   assert.equal(packFor(BERLIN).id, "default");
   assert.equal(packFor(ABUJA).id, "default", "Nigeria outside Lagos has no pack yet");
   assert.equal(packFor({ ...LAGOS_REGION, center: null, city: "Lagos" }).id, "lagos");
-  assert.equal(hintRegion(null).city, "Lagos", "no hint: Lagos, as before");
-  assert.equal(hintRegion({ tz: "Africa/Lagos" }).city, "Lagos");
+  // the zone says a country at most, never a city (Astra's review: an Abuja crew got Lagos venues)
+  assert.deepEqual(hintRegion(null), { center: null, countryCode: "NG", city: null, timezone: "Africa/Lagos", tzSource: "legacy" }, "no hint: the Lagos zone, country level");
+  assert.deepEqual(hintRegion({ tz: "Africa/Lagos" }), { center: null, countryCode: "NG", city: null, timezone: "Africa/Lagos", tzSource: "browser" });
   assert.deepEqual(hintRegion({ tz: "Europe/Berlin" }), { center: null, countryCode: null, city: null, timezone: "Europe/Berlin", tzSource: "browser" });
-  assert.equal(hintRegion({ tz: "Not/AZone" }).city, "Lagos", "a bad zone is ignored");
+  assert.equal(hintRegion({ tz: "Not/AZone" }).timezone, "Africa/Lagos", "a bad zone is ignored");
+  assert.equal(packFor(hintRegion({ tz: "Africa/Lagos" })).id, "default", "no Lagos pack before an area is on the map");
+  assert.equal(packFor(localeRegion({ tz: "Africa/Lagos" })).id, "lagos", "but the Lagos prompts still read the sentence (Pidgin)");
   assert.equal(cleanRegion({ timezone: "Mars/Olympus" }), null);
   assert.deepEqual(cleanRegion({ center: { lat: 52.5, lon: 13.4 }, countryCode: "de", city: " Berlin ", timezone: "Europe/Berlin", tzSource: "open-meteo" }), { center: { lat: 52.5, lon: 13.4 }, countryCode: "DE", city: "Berlin", timezone: "Europe/Berlin", tzSource: "open-meteo" });
 });

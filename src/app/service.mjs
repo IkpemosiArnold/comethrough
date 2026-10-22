@@ -14,9 +14,9 @@
 // (src/packs): Lagos, with everything sourced in docs/LOCAL-FACTS.md, or the default pack,
 // which makes no local claims. This file passes the pack's parts into the core.
 
-import { centroid, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
+import { AREA_SPREAD_KM, centroid, clusterAreas, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
 import { NEAR_KM } from "../adapters/geocode.mjs";
-import { cleanRegion, hintRegion, packFor, packView, regionOf } from "../packs/index.mjs";
+import { areaQueries, citiesFor, cleanRegion, hintRegion, localeRegion, packFor, packView, regionOf } from "../packs/index.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
@@ -285,11 +285,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     const label = clip(area, 60);
     if (!label) return { area: null, note: null };
-    try {
-      const hit = await geocoder.lookupArea(label, ctx);
-      if (hit) return { area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city };
-    } catch (e) {
-      log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+    // the names people write, as the map knows them ("Lekki" is Lekki Phase I)
+    for (const q of areaQueries(label, ctx.country ?? null)) {
+      try {
+        const hit = await geocoder.lookupArea(q, ctx);
+        if (hit) return { area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city };
+      } catch (e) {
+        log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+      }
     }
     return { area: { label, lat: null, lon: null }, note: `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.` };
   }
@@ -338,10 +341,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /**
    * Step 1: Gemma reads the setup sentence; areas are geocoded; nothing is saved.
-   * `hint.tz` is the visitor's own zone (the browser's): with none, or a Lagos zone, the
-   * crew starts out in Lagos as every crew did; any other zone starts it anywhere, and its
-   * areas decide where. The first area found anywhere fixes the centre, and the rest are
-   * looked up near it, so "Westlands" after "Kilimani" is the one in Nairobi.
+   * `hint.tz` is the visitor's own zone (the browser's). It picks the prompts' wording (a
+   * Lagos zone reads Pidgin) and a country at most: where the crew is comes only from its
+   * areas on the map (locateAreas), so an Abuja crew with a Lagos zone is an Abuja crew.
+   * `hint.city` is the city the organiser confirmed when asked (needsLocation).
+   * When no area is on the map, `needsLocation` asks which city or area is meant, and
+   * nothing that depends on where the crew is gets recommended until it is answered.
    */
   async function draftCrew({ sentence, into = null, hint = null }) {
     const s = clip(sentence, LIMITS.sentence);
@@ -350,13 +355,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const i = clip(into, LIMITS.into);
     const sw = watch("crew_draft");
     const start = hintRegion(hint);
-    const first = placeOf({ region: start });
+    const first = placeOf({ region: localeRegion(hint) });
     // one Gemma call reads everything: the name, rhythm, vibe, areas and the taste
     const g = await sw.time("gemma", gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA, { waitMs: budget.gemmaMs }));
     const r = readCrewSetup(g.data, { sentence: s, into: i }, first.local);
     const notes = [...r.notes];
     if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
-    const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, hint == null, notes));
+    const city = clip(hint?.city, 60) ?? cityIn([s, i].filter(Boolean).join(" "), start.countryCode);
+    const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, notes, { city }));
     const region = (await sw.time("region", regionFrom(located.found, start))) ?? start;
     sw.end({ areas: located.areas.length, ai: !g.error });
     const { areaLabels, ...rest } = r.draft;
@@ -365,7 +371,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // a crew with a regular day gets the sloth's first pick once it is made: look up its
     // places and forecast now, while the organiser reads the draft (cached by tile)
     if (prewarm && r.draft.rhythm && region.center) warmUp(/** @type {{ lat: number, lon: number }} */ (region.center), pack, r.draft.taste, region.timezone);
-    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error };
+    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error, needsLocation: askLocation(located.areas, region, located.suggestions) };
   }
 
   /** The first pick's lookups, in the background: places near the centre and the forecast. Never throws. */
@@ -377,29 +383,88 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /**
-   * Geocode a new crew's area names. In Lagos (the start region is Lagos's), each is looked
-   * up as it always was; when none is found there and the visitor gave no zone, they are
-   * looked for anywhere, so an old client starting a Berlin crew still works.
-   *
-   * Anywhere else, a bare name is ambiguous ("Kilimani" is a village in Tanzania before it is
-   * a Nairobi suburb; "Park Slope" is also in North Carolina), so every name gets a few
-   * candidates, the ones in the visitor's country first (the country of the city in the
-   * visitor's zone name, "Africa/Nairobi"), and the set that sits together wins: the first
-   * name's best candidates are tried as anchors, and each other name takes its candidate
-   * nearest the anchor, within 50 km.
+   * Geocode a new crew's area names, from nothing but the names, the country the zone vouches
+   * for and the city the organiser named (if any). Every name gets a few candidates (the
+   * names people write mapped to the map's own first, "Lekki" is Lekki Phase I), and the set
+   * that sits together within AREA_SPREAD_KM wins (core/geo.mjs, clusterAreas): "Garki" next
+   * to Wuse is the Abuja one, not the Jigawa town. A name with nothing near the others is
+   * looked up once more near them, with their city; still nothing, and it is asked about
+   * ("Did you mean ...?") instead of pinned 38 km away.
    * @param {string[]} labels
-   * @param {Region} start
-   * @param {boolean} noHint
+   * @param {Region} start  country level at most (hintRegion), or a crew's region
    * @param {string[]} notes
+   * @param {{ city?: string|null }} [opts]
    */
-  async function locateAreas(labels, start, noHint, notes) {
-    const startPack = packFor(start);
-    if (startPack.id !== "default") {
-      // all at once (the geocoder's gate still spaces the requests)
-      const lagos = await Promise.all(labels.map((label) => resolveArea(label, startPack.geocode(start))));
-      if (!(noHint && labels.length && lagos.every((g) => !isLatLon(g.area)))) return collect(lagos, notes);
+  async function locateAreas(labels, start, notes, { city = null } = {}) {
+    const country = start.countryCode ?? (await zoneCountry(start.timezone));
+    const majors = citiesFor(country);
+    const big = majors.length ? new RegExp(`\\b(${[...majors, "Federal Capital Territory"].join("|")})\\b`, "i") : null;
+    const inCity = city ? new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i") : null;
+    /** @type {any[][]} */
+    const lists = await Promise.all(labels.map(async (label) => {
+      const rs = await candidatesFor(clip(label, 60) || "", country, city);
+      // the city the organiser named first, then a big city's namesake before a village's
+      const rank = (/** @type {any} */ r) => (inCity?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 2) + (big?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 1);
+      return rs.map((r, k) => ({ r, k })).sort((a, b) => rank(a.r) - rank(b.r) || a.k - b.k).map((x) => x.r);
+    }));
+    const { anchor, picks } = clusterAreas(lists, AREA_SPREAD_KM);
+    /** @type {Awaited<ReturnType<typeof resolveArea>>[]} */
+    const got = [];
+    /** @type {Record<string, any[]>} */
+    const suggestions = {};
+    for (let i = 0; i < labels.length; i++) {
+      const label = clip(labels[i], 60);
+      if (!label) continue;
+      let hit = picks[i];
+      if (!hit && anchor) {
+        const again = await resolveArea(label, { near: anchor, country: anchor.country ?? country, cityFallback: city ?? anchor.city ?? null });
+        if (again.area && isLatLon(again.area) && haversineKm(anchor, /** @type {any} */ (again.area)) <= AREA_SPREAD_KM) hit = { lat: again.area.lat, lon: again.area.lon, country: again.country, city: again.city };
+      }
+      if (hit) {
+        got.push({ area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city });
+        continue;
+      }
+      const options = lists[i].slice(0, 3).map((r) => ({ label: r.label, detail: r.detail ?? "", lat: r.lat, lon: r.lon, ...(r.country ? { country: r.country } : {}), ...(r.city ? { city: r.city } : {}) }));
+      suggestions[label] = options;
+      const named = options.map((o) => (o.detail ? `${o.label} (${o.detail.split(",").slice(0, 2).join(",").trim()})` : o.label));
+      got.push({
+        area: { label, lat: null, lon: null },
+        note: options.length
+          ? `"${label}" is far from the crew's other areas on the map. Did you mean ${named.join(" or ")}? Pick the right one.`
+          : `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.`,
+      });
     }
-    return collect(await anywhere(labels, start.timezone), notes);
+    return { ...collect(got, notes), suggestions };
+  }
+
+  /**
+   * Candidates for one area name: each query for it (areaQueries) in turn, first with the
+   * city the organiser named, then country-wide, then any kind of place, then anywhere. The
+   * first query that finds anything wins. Photon first, and Nominatim when Photon is down or
+   * finds no such area (the geocoder's fallback; single lookups only). Never throws.
+   * @param {string} label
+   * @param {string|null} country
+   * @param {string|null} city
+   */
+  async function candidatesFor(label, country, city) {
+    if (label.length < 2) return [];
+    for (const q of areaQueries(label, country)) {
+      const tries = [
+        ...(city && !q.toLowerCase().includes(city.toLowerCase()) ? [{ text: `${q}, ${city}`, areas: true, country, fallback: true }] : []),
+        { text: q, areas: true, country, fallback: true },
+        { text: q, areas: false, country, fallback: false },
+        ...(country ? [{ text: q, areas: true, country: null, fallback: false }] : []),
+      ];
+      for (const t of tries) {
+        try {
+          const rs = await geocoder.search(t.text, { limit: 5, areas: t.areas, fallback: t.fallback, ...(t.country ? { country: t.country } : {}) });
+          if (rs.length) return rs;
+        } catch (e) {
+          log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+        }
+      }
+    }
+    return [];
   }
 
   /** @param {Awaited<ReturnType<typeof resolveArea>>[]} got @param {string[]} notes */
@@ -417,45 +482,28 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /**
-   * Area names looked up anywhere, as a set that sits together (see locateAreas).
-   * @param {string[]} labels
-   * @param {string} tz  the visitor's zone, for a country to prefer
+   * What to ask when areas are not on the map: null when every one is. `blocking` when the
+   * crew has no centre at all, so nothing that depends on where it is gets recommended (no
+   * first pick, no ideas, no warm-up) until the organiser picks an area or names the city.
+   * @param {{ label: string, lat: number|null, lon: number|null }[]} areas
+   * @param {Region} region
+   * @param {Record<string, any[]>} [suggestions]
    */
-  async function anywhere(labels, tz) {
-    const prefer = await zoneCountry(tz);
-    /** @type {any[][]} */
-    const lists = await Promise.all(labels.map(async (label) => {
-      const q = clip(label, 60) || "";
-      let rs = [];
-      try {
-        rs = q.length >= 2 ? await geocoder.search(q, { limit: 5, areas: true }) : [];
-        if (!rs.length && q.length >= 2) rs = await geocoder.search(q, { limit: 5 });
-      } catch (e) {
-        log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
-      }
-      return prefer ? [...rs.filter((r) => r.country === prefer), ...rs.filter((r) => r.country !== prefer)] : rs;
-    }));
-    const firstList = lists.find((l) => l.length) || [];
-    let best = { anchor: /** @type {any} */ (null), picks: /** @type {any[]} */ ([]), n: -1 };
-    for (const anchor of firstList.slice(0, 3)) {
-      const picks = lists.map((l) => l.filter((r) => haversineKm(anchor, r) <= NEAR_KM).sort((a, b) => haversineKm(anchor, a) - haversineKm(anchor, b))[0] ?? null);
-      const n = picks.filter(Boolean).length;
-      if (n > best.n) best = { anchor, picks, n };
-    }
-    /** @type {Awaited<ReturnType<typeof resolveArea>>[]} */
-    const out = [];
-    for (let i = 0; i < labels.length; i++) {
-      const label = /** @type {string} */ (clip(labels[i], 60));
-      const hit = best.picks[i];
-      if (hit) out.push({ area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city });
-      else if (best.anchor) out.push(await resolveArea(label, { near: best.anchor, country: best.anchor.country ?? null, cityFallback: best.anchor.city ?? null }));
-      else out.push({ area: { label, lat: null, lon: null }, note: `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.` });
-    }
-    return out;
+  function askLocation(areas, region, suggestions = {}) {
+    const unresolved = areas.filter((a) => !isLatLon(a)).map((a) => a.label);
+    const blocking = !region.center;
+    if (!unresolved.length && !blocking) return null;
+    const cities = blocking ? citiesFor(region.countryCode) : [];
+    const message = blocking
+      ? `Which city is the crew in? ${unresolved.length ? `Could not find ${unresolved.map((l) => `"${l}"`).join(" or ")} on the map, so` : "No area is on the map yet, so"} the sloth will not suggest anything until you pick an area or name the city.`
+      : `Pick the right place for ${unresolved.map((l) => `"${l}"`).join(" and ")}, so rides and fair picks count it.`;
+    return { blocking, message, unresolved, suggestions: Object.fromEntries(unresolved.map((l) => [l, suggestions[l] ?? []])), cities };
   }
 
   /** The country of the city a zone is named after ("Africa/Nairobi" is in KE), or null. */
   async function zoneCountry(/** @type {string} */ tz) {
+    const known = hintRegion({ tz }).countryCode;
+    if (known) return known;
     const city = String(tz || "").split("/").slice(1).pop()?.replace(/_/g, " ");
     if (!city || /^(UTC|GMT|Etc)/i.test(tz)) return null;
     try {
@@ -489,7 +537,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const located = areas.filter(isLatLon).map((/** @type {any} */ a) => ({ lat: a.lat, lon: a.lon }));
     const moved = located.length && (!base.center || haversineKm(base.center, /** @type {any} */ (centroid(located))) > 1);
     /** @type {Region} */
-    const region = moved && (given || base.tzSource !== "legacy") ? (await sw.time("region", regionFrom(located, base))) ?? base : base;
+    // where the crew is comes only from its areas on the map; the zone says a country at most
+    const region = moved ? (await sw.time("region", regionFrom(located, base))) ?? base : base;
     const tz = region.timezone;
     /** @type {Crew} */
     const crew = {
@@ -512,7 +561,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     };
     await sw.time("store", store.put("crews", crew));
     log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
-    const out = { crew: crewView(crew, "member"), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken };
+    const out = { crew: crewView(crew, "member"), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken, needsLocation: askLocation(/** @type {any} */ (areas), region) };
     if (organiser && typeof organiser === "object" && clip(organiser.name, LIMITS.memberName)) {
       const joined = await sw.time("organiser", addMember(crew, organiser));
       sw.end();
@@ -587,8 +636,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const where = placeOf(crew);
     // with no centre yet, the name is looked up as a new crew's areas are (the visitor's
     // country first); after that, near the crew
-    const { area, note, country, city } = !where.region.center && typeof body?.area === "string" && where.pack.id === "default"
-      ? (await anywhere([body.area], where.region.timezone))[0]
+    const { area, note, country, city } = !where.region.center && typeof body?.area === "string"
+      ? await firstArea(body.area, where.region)
       : await resolveArea(body?.area, where.geo);
     // a crew whose region has no centre yet (no area was found at setup) takes it from its
     // first member on the map
@@ -605,6 +654,16 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     await store.put("members", member);
     log("member_joined", { crew: crew.id, member: member.id, located: isLatLon(area) });
     return { member: memberView(member), memberToken: member.token, memberUrl: links.member(crew, member), calendarUrl: links.calendar(member), webcalUrl: links.webcal(member), notes: note ? [note] : [] };
+  }
+
+  /** A member's area for a crew with no centre yet: looked up as a new crew's areas are. */
+  async function firstArea(/** @type {string} */ label, /** @type {Region} */ region) {
+    /** @type {string[]} */
+    const notes = [];
+    const r = await locateAreas([label], region, notes, { city: region.city });
+    const area = r.areas[0] ?? null;
+    const f = r.found[0];
+    return { area, note: notes[0] ?? null, country: f?.country, city: f?.city };
   }
 
   /** Join with the invite link. */
@@ -1507,6 +1566,16 @@ const normName = (/** @type {any} */ s) => String(s || "").toLowerCase().replace
 /** A trimmed single-line string up to max characters, or null. */
 function clip(v, max) {
   return typeof v === "string" && v.trim() ? v.replace(/\s+/g, " ").trim().slice(0, max) : null;
+}
+
+/**
+ * A city of the country named in the crew's own sentence ("Muslim sisters in Abuja"), as
+ * context for its area names; null when none is.
+ * @param {string} text
+ * @param {string|null} countryCode
+ */
+function cityIn(text, countryCode) {
+  return citiesFor(countryCode).find((c) => new RegExp(`\\b${c}\\b`, "i").test(text)) ?? null;
 }
 
 /** The first http(s) link in a text, for a shared message that carries the link in the text. */

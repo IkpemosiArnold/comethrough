@@ -20,12 +20,17 @@ import { laneGate } from "./lanes.mjs";
 /** @typedef {import("../packs/index.mjs").GeocodeContext} GeocodeContext */
 /**
  * @typedef {object} Geocoder
- * @property {(q: string, opts?: { limit?: number, areas?: boolean, near?: { lat: number, lon: number }|null, country?: string|null, viewbox?: string }) => Promise<GeoResult[]>} search  areas: only neighbourhoods, towns and the like
+ * @property {(q: string, opts?: { limit?: number, areas?: boolean, near?: { lat: number, lon: number }|null, country?: string|null, viewbox?: string, fallback?: boolean }) => Promise<GeoResult[]>} search
+ *   areas: only neighbourhoods, towns and the like. fallback: a single lookup (never the
+ *   type-ahead), so Nominatim may answer when Photon fails or finds nothing
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookup      a venue or an address
  * @property {(q: string, ctx?: Partial<GeocodeContext>) => Promise<GeoResult|null>} lookupArea  a neighbourhood ("Yaba" is the district, not Yaba College of Technology)
  * @property {(at: { lat: number, lon: number }) => Promise<{ city: string|null, country: string|null }|null>} [cityAt]  the city a point is in (Nominatim, city level), once per new crew
  * @property {(at: { lat: number, lon: number }) => Promise<{ label: string, country?: string, city?: string }|null>} [reverse]  the neighbourhood's name at a point (the caller rounds the point first)
  */
+
+/** States (by country code) whose places all belong to one city, as people name it. */
+const STATE_CITY = /** @type {Record<string, string>} */ ({ "ng:Lagos": "Lagos", "ng:Lagos State": "Lagos", "ng:Federal Capital Territory": "Abuja" });
 
 /** Beyond this distance from the crew's centre, a hit is not trusted and the city is added. */
 export const NEAR_KM = 50;
@@ -119,17 +124,32 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
       u.searchParams.set("limit", String(limit));
       if (country) u.searchParams.set("countrycodes", country.toLowerCase());
       if (viewbox) u.searchParams.set("viewbox", viewbox); // prefer the city, without excluding elsewhere
-      const rs = readNominatim(await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl }));
+      const rs = readNominatim(await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 10000, retries: 1, fetchImpl }))
+        // asked for one country, every result is in it
+        .map((r) => (country ? { ...r, country: country.toUpperCase() } : r));
       return areas ? rs.filter((r) => r.cls === "place" || r.cls === "boundary") : rs;
     });
 
   /** @type {Geocoder["search"]} */
-  const search = async (q, { limit = 5, areas = false, near = null, country = null, viewbox = undefined } = {}) => {
+  const search = async (q, { limit = 5, areas = false, near = null, country = null, viewbox = undefined, fallback = false } = {}) => {
     const query = norm(String(q || "")).slice(0, 120);
     if (query.length < 2) return [];
     const cc = country ?? envCountry;
     const where = `${near ? `${near.lat.toFixed(2)},${near.lon.toFixed(2)}` : "-"}:${cc || "-"}`;
-    return cached(cache, `geo:${provider}:${areas ? "area" : "any"}:${limit}:${where}:${query}`, TTL, () => (provider === "nominatim" ? nominatim(query, limit, areas, cc, viewbox) : photon(query, limit, areas, near, cc)));
+    const ask = (/** @type {"photon"|"nominatim"} */ p) => cached(cache, `geo:${p}:${areas ? "area" : "any"}:${limit}:${where}:${query}`, TTL, () => (p === "nominatim" ? nominatim(query, limit, areas, cc, viewbox) : photon(query, limit, areas, near, cc)));
+    if (provider === "nominatim") return ask("nominatim");
+    // Photon, then Nominatim for a single lookup: Photon refused every connection for a
+    // whole day on 22 Oct 2026, and a name it does not know may still be in Nominatim
+    if (!fallback || !nominatimUrl) return ask("photon");
+    try {
+      const rs = await ask("photon");
+      if (rs.length) return rs;
+    } catch (e) {
+      const rs = await ask("nominatim").catch(() => null);
+      if (rs) return rs;
+      throw e;
+    }
+    return ask("nominatim");
   };
 
   /**
@@ -144,7 +164,7 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
     const near = ctx.near ?? null;
     const country = ctx.country ?? null;
     const find = async (/** @type {string} */ text) => {
-      const opts = { limit: 1, near, country, viewbox: ctx.viewbox };
+      const opts = { limit: 1, near, country, viewbox: ctx.viewbox, fallback: true };
       const hit = (await search(text, { ...opts, areas }))[0] ?? null;
       return hit ?? (areas ? (await search(text, opts))[0] ?? null : null);
     };
@@ -218,7 +238,10 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
       u.searchParams.set("zoom", "10");
       const j = await fetchJson(u.href, { headers: { ...headers, "accept-language": "en" }, timeoutMs: 8000, retries: 1, fetchImpl });
       const a = j?.address || {};
-      const city = String(a.city || a.town || a.municipality || a.county || a.state || "").replace(/^Greater /, "").trim() || null;
+      // a Nigerian state that is one city: Lagos's LGAs (Eti Osa, Surulere) are in Lagos, and
+      // the Federal Capital Territory's Municipal Area Council is Abuja
+      const stateCity = STATE_CITY[`${String(a.country_code || "").toLowerCase()}:${a.state || ""}`];
+      const city = String(a.city || stateCity || a.town || a.municipality || a.county || a.state || "").replace(/^Greater /, "").trim() || null;
       return { city, country: a.country_code ? String(a.country_code).toUpperCase() : null };
     }));
   };

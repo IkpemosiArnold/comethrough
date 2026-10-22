@@ -703,6 +703,18 @@ as sensitive (`SENSITIVE` in `src/core/taste.mjs`):
   note covered only part of the afternoon.
 - **The server sent the app uncompressed** (see "Data cost").
 
+## Area names (25 Oct)
+
+Checked against Nominatim (with `countrycodes=ng`) and Photon on 22 Oct 2026, after the persona eval found an Abuja crew placed in Lagos and four Lagos crews with "Lekki" pinned 38 km off:
+
+- The zone `Africa/Lagos` is the zone of all Nigeria (and of Benin, Cameroon, Niger and more), so it says a country at most. Adding ", Lagos" to every name made "Gwarinpa, Lagos" and "Kubwa, Lagos" find nothing.
+- "Lekki" alone finds the Ibeju-Lekki boundary (6.471, 3.815), 38 km east of where people mean; "Lekki Phase I" is the place node (6.441, 3.470). "Lekki Phase 1" finds a ferry terminal.
+- "Garki" first finds two towns in Jigawa; the Abuja suburb (9.013, 7.481) is fourth. Next to Wuse (9.062, 7.467), the cluster picks it.
+- "Ogba" first finds a village in Edo; the Lagos suburb (6.633, 3.341) is second.
+- Nominatim's city-level reverse lookup names a Lagos point by its LGA ("Eti Osa") and an Abuja point "Municipal Area Council", with the state "Lagos" or "Federal Capital Territory"; those states are read as Lagos and Abuja.
+
+The short names are in `src/packs/nigeria.mjs`. With them, a live check of the 30 dev crews' area names (as Gemma read them) put every area within its tolerance with Nominatim.
+
 ## Not verified, and why
 
 - Nothing here was tried on a real phone in Lagos: the store pages' "Open" button for Bolt

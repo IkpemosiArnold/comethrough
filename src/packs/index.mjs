@@ -20,6 +20,7 @@ import { isValidZone } from "../core/time.mjs";
 import { DEFAULT } from "./default.mjs";
 import { LAGOS, LAGOS_REGION } from "./lagos/index.mjs";
 import { LAGOS_TZ } from "./lagos/geo.mjs";
+import { NG_AREA_ALIASES, NG_CITIES } from "./nigeria.mjs";
 
 /**
  * @typedef {object} Region
@@ -89,17 +90,53 @@ export function regionOf(crew) {
   return cleanRegion(crew?.region) ?? { ...LAGOS_REGION, timezone: crew?.tz && isValidZone(crew.tz) ? crew.tz : LAGOS_REGION.timezone };
 }
 
+/** The country a zone can vouch for, when it is one we know (a zone is never a city). */
+const ZONE_COUNTRY = { [LAGOS_TZ]: "NG", "Africa/Accra": "GH" };
+
 /**
  * A provisional region for a crew sentence, before any area is on the map, from the
- * visitor's own zone (the browser sends it). No hint, or a Lagos zone, means Lagos, as
- * before; any other zone gives a region with only that zone, and the default pack.
+ * visitor's own zone (the browser sends it). The zone says a country at most: Africa/Lagos
+ * is all of Nigeria (and Benin, Cameroon and more), so it never makes a crew a Lagos crew.
+ * Where the crew is comes only from its areas on the map (Astra's review, 25 Oct). No hint
+ * at all (an old client) is read as the Lagos zone, as before, which is also country level.
  * @param {{ tz?: string|null }|null|undefined} hint
  * @returns {Region}
  */
 export function hintRegion(hint) {
+  const given = hint && typeof hint.tz === "string" && isValidZone(hint.tz) ? hint.tz : null;
+  const tz = given ?? LAGOS_TZ;
+  return { center: null, countryCode: ZONE_COUNTRY[/** @type {keyof typeof ZONE_COUNTRY} */ (tz)] ?? null, city: null, timezone: tz, tzSource: given ? "browser" : "legacy" };
+}
+
+/**
+ * The region whose prompts read a new crew's sentence: a Lagos zone (or none) reads it with
+ * the Lagos prompts (Pidgin, "VI"), as before. Only the wording of the prompts; never where
+ * the crew is (hintRegion).
+ * @param {{ tz?: string|null }|null|undefined} hint
+ * @returns {Region}
+ */
+export function localeRegion(hint) {
   const tz = hint && typeof hint.tz === "string" && isValidZone(hint.tz) ? hint.tz : null;
   if (!tz || tz === LAGOS_TZ) return { ...LAGOS_REGION };
-  return { center: null, countryCode: tz === "Africa/Accra" ? "GH" : null, city: null, timezone: tz, tzSource: "browser" };
+  return hintRegion(hint);
+}
+
+/**
+ * The queries to try for an area name, in order: the names people write mapped to the
+ * names the map knows ("Lekki" is Lekki Phase I, "Gwarimpa" is Gwarinpa), then the name
+ * itself. Only Nigeria has a list so far.
+ * @param {string} label
+ * @param {string|null|undefined} countryCode
+ * @returns {string[]}
+ */
+export function areaQueries(label, countryCode) {
+  const key = String(label || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return (countryCode === "NG" ? NG_AREA_ALIASES[key] : null) ?? [label];
+}
+
+/** Cities to ask about when no area of a crew is on the map, for a country we know. */
+export function citiesFor(/** @type {string|null|undefined} */ countryCode) {
+  return countryCode === "NG" ? [...NG_CITIES] : [];
 }
 
 /** What the web app may know about a crew's pack: its id, name and context-aware examples. */
