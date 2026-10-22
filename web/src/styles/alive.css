@@ -39,6 +39,26 @@
 /* a sloth you can poke: answers on pointer-down */
 .sloth-poke { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 
+/* ---------- While Gemma reads the crew sentence: the sloth reads along ---------- */
+
+/* a marker runs over the sentence a word at a time, then lifts the same way, and goes again */
+.reading-words { margin: 0; color: var(--ink); line-height: var(--lh-body); }
+.reading-words span {
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat 0 88% / 0% 42%;
+  animation: read-word calc(var(--n, 12) * 150ms + 1400ms) var(--ease-out) infinite;
+  animation-delay: calc(var(--i) * 150ms);
+}
+@keyframes read-word { 0% { background-size: 0% 42%; } 8%, 62% { background-size: 100% 42%; } 72%, 100% { background-size: 100% 0%; } }
+
+/* ---------- The draft arrives: rows settle, then the marker runs over the guesses ---------- */
+
+.pv-card .pv-row { animation: field-in 320ms var(--ease-out) both; }
+.pv-card .pv-row:nth-child(2) { animation-delay: 45ms; }
+.pv-card .pv-row:nth-child(3) { animation-delay: 90ms; }
+.pv-card .pv-row:nth-child(4) { animation-delay: 135ms; }
+.pv-card .pv-row:nth-child(n + 5) { animation-delay: 180ms; }
+.pv-row.unsure .pv-ink { background-repeat: no-repeat; background-size: 100% 100%; animation: marker 520ms var(--ease-out) 420ms both; }
+
 /* ---------- The swing: a leaf shaken loose ---------- */
 
 .leaf-fall { position: absolute; z-index: 0; width: 22px; height: 14px; pointer-events: none; will-change: transform, opacity; }
@@ -84,6 +104,9 @@
 :root[data-hidden] *, :root[data-hidden] *::before, :root[data-hidden] *::after { animation-play-state: paused !important; }
 
 @media (prefers-reduced-motion: reduce) {
+  .reading-words span { animation: none; background-size: 0% 0%; }
+  .pv-card .pv-row { animation: fade-in 200ms ease both; }
+  .pv-row.unsure .pv-ink { animation: none; }
   .mood-awake .sloth-eyes, .sloth-reading .sloth-pupil, .reading-status .sloth-pupil, .rain-warn .drop, .rain-plan .drop, .ritual-wx .drop { animation: none; }
   /* still asleep, still saying so */
   .sloth-zzz text { animation: none; opacity: 1; }

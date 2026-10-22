@@ -1,12 +1,13 @@
 // The sloth. Used sparingly: the start screen, the ritual panel, empty states, and while Gemma reads.
 // mood: "sleepy" (default), "awake", "reading" (one eye open)
 // It is a little alive: an awake sloth blinks now and then, a reading sloth's eye follows the
-// lines, and `zzz` shows it asleep. With `poke`, a tap pushes it on its branch; five quick
-// taps and it dozes off, and the next tap wakes it. All of it stops with reduced motion.
-import { useRef, useState } from 'preact/hooks';
+// lines, `zzz` shows it asleep, and `greet` swings it once when it brings good news. With
+// `poke`, a tap pushes it on its branch; five quick taps and it dozes off, and the next tap
+// wakes it. All of it stops with reduced motion.
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { springAnimate, prefersReducedMotion } from '../lib/spring.js';
 
-export function Sloth({ size = 120, mood = 'sleepy', branch = true, class: cls = '', title, poke = false, zzz = false }) {
+export function Sloth({ size = 120, mood = 'sleepy', branch = true, class: cls = '', title, poke = false, zzz = false, greet = false }) {
   const [dozing, setDozing] = useState(false);
   const body = useRef(null);
   const taps = useRef({ n: 0, at: 0, anim: null });
@@ -25,6 +26,13 @@ export function Sloth({ size = 120, mood = 'sleepy', branch = true, class: cls =
     t.anim && t.anim.cancel();
     t.anim = springAnimate(body.current, keyframes, spring, { fill: 'none' });
   }
+  // good news (the crew is made): the sloth swings once on its branch, glad
+  useEffect(() => {
+    if (!greet) return;
+    const id = setTimeout(() => push([{ transform: 'rotate(-12deg)' }, { transform: 'rotate(0deg)' }], { damping: 0.3, response: 0.9 }), 180);
+    return () => clearTimeout(id);
+  }, []);
+
   function onPoke() {
     const t = taps.current;
     const now = Date.now();

@@ -195,17 +195,23 @@ export function Start({ query }) {
       <form class="start-form" onSubmit={read} aria-busy={reading}>
         <label class="start-label" for="crew-sentence">{crews.length ? 'Start another crew, in one sentence' : 'Your crew, in one sentence'}</label>
         <div class="composer">
-          <textarea
-            id="crew-sentence"
-            class="textarea"
-            rows={3}
-            placeholder={EXAMPLE}
-            value={sentence}
-            onInput={(e) => setSentence(e.currentTarget.value)}
-            disabled={reading}
-            enterkeyhint="go"
-            aria-describedby={sensitive ? 'crew-hint' : undefined}
-          />
+          {reading ? (
+            // the sloth reads along: a marker runs over the sentence, word by word, while Gemma reads it
+            <p class="textarea reading-words" id="crew-sentence" style={{ '--n': sentence.trim().split(/\s+/).length }}>
+              {sentence.trim().split(/\s+/).map((w, i) => <span key={i} style={{ '--i': i }}>{w} </span>)}
+            </p>
+          ) : (
+            <textarea
+              id="crew-sentence"
+              class="textarea"
+              rows={3}
+              placeholder={EXAMPLE}
+              value={sentence}
+              onInput={(e) => setSentence(e.currentTarget.value)}
+              enterkeyhint="go"
+              aria-describedby={sensitive ? 'crew-hint' : undefined}
+            />
+          )}
           <div class="composer-tools">
             <MicButton speech={speech} value={sentence} />
           </div>
@@ -508,7 +514,7 @@ function Invite({ created }) {
   const shareLabel = picking ? 'Share now' : plan && sharedEarly ? 'Share with the plan' : 'Send to the group chat';
   return (
     <div class="column screen-enter invite">
-      <div class="invite-sloth" aria-hidden="true"><Sloth size={88} mood="awake" poke /></div>
+      <div class="invite-sloth" aria-hidden="true"><Sloth size={88} mood="awake" poke greet /></div>
       <h1 class="display display-xl painted paint-in">{crew.name} is ready</h1>
       <p class="lede">Friends don't need an app or an account.</p>
 
