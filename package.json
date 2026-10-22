@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "node src/server/server.mjs",
     "start": "node src/server/server.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs eval/test/*.test.mjs",
     "typecheck": "tsc -p jsconfig.json",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "node scripts/e2e.mjs"
