@@ -21,7 +21,7 @@
 import { cleanConfidence, lowFields } from "./plans.mjs";
 import { cleanEventTitle } from "./titles.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
-import { ENERGY, HIGH_RISK, NEEDS, PLACE_KIND_NAMES, UNSOURCED_CLAIM, cleanTaste, hasSensitive } from "./taste.mjs";
+import { ENERGY, HIGH_RISK, NEEDS, PLACE_KIND_NAMES, TASTE_WORDS, UNSOURCED_CLAIM, cleanTaste, hasSensitive, plainTaste, scrubSensitive } from "./taste.mjs";
 import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -157,9 +157,10 @@ export const PLAN_SCHEMA = {
     free: { type: ["boolean", "null"] },
     hostName: S("text"),
     bring: words,
+    note: S("text"),
     confidence: conf(["title", "date", "time", "place", "price", "host"]),
   },
-  required: ["kind", "title", "dateWords", "date", "startTime", "endTime", "atHost", "venueName", "address", "outdoor", "priceText", "free", "hostName", "bring", "confidence"],
+  required: ["kind", "title", "dateWords", "date", "startTime", "endTime", "atHost", "venueName", "address", "outdoor", "priceText", "free", "hostName", "bring", "note", "confidence"],
 };
 
 export const EXPLAIN_SCHEMA = { type: "object", properties: { why: { type: "string" } }, required: ["why"] };
@@ -280,7 +281,8 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
   // the vibe is what they like doing, in their words: never who they are, never invented
   // (on 21 Oct 2026 "alte, mostly male, mid to late 20s" came back as "anything goes")
   if (vibe && (hasSensitive(vibe) || groundedShare(vibe, said) < 0.5)) vibe = null;
-  const vibeTags = Array.isArray(d.vibeTags) ? [...new Set(d.vibeTags.map((/** @type {any} */ t) => String(t).toLowerCase().trim()).filter((/** @type {string} */ t) => VIBE_MATCHERS[t] || t === "games"))].slice(0, 6) : [];
+  // the vibe words the sentence plainly says are kept even when the model leaves them out
+  const vibeTags = [...new Set([...(Array.isArray(d.vibeTags) ? d.vibeTags : []), ...plainTaste(said).vibeTags].map((/** @type {any} */ t) => String(t).toLowerCase().trim()).filter((/** @type {string} */ t) => VIBE_MATCHERS[t] || t === "games"))].slice(0, 6);
   const budget = ["free", "cheap", "any"].includes(d.budget) ? d.budget : null;
   let dayIdx = typeof d.day === "string" ? DAY_NAMES.findIndex((n) => n.toLowerCase().startsWith(d.day.toLowerCase().trim().slice(0, 3))) : -1;
   // what the sentence plainly says wins when the model misses it ("every Saturday morning"
@@ -323,6 +325,48 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
   const budgetOut = budget ?? (CHEAP_WORDS.test(said) ? "cheap" : /\bfree\b/i.test(said) ? "free" : "any");
   const taste = cleanTaste({ ...(d.taste && typeof d.taste === "object" ? d.taste : {}), budget: budget ?? (budgetOut === "any" ? null : budgetOut) }, { sentence: said });
   return { draft: { name, vibe, vibeTags, budget: budgetOut, rhythm, areaLabels: areas, taste }, confidence, low: lowFields(confidence, filled), notes };
+}
+
+/**
+ * The sloth's best guess at a crew sentence when Gemma is busy or failing: code alone, in the
+ * shape Gemma answers in, every confidence low, so the confirm screen marks each one and the
+ * organiser fixes what is wrong in a tap. Never a word for who anyone is (readCrewSetup and
+ * cleanTaste drop them). "The Gurls, raves and chill vibes, around Ojota" gives the name
+ * "The Gurls", the vibe "raves and chill vibes" and the area "Ojota".
+ * @param {string} sentence
+ */
+export function guessCrew(sentence) {
+  const s = String(sentence ?? "").replace(/\s+/g, " ").trim();
+  const parts = s.split(/[,;.\n]+/).map((x) => x.trim()).filter(Boolean);
+  const AREA_LEAD = /\b(?:around|in|near|from|by|at|off)\s+([A-Z][\w'-]*(?:\s+(?:Phase\s+\d|[A-Z][\w'-]*|and\s+[A-Z][\w'-]*|&\s+[A-Z][\w'-]*))*)/;
+  const RHYTHM = /\b(every|weekly|monthly|fortnight|once a|sundays?|mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?|weekends?|after work|evenings?|mornings?|afternoons?|nights?)\b/i;
+  const tasty = (/** @type {string} */ x) => TASTE_WORDS.some((w) => w.re.test(x)) || CHEAP_WORDS.test(x);
+  /** @type {string[]} */
+  const areas = [];
+  for (const p of parts) {
+    const m = p.match(AREA_LEAD);
+    if (m) areas.push(...m[1].split(/\s+(?:and|&)\s+/).map((a) => a.trim()).filter(Boolean));
+  }
+  const first = parts[0] ?? "";
+  // the name is the first chunk when it reads like one: short, and not a vibe, a day or a place
+  const name = parts.length > 1 && first.split(" ").length <= 5 && !tasty(first) && !RHYTHM.test(first) && !AREA_LEAD.test(first) ? first : null;
+  // the vibe is the chunk with taste words in it, minus anything that says who people are
+  const vibeChunk = parts.find((p) => p !== name && tasty(p) && !AREA_LEAD.test(p) && !RHYTHM.test(p)) ?? null;
+  const vibe = vibeChunk ? scrubSensitive(vibeChunk).replace(/^(?:we |who )?(?:love|like|are into|into|enjoy)\s+/i, "").trim() || null : null;
+  const time = s.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i)?.[1] ?? s.match(/\b(morning|afternoon|evening|night|after work|after church)\b/i)?.[1] ?? null;
+  return {
+    name,
+    vibe,
+    vibeTags: plainTaste(s).vibeTags,
+    budget: null,
+    every: null,
+    day: null,
+    from: time,
+    to: null,
+    areas: [...new Set(areas)].slice(0, 6),
+    taste: {},
+    confidence: { name: name ? 0.4 : 0, vibe: vibe ? 0.4 : 0, rhythm: 0.4, areas: areas.length ? 0.4 : 0 },
+  };
 }
 
 /** Money words, in English and Pidgin, that mean the crew wants it cheap. */
@@ -501,11 +545,16 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
 
   // what to bring must be in what was shared: on 21 Oct 2026 Gemma answered "a bottle" for
   // "carry your own drink", copying the prompt's own example
-  const bring = (Array.isArray(d.bring) ? d.bring : []).map((/** @type {any} */ b) => text(b, 60)).filter(Boolean).filter((/** @type {string} */ b) => {
+  const grounded = (/** @type {any} */ xs, /** @type {string} */ what) => (Array.isArray(xs) ? xs : [xs]).map((/** @type {any} */ b) => text(b, 60)).filter(Boolean).filter((/** @type {string} */ b) => {
     if (!checkable || groundedShare(b, source) >= 0.5) return true;
-    notes.push(`Left out "${b}" from what to bring: the message does not say it.`);
+    notes.push(`Left out "${b}" from ${what}: the message does not say it.`);
     return false;
-  }).slice(0, 10);
+  });
+  // what to bring is things; "come freshly waxed" is a note for the crew, not a thing to
+  // bring (22 Oct 2026), and stays visible as one
+  const asked = grounded(d.bring, "what to bring");
+  const bring = asked.filter((/** @type {string} */ b) => !NOT_A_THING.test(b)).slice(0, 10);
+  const note = noteFrom([...grounded(d.note ?? [], "the note"), ...asked.filter((/** @type {string} */ b) => NOT_A_THING.test(b))]);
 
   const atHost = d.atHost === true;
   let kind = ["found", "hosted", "quick"].includes(d.kind) ? d.kind : atHost ? "hosted" : url || image ? "found" : "quick";
@@ -521,6 +570,8 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     private: atHost,
   };
   if (selfHosted && !address) notes.push("Add your address if the crew doesn't know it. Only the crew sees it.");
+  // a missing time is asked, never filled in (on 22 Oct 2026 a games night with no time
+  // became noon): the confirm screen asks with tap chips, starting from the day when known
   if (!start) notes.push(date ? "What time does it start?" : "Which day is it?");
 
   const draft = {
@@ -534,19 +585,80 @@ export function readPlan(data, { text: t, url, pageMeta, image, today, tz = DEFA
     host: selfHosted ? member.id : null,
     hostName: selfHosted ? null : hostName,
     bring,
+    note,
+    // the day, when it is known but the time is not: the confirm screen asks only the time
+    ...(!start && date ? { day: date } : {}),
     source: { ...(t ? { text: t.slice(0, 2000) } : {}), ...(url ? { url } : {}), ...(image ? { image: true } : {}) },
   };
   const confidence = {
     title: titleConf,
     start: startConf,
     end: end ? endConf : 0,
-    place: selfHosted ? Math.max(placeConf, 0.8) : placeConf,
+    // "at Olisa's" names the place as clearly as it names the host
+    place: selfHosted ? Math.max(placeConf, 0.8) : atHost && hostName ? Math.max(placeConf, hostConf) : placeConf,
     price: priceConf,
     host: selfHosted ? 0.9 : hostConf,
   };
   // a field that is simply absent is not "low confidence": it is empty, and the UI asks
   const low = lowFields(Object.fromEntries(Object.entries(confidence).filter(([k, v]) => v > 0 || ["title", "start"].includes(k))), []);
   return { draft: { ...draft, confidence }, confidence, low, notes };
+}
+
+/**
+ * The sloth's best guess at a plan sentence when Gemma is busy or failing: code alone, in
+ * the shape Gemma answers in, with low confidence, so the confirm screen marks it for a
+ * check. readPlan then resolves the day and time words exactly as it does for Gemma.
+ * "Games night at Olisa's, bring wine, come freshly waxed" gives the title "Games night at
+ * Olisa's", hosted at Olisa's, bring "wine" and the note "Come freshly waxed".
+ * @param {string} message
+ */
+export function guessPlan(message) {
+  const t = String(message ?? "").replace(/\s+/g, " ").trim();
+  const parts = t.split(/[,;\n]+|\.\s/).map((x) => x.trim().replace(/[.!?]+$/, "")).filter(Boolean);
+  const MONTH = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*";
+  const NUM = `\\d{1,2}(?:st|nd|rd|th)?(?:\\s+(?:of\\s+)?${MONTH})?`;
+  const DAY = new RegExp(`\\b(tonight|today|tomorrow|(?:next |this )?(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)\\b(?:\\s+${NUM})?|\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?${MONTH})\\b`, "i");
+  const CLOCK = /\b(\d{1,2}(?:[:.]\d{2})?\s?(?:am|pm)|\d{1,2}[:.]\d{2}|noon|midnight)\b/i;
+  const AT_HOME = /\b(?:at mine|my place|my house|our place|our house)\b/i;
+  const AT_HOST = /\bat ([A-Z][\w-]*)['’]s\b/;
+  const bring = [];
+  const asks = [];
+  for (const p of parts) {
+    const m = p.match(/^(?:pls |please )?(?:bring|carry)\s+(?:your own |some |a )?(.+)$/i);
+    if (m) bring.push(...m[1].split(/\s+(?:and|&)\s+/).map((x) => x.trim()).filter(Boolean));
+    else if (NOT_A_THING.test(p)) asks.push(p);
+  }
+  const first = parts[0] ?? "";
+  const title = first && !/^(?:bring|carry)\b/i.test(first) ? first.replace(new RegExp(`\\s*,?\\s*${DAY.source}.*$`, "i"), "").replace(CLOCK, "").trim().slice(0, 80) || null : null;
+  const host = t.match(AT_HOST)?.[1] ?? null;
+  const atHost = AT_HOME.test(t) || !!host;
+  return {
+    kind: atHost ? "hosted" : /https?:\/\//.test(t) ? "found" : "quick",
+    title,
+    dateWords: t.match(DAY)?.[1] ?? null,
+    date: null,
+    startTime: t.match(CLOCK)?.[1] ?? null,
+    endTime: null,
+    atHost,
+    venueName: null,
+    address: null,
+    outdoor: /\b(beach|park|garden|outside|outdoors|pool)\b/i.test(t) ? true : null,
+    priceText: /\bfree\b/i.test(t) ? "Free" : null,
+    free: /\bfree\b/i.test(t) ? true : null,
+    hostName: host,
+    bring: bring.slice(0, 10),
+    note: asks.length ? asks.join(". ") : null,
+    confidence: { title: 0.4, date: 0.5, time: 0.5, place: 0.4, price: 0.4, host: 0.4 },
+  };
+}
+
+/** An ask that is not a thing to bring: a dress code, a way to arrive, a joke ("come freshly waxed", "wear white"). */
+export const NOT_A_THING = /^(?:come|wear|dress|dress code|be|arrive|show up|turn up|pull up|don'?t|do not|no|leave|look|bring your (?:own )?(?:a ?game|energy|vibes?|best self|dancing shoes on))\b/i;
+
+/** Notes joined into one line, each a sentence: "Come freshly waxed. Wear white." Null when none. */
+export function noteFrom(/** @type {string[]} */ xs) {
+  const parts = [...new Set(xs.map((x) => x.trim().replace(/[.!]+$/, "")).filter(Boolean))].map((x) => `${x.charAt(0).toUpperCase()}${x.slice(1)}.`);
+  return parts.length ? parts.join(" ").slice(0, 160) : null;
 }
 
 /** A schema.org date ("2026-10-24T20:00:00+01:00", "2026-10-24T20:00", "2026-10-24") to an ISO instant, or null. */

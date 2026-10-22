@@ -24,7 +24,8 @@ Fields:
 - outdoor: true when it is clearly outdoors (a beach, a park, a garden, a pool party), false when clearly indoors, else null.
 - priceText: the price exactly as written ({{priceExample}}, "free entry"), or null. free: true only when it says free.
 - hostName: the host's or organiser's name when stated, else null.
-- bring: what people are asked to bring or carry, copied from the source as short phrases, or an empty list when it asks for nothing.
+- bring: things people are asked to bring or carry (objects only: "wine", "a speaker"), copied from the source as short phrases, or an empty list when it asks for nothing.
+- note: anything else it asks of people that is not a thing to bring, like a dress code or a joke ("come freshly waxed", "wear white"), copied as written, or null.
 - confidence: for title, date, time, place, price and host, a number from 0 to 1 for how clearly the source states it (0 when it does not).
 <!-- user -->
 {{source}}

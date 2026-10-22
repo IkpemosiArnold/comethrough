@@ -21,6 +21,7 @@
 //   why push and the one-event file exist.
 
 import { DAY, DEFAULT_TZ, localParts, parseInstant, MINUTE, zoneOffsetMinutes } from "./time.mjs";
+import { memberInvite, planAsks } from "./plans.mjs";
 
 /** @typedef {import("./types.mjs").Plan} Plan */
 
@@ -134,10 +135,13 @@ export function eventLines(plan, { memberId = null, uidDomain, extras = {} }) {
   /** @type {string[]} */
   const desc = [];
   if (plan.weather && !plan.weather.ok) desc.push(`Weather: ${plan.weather.summary}`);
-  if (plan.invite) desc.push(plan.invite);
+  // a ritual's invite, else a member's plan's own invite line ("Bring wine. Come freshly
+  // waxed. Come through if you can."), else the reason for the pick
+  const invite = plan.invite ?? memberInvite(plan);
+  if (invite) desc.push(invite);
   else if (plan.why) desc.push(plan.why);
   if (plan.price?.text) desc.push(`Price: ${plan.price.text}`);
-  if (plan.bring?.length) desc.push(`Bring: ${plan.bring.join(", ")}`);
+  if (plan.bring?.length && !(invite && planAsks(plan) && invite.includes(/** @type {string} */ (planAsks(plan))))) desc.push(`Bring: ${plan.bring.join(", ")}`);
   if (extras.going?.length) desc.push(`Going: ${extras.going.join(", ")}`);
   if (rsvp === "going" && extras.podText) desc.push(extras.podText);
   if (plan.kind === "ritual") desc.push("Come through if you can. No reply needed.");

@@ -20,7 +20,7 @@ export const STATUSES = /** @type {const} */ (["on", "moved", "cancelled"]);
 export const EXPIRY_DAYS = 30;
 /** How long a plan lasts when nobody said, by kind (hours). */
 export const DEFAULT_HOURS = { found: 3, hosted: 4, ritual: 3, quick: 2 };
-export const LIMITS = { title: 120, placeName: 120, address: 200, priceText: 60, bringItems: 10, bringItem: 60, hostName: 60, sourceText: 2000, url: 2000, maxDays: 7 };
+export const LIMITS = { title: 120, placeName: 120, address: 200, priceText: 60, bringItems: 10, bringItem: 60, note: 160, hostName: 60, sourceText: 2000, url: 2000, maxDays: 7 };
 /** Fields below this confidence are highlighted on the confirm screen. */
 export const LOW_CONFIDENCE = 0.6;
 
@@ -124,6 +124,8 @@ export function validateDraft(draft, { tz = DEFAULT_TZ } = {}) {
     host: typeof d.host === "string" && d.host ? d.host : null,
     hostName: str(d.hostName, LIMITS.hostName),
     bring,
+    // what the plan asks that is not a thing to bring ("Come freshly waxed."), as a line
+    note: str(d.note, LIMITS.note),
     source,
     confidence: cleanConfidence(d.confidence),
   };
@@ -173,6 +175,7 @@ export function createPlan(draft, { id, crewId, createdBy, now, why = null, invi
     host: draft.host,
     hostName: draft.hostName ?? null,
     bring: draft.bring,
+    note: draft.note ?? null,
     source: draft.source,
     why,
     invite,
@@ -190,7 +193,31 @@ export function createPlan(draft, { id, crewId, createdBy, now, why = null, invi
   return plan;
 }
 
-export const EDITABLE = ["title", "start", "end", "place", "price", "bring", "status"];
+/**
+ * What a plan asks of people, as one line: "Bring wine. Come freshly waxed." Null when it
+ * asks nothing.
+ * @param {{ bring?: string[]|null, note?: string|null }} plan
+ */
+export function planAsks(plan) {
+  const bring = (plan.bring || []).filter(Boolean);
+  const list = bring.length <= 1 ? bring.join("") : `${bring.slice(0, -1).join(", ")} and ${bring[bring.length - 1]}`;
+  const parts = [list ? `Bring ${list}.` : "", plan.note ? (/[.!?]$/.test(plan.note) ? plan.note : `${plan.note}.`) : ""].filter(Boolean);
+  return parts.length ? parts.join(" ") : null;
+}
+
+/**
+ * The shareable invite line for a plan a member made (hosted or a quick one): what it asks,
+ * then "Come through if you can." A ritual's invite is Gemma's (or code's) own; an event
+ * found on a page or a flyer speaks for itself.
+ * @param {{ kind: string, bring?: string[]|null, note?: string|null }} plan
+ */
+export function memberInvite(plan) {
+  if (plan.kind !== "hosted" && plan.kind !== "quick") return null;
+  const asks = planAsks(plan);
+  return `${asks ? `${asks} ` : ""}Come through if you can.`;
+}
+
+export const EDITABLE = ["title", "start", "end", "place", "price", "bring", "note", "status"];
 
 /** Members may edit a plan they created or host; anyone may edit the ritual's plans. */
 export const canEdit = (/** @type {Plan} */ plan, /** @type {string} */ memberId) => plan.createdBy === memberId || plan.host === memberId || plan.createdBy === "sloth";
@@ -217,8 +244,9 @@ export function applyEdit(plan, patch, { now }) {
   }
   const v = validateDraft(merged, { tz: plan.tz });
   if (!v.ok) return { ok: false, plan, errors: v.errors, changed: [] };
-  const next = { ...plan, title: v.draft.title, start: v.draft.start, end: v.draft.end, place: v.draft.place, price: v.draft.price, bring: v.draft.bring, status: patch.status ?? plan.status };
-  const changed = ["title", "start", "end", "place", "price", "bring", "status"].filter((k) => JSON.stringify(/** @type {any} */ (next)[k]) !== JSON.stringify(/** @type {any} */ (plan)[k]));
+  const next = { ...plan, title: v.draft.title, start: v.draft.start, end: v.draft.end, place: v.draft.place, price: v.draft.price, bring: v.draft.bring, note: v.draft.note, status: patch.status ?? plan.status };
+  if (!("note" in plan) && next.note == null) delete next.note;
+  const changed = ["title", "start", "end", "place", "price", "bring", "note", "status"].filter((k) => JSON.stringify(/** @type {any} */ (next)[k]) !== JSON.stringify(/** @type {any} */ (plan)[k]));
   if (!changed.length) return { ok: true, plan, errors: [], changed };
   if (plan.status === "on" && patch.status == null && (changed.includes("start") || changed.includes("place"))) next.status = "moved";
   if (next.status !== plan.status && !changed.includes("status")) changed.push("status");
@@ -275,9 +303,11 @@ export function viewPlan(plan, { role, memberId = null, names, eventIcsUrl = nul
     host: plan.host,
     hostName: plan.host ? names[plan.host] || null : plan.hostName ?? null,
     bring: plan.bring,
+    note: plan.note ?? null,
     source: hide ? {} : sourceView(plan.source, flyerUrl),
     why: plan.why,
-    invite: plan.invite,
+    // a plan a member made has no Gemma invite: its shareable line is what it asks of people
+    invite: plan.invite ?? memberInvite(plan),
     weather: plan.weather,
     status: plan.status,
     confidence: plan.confidence,
