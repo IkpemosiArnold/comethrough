@@ -22,12 +22,13 @@ import { tags, withHead } from "../src/server/og.mjs";
 // ---------------------------------------------------------------- the rules
 
 test("a crew name: 40 characters as people count them, emoji welcome, never who the crew is", () => {
-  assert.deepEqual(checkCrewName("  The   Yaba Lot 🌴 "), { name: "The Yaba Lot 🌴", error: null });
+  assert.deepEqual(checkCrewName("  The   Yaba Lot 🌴 "), { name: "The Yaba Lot 🌴", error: null, identity: false });
   assert.equal(checkCrewName("👩🏾‍🤝‍👩🏽".repeat(40)).name, "👩🏾‍🤝‍👩🏽".repeat(40), "40 emoji are 40 characters");
   assert.match(String(checkCrewName("x".repeat(41)).error), /40 characters/);
   assert.equal(checkCrewName("").error, "Give the crew a name.");
   assert.equal(checkCrewName(42).error, "Give the crew a name.");
-  assert.match(String(checkCrewName("the gay lot").error), /fine for anyone to see/);
+  // typed by a member, it is theirs (25 Oct): kept, marked, and kept out of what travels (outboundName)
+  assert.deepEqual(checkCrewName("the gay lot"), { name: "the gay lot", error: null, identity: true });
   assert.equal(checkCrewName("Lagos\u0000 lot\u2028").name, "Lagos lot");
 });
 

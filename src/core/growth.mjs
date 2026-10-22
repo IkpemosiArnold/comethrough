@@ -22,16 +22,32 @@ export const graphemes = (/** @type {string} */ s) => (seg ? Array.from(seg.segm
 
 /**
  * A crew name someone typed, checked: 1 to 40 characters (emoji welcome), no control
- * characters, nothing that says who the crew is.
+ * characters. A name the organiser explicitly typed is theirs, even one that says who the
+ * crew is (Astra's review, 25 Oct): `identity` marks it, and outboundName keeps it out of
+ * everything that leaves the app. The sloth itself never suggests such a name.
  * @param {any} raw
- * @returns {{ name: string, error: null } | { name: null, error: string }}
+ * @returns {{ name: string, error: null, identity: boolean } | { name: null, error: string }}
  */
 export function checkCrewName(raw) {
   const name = typeof raw === "string" ? raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b\u2028\u2029]/g, "").replace(/\s+/g, " ").trim() : "";
   if (!name) return { name: null, error: "Give the crew a name." };
   if (graphemes(name).length > NAME_MAX) return { name: null, error: `Keep it to ${NAME_MAX} characters.` };
-  if (hasSensitive(name, HIGH_RISK)) return { name: null, error: "Crew names show in WhatsApp previews and calendars. Pick one that is fine for anyone to see." };
-  return { name, error: null };
+  return { name, error: null, identity: hasSensitive(name) };
+}
+
+/**
+ * The crew's name as it may travel (link previews, cards, calendar feeds, the plain pages a
+ * preview reads): null when the crew is discreet, when its name says who anyone is in a
+ * high-risk way (orientation, gender identity, health), or when a crew that needs to feel
+ * safe has any identity word in it. The crew itself always sees its own name.
+ * @param {any} crew
+ * @returns {string|null}
+ */
+export function outboundName(crew) {
+  const name = typeof crew?.name === "string" ? crew.name : "";
+  if (!name || isDiscreet(crew) || hasSensitive(name, HIGH_RISK)) return null;
+  if (Array.isArray(crew?.taste?.needs) && crew.taste.needs.includes("safe") && hasSensitive(name)) return null;
+  return name;
 }
 
 /** True for a crew that asked to stay low-key: nothing about it leaves the app. */
@@ -99,7 +115,8 @@ export function growthView({ crew, member, plans, now, tz }) {
     linkups: ids.length,
     recap: recapPlan(plans, now, tz),
     cameThrough: cameThrough(plans, member.id, now),
-    discreet: isDiscreet(crew),
+    // a name that may not travel hides the name on the Status card too
+    discreet: isDiscreet(crew) || outboundName(crew) == null,
     seen: Array.isArray(member.seen) ? member.seen : [],
   };
 }
@@ -191,7 +208,7 @@ export function fallbackNames(crew, { flavour = [] } = {}) {
     fl && area && `${area} ${title(fl)} Crew`,
     "Slow and Steady Society",
     "The Lazy Linkup",
-  ].filter((x) => typeof x === "string" && checkCrewName(x).name);
+  ].filter((x) => typeof x === "string" && checkCrewName(x).name && !hasSensitive(x));
   const out = [];
   for (const i of ideas) if (!out.some((o) => o.toLowerCase() === i.toLowerCase()) && i.toLowerCase() !== String(crew?.name || "").toLowerCase()) out.push(i);
   return out.slice(0, 3);
@@ -257,8 +274,9 @@ export function planCard({ crew, plan, members, tz }) {
  * @param {{ crew: any, members: any[] }} p
  */
 export function crewCard({ crew, members }) {
-  if (isDiscreet(crew)) return discreetCard("crew");
-  const name = cardText(crew.name, 40) || "Your crew";
+  const shown = outboundName(crew);
+  if (isDiscreet(crew) || !shown) return discreetCard("crew");
+  const name = cardText(shown, 40) || "Your crew";
   return {
     kind: "crew",
     discreet: false,

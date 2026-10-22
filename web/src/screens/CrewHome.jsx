@@ -25,7 +25,8 @@ export function crewInvite(crew, plans, invite) {
   const url = `${location.origin}/c/${crew.slug}${key}`;
   const next = (plans || []).find((p) => !isPast(p) && p.status !== 'cancelled');
   const plan = next ? { title: next.title, kind: next.kind, place: next.place?.name, when: `${dayLabel(next.start)}, ${timeRange(next.start, next.end)}`, links: planLinks(location.origin, crew.slug, next.id, invite) } : null;
-  return inviteMessage({ crewName: crew.name, url, plan });
+  // the invite travels: a discreet crew, or a name that says who the crew is, stays out of it
+  return inviteMessage({ crewName: crew.shareName ?? 'our crew', url, plan });
 }
 
 export function CrewHome({ params, query, askName = false }) {

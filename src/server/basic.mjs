@@ -29,6 +29,12 @@ export const PAGE_ROUTE = /^\/c\/([a-z0-9-]{1,64})(?:\/p\/([A-Za-z0-9_-]{1,64})(
 export const APP_ROUTE = /^\/(?:[a-z0-9-]+(?:\/[A-Za-z0-9_-]+)*)?\/?$/;
 
 /** True when this request should get the basic pages. */
+/**
+ * The crew's name on a plain page: these pages are what a link preview (WhatsApp, Telegram)
+ * reads, so a discreet crew, or a name that says who the crew is, shows as "Your crew".
+ */
+const shown = (/** @type {any} */ crew) => crew?.shareName ?? (crew && "shareName" in crew ? "Your crew" : crew?.name ?? "Your crew");
+
 export function wantsBasic(/** @type {Req} */ req, /** @type {URL} */ url) {
   if (url.searchParams.get("basic") === "1") return true;
   if (req.headers["x-operamini-phone-ua"]) return true;
@@ -85,7 +91,7 @@ function planShare(/** @type {any} */ plan, /** @type {any} */ crew, /** @type {
 function oneTapHtml({ plan, crew, you }, /** @type {string} */ token, /** @type {"going"|"maybe"} */ answer) {
   const label = answer === "going" ? "I'm in" : "Maybe";
   const already = you && plan.you === answer;
-  const head = `<p class="small">${esc(crew.name)}</p><h1>${esc(plan.title)}</h1><p>${esc(whenWords(plan.start, plan.end, plan.tz))}${plan.place?.name ? `, ${esc(plan.place.name)}` : ""}</p>`;
+  const head = `<p class="small">${esc(shown(crew))}</p><h1>${esc(plan.title)}</h1><p>${esc(whenWords(plan.start, plan.end, plan.tz))}${plan.place?.name ? `, ${esc(plan.place.name)}` : ""}</p>`;
   const going = (plan.going || []).join(", ");
   const who = `<p class="small">${going ? `Going: ${esc(going)}` : "Nobody on the branch yet."}</p>`;
   if (already) return page(`${plan.title}: Come Through`, `${head}<h2>${answer === "going" ? "You're in." : "You said maybe."}</h2>${who}<p><a href="${esc(link(crew.slug, plan.id, token))}">The plan and who's going</a></p>`);
@@ -131,8 +137,8 @@ function planHtml({ plan, crew, you, members }, /** @type {string} */ token, /**
 <button name="rsvp" value="going">I'm going</button><button name="rsvp" value="maybe" class="plain">Maybe</button></form>`;
     }
   }
-  const back = `<p><a href="${esc(link(slug, null, token))}">All plans from ${esc(crew.name)}</a></p>`;
-  return page(`${plan.title}: Come Through`, `<p class="small">${esc(crew.name)}</p><h1>${esc(plan.title)}</h1><div class="box">${rows}</div>${who}${act}
+  const back = `<p><a href="${esc(link(slug, null, token))}">All plans from ${esc(shown(crew))}</a></p>`;
+  return page(`${plan.title}: Come Through`, `<p class="small">${esc(shown(crew))}</p><h1>${esc(plan.title)}</h1><div class="box">${rows}</div>${who}${act}
 <p><a class="btn wa" href="${esc(share)}">Share on WhatsApp</a></p>${back}`);
 }
 
@@ -141,12 +147,12 @@ function crewHtml({ crew, plans, you }, /** @type {string} */ token) {
   const list = live.length
     ? `<ul>${live.map((/** @type {any} */ p) => `<li><a href="${esc(link(crew.slug, p.id, token))}">${esc(p.title)}</a><br><span class="small">${esc(whenWords(p.start, p.end, p.tz))}${p.you === "going" ? ", you're going" : ""}${p.rainPlan?.kind === "skip" ? ", skipped for rain" : ""}</span></li>`).join("")}</ul>`
     : "<p>Nothing planned yet.</p>";
-  const join = you ? "" : `<h2>Join ${esc(crew.name)}</h2>
+  const join = you ? "" : `<h2>Join ${esc(shown(crew))}</h2>
 <form method="post" action="/basic/join/${esc(crew.slug)}"><input type="hidden" name="t" value="${esc(token)}">
 <label>Your name<input name="name" maxlength="40" required></label>
 <label>Where you're coming from (optional)<input name="area" maxlength="60"></label>
 <button>Join the crew</button></form>`;
-  return page(`${crew.name}: Come Through`, `<h1>${esc(crew.name)}</h1>${you ? `<p class="small">You're in as ${esc(you.name)}.</p>` : ""}<h2>Coming up</h2>${list}${join}`);
+  return page(`${shown(crew)}: Come Through`, `<h1>${esc(shown(crew))}</h1>${you ? `<p class="small">You're in as ${esc(you.name)}.</p>` : ""}<h2>Coming up</h2>${list}${join}`);
 }
 
 /** Read a small urlencoded form. */

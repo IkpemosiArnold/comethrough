@@ -27,7 +27,7 @@ import {
   CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
-import { HIGH_RISK, PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, osmTagsFor, tasteView } from "../core/taste.mjs";
+import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, osmTagsFor, tasteView } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
@@ -36,6 +36,7 @@ import { beginPick, finishPick, pendingPick, pickView, shouldRun } from "../core
 import { lockedMessage, lockedSite } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { createGrowth } from "./growth.mjs";
+import { outboundName } from "../core/growth.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
 import { candidateViolations, crewConstraints } from "../core/constraints.mjs";
@@ -239,7 +240,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /** The crew as the web app sees it. Its taste (what it is into and needs) only for its members. */
   const crewView = (/** @type {Crew} */ c, /** @type {"member"|"guest"} */ role = "guest") => ({
-    id: c.id, slug: c.slug, name: c.name, vibe: c.vibe, vibeTags: c.vibeTags || [], budget: c.budget || "any",
+    id: c.id, slug: c.slug, name: c.name, shareName: outboundName(c), vibe: c.vibe, vibeTags: c.vibeTags || [], budget: c.budget || "any",
     rhythm: c.rhythm, areas: (c.areas || []).map((a) => ({ label: a.label })), tz: c.tz || regionOf(c).timezone, inviteToken: c.inviteToken, createdAt: c.createdAt,
     ...regionFields(c),
     firstPick: pickView(c.firstPick),
@@ -526,8 +527,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const errors = [];
     const name = clip(c.name, LIMITS.crewName);
     if (!name) errors.push({ field: "name", message: "Give the crew a name." });
-    // a crew's name travels (WhatsApp previews, calendars, push): it never says who the crew is
-    else if (hasSensitive(name, HIGH_RISK)) errors.push({ field: "name", message: "Crew names show in WhatsApp previews and calendars. Pick one that is fine for anyone to see." });
+    // a name the organiser typed is theirs, even one that says who the crew is (the sloth
+    // never suggests one): it stays in the app, and outboundName keeps it out of previews,
+    // cards, calendar feeds and the plain pages for anyone else (src/core/growth.mjs)
     const rhythm = checkRhythm(c.rhythm, errors);
     const areas = (Array.isArray(c.areas) ? c.areas : []).slice(0, LIMITS.areas).map((/** @type {any} */ a) => ({ label: clip(a?.label, 60), lat: isLatLon(a) ? Number(a.lat) : null, lon: isLatLon(a) ? Number(a.lon) : null })).filter((/** @type {any} */ a) => a.label);
     if (errors.length) throw invalid(errors);
@@ -544,7 +546,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     /** @type {Crew} */
     const crew = {
       id: ids.id("c"),
-      slug: `${slugify(name)}-${ids.suffix()}`,
+      // the slug is in every link that travels: a name that may not leave the app stays out of it
+      slug: `${slugify(outboundName({ name, taste: cleanTaste(c.taste) }) ?? "crew")}-${ids.suffix()}`,
       name: /** @type {string} */ (name),
       vibe: hasSensitive(c.vibe) ? null : clip(c.vibe, 80),
       vibeTags: (Array.isArray(c.vibeTags) ? c.vibeTags : []).map((/** @type {any} */ v) => clip(v, 20)?.toLowerCase()).filter(Boolean).slice(0, 8),
@@ -1110,8 +1113,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     /** @type {Map<string, any>} */
     const pods = new Map();
     for (const p of plans) pods.set(p.id, await podExtras(p, members, member.id, crew));
+    // the feed's name is read by calendar apps and Google's servers: the outbound name only
     return calendarFeed({
-      crew, member, plans, now: now(), uidDomain: cfg.uidDomain, zoneNames: placeOf(crew).pack.zoneNames,
+      crew: { ...crew, name: outboundName(crew) ?? "your crew" }, member, plans, now: now(), uidDomain: cfg.uidDomain, zoneNames: placeOf(crew).pack.zoneNames,
       extras: (p) => ({ url: links.plan(crew, p.id), going: goingIds(p).map((i) => names[i]).filter(Boolean), ...pods.get(p.id) }),
     });
   }

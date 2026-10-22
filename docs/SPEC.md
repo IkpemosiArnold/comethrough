@@ -215,6 +215,11 @@ Idea {
 
 `draftPlan` is a complete `PlanDraft`: `kind` "found" for an event (its `source.url` is the ticket link, else the post) and "quick" otherwise, `start` and `end` in the crew's zone, the place with its pin when known, the price as stated. One tap sends it through the existing create flow, which validates it as any other plan.
 
+### Names and discretion (25 Oct, from Astra's review)
+
+- **The sloth never suggests a name that says who the crew is**, in any category (orientation, gender identity, religion, health, ethnicity): a draft name from Gemma with such a word is dropped and the organiser picks one. The words lists were reviewed across faiths and categories on 25 Oct (the eval's Hindu crew had "temple" stored as an event keyword).
+- **A name the organiser types is theirs**, even one that says who the crew is (`checkCrewName` marks it `identity`). The crew sees it in the app. It never travels when the crew is discreet, when it has a high-risk word (orientation, gender identity, health), or when a crew that needs to feel safe has any identity word in it: `crew.shareName` is then null, and previews, cards, the Status card, the calendar feed's name ("Come Through: your crew"), the plain pages a link preview reads ("Your crew"), the invite text ("our crew") and the crew's slug (`crew-xxxx`) use neutral words. A crew made before 25 Oct keeps its slug.
+
 ### Hard constraints (25 Oct, from Astra's review)
 
 What a crew said it needs is a filter, never a score (`src/core/constraints.mjs`). Ideas and the ritual are filtered before ranking and the final picks are checked again before anything is shown or published:

@@ -113,11 +113,13 @@ export function osmTagsFor(/** @type {string[]} */ kinds = []) {
  * Cuisines ("Lebanese food") are likes, not ethnicity.
  */
 export const SENSITIVE = Object.freeze({
-  orientation: /\b(queer|queers|gay|gays|lesbians?|bisexuals?|bi(?![-\w])|homosexuals?|lgbt\w*\+?|sapphics?|wlw|mlm|pansexuals?|asexuals?|same[- ]sex|same[- ]gender)\b/i,
+  orientation: /\b(queer|queers|gay|gays|lesbians?|bisexuals?|bi(?![-\w])|homosexuals?|lgbt\w*\+?|sapphics?|wlw|mlm|pansexuals?|asexuals?|same[- ]sex|same[- ]gender|dykes?|men who love men|women who love women|two[- ]spirit)\b/i,
   genderIdentity: /\b(trans(?![- ](?:amadi|ekulu))|transgender|trans women|trans men|transfem\w*|transmasc\w*|non-?binary|enby|genderqueer|gender[- ]?fluid|intersex|two[- ]spirit)\b/i,
-  religion: /\b(church|churches|christians?|catholics?|pentecostals?|anglicans?|methodists?|baptists?|rccg|deeper life|mfm|muslims?|islam|islamic|mosque|masjid|jumu?['’]?ah|jummah|ramadan|hindus?|jewish|jews|synagogue|buddhists?|fellowship|born again|adventists?|hijabis?|imams?|pastors?|chaplaincy|parish)\b/i,
-  health: /\b(hiv|aids|diabetic|diabetes|cancer|wheelchairs?|disabled|disability|deaf|blind|autistic|autism|adhd|pregnant|sober|recovering|in recovery|alcoholics?|mental health|depression|anxiety|epileptic|epilepsy|sickle[- ]cell|chronic(?:ally)? ill)\b/i,
-  ethnicity: /\b(yoruba|igbo|ibo|hausa|fulani|ijaw|efik|ibibio|tiv|urhobo|itsekiri|kanuri|nupe|black|white|asian|arab|indian|chinese|lebanese|ethnic)\b(?!\s+(?:food|cuisine|restaurant|spot|music|dishes|meals?))/i,
+  // reviewed 25 Oct across faiths (the eval's Hindu crew had "temple" stored): places of
+  // worship, festivals, practices, texts, clergy and the words for having no faith
+  religion: /\b(church|churches|christians?|catholics?|pentecostals?|anglicans?|methodists?|baptists?|evangelicals?|orthodox|presbyterians?|lutherans?|rccg|deeper life|mfm|winners chapel|living faith|celestial church|cherubim|aladura|jehovah['’]?s? witness(?:es)?|mormons?|quakers?|muslims?|islam|islamic|mosque|masjid|jumu?['’]?ah|jummah|ramadan|eid|sallah|salah|salat|hajj|umrah|quran|koran|hindus?|hinduism|temples?|mandir|puja|pooja|diwali|navratri|satsang|kirtan|bhajan|sikhs?|sikhism|gurdwara|jains?|jainism|parsis?|zoroastrians?|jewish|jews|judaism|synagogue|shul|rabbis?|kosher|shabbat|sabbath|buddhists?|buddhism|zen centre|monaster(?:y|ies)|monks?|nuns?|shrines?|baha['’]?is?|bible study|holy mass|sunday school|fellowship|born again|adventists?|hijabis?|imams?|sheikhs?|ustaz|pastors?|priests?|deacons?|vicars?|reverends?|chaplaincy|parish(?:ioners?)?|atheists?|agnostics?)\b/i,
+  health: /\b(hiv|aids|diabetic|diabetes|cancer|wheelchairs?|wheelchair users?|disabled|disability|deaf|blind|visually impaired|hard of hearing|autistic|autism|adhd|neurodivergent|dyslexic|dyslexia|bipolar|schizophreni\w*|ptsd|cerebral palsy|amputees?|pregnant|sober|recovering|in recovery|alcoholics?|mental health|depression|anxiety|epileptic|epilepsy|sickle[- ]cell|chronic(?:ally)? ill)\b/i,
+  ethnicity: /\b(yoruba|igbo|ibo|hausa|fulani|ijaw|efik|ibibio|tiv|urhobo|itsekiri|kanuri|nupe|idoma|igala|ebira|ogoni|isoko|annang|black|white|asian|arab|indian|chinese|lebanese|ethnic)\b(?!\s+(?:food|cuisine|restaurant|spot|music|dishes|meals?))/i,
 });
 /** The categories whose words never reach any stored field, the crew's name included. */
 export const HIGH_RISK = Object.freeze(["orientation", "genderIdentity", "health"]);

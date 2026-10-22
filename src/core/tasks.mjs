@@ -269,10 +269,12 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
   const filled = [];
   const said = [sentence, into].filter((x) => typeof x === "string" && x.trim()).join(". ");
   let name = text(d.name, 60);
-  // names travel: WhatsApp previews, calendars, push. A word for who the crew is stays out.
-  if (name && hasSensitive(name, HIGH_RISK)) {
+  // names travel: WhatsApp previews, calendars, push. The sloth never suggests one that says
+  // who the crew is, in any category (25 Oct: religion too); a name the organiser types on
+  // the confirm screen is theirs to choose (src/core/growth.mjs, checkCrewName)
+  if (name && hasSensitive(name)) {
     name = null;
-    notes.push("Pick a crew name that is fine for anyone to see: names show in WhatsApp previews and calendars.");
+    notes.push("Pick a crew name yourself: names show in WhatsApp previews and calendars.");
   }
   let vibe = text(d.vibe, 80);
   // the vibe is what they like doing, in their words: never who they are, never invented

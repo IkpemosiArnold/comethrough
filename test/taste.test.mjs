@@ -62,7 +62,7 @@ test("a queer crew: needs kept, the label nowhere in the draft, even when Gemma 
   const r = readCrewSetup(gemma, { sentence }, LAGOS_LOCAL);
   assert.ok(!IDENTITY.test(JSON.stringify(r.draft)), JSON.stringify(r.draft));
   assert.equal(r.draft.name, null, "the name went: names travel");
-  assert.ok(r.notes.some((n) => /fine for anyone to see/.test(n)));
+  assert.ok(r.notes.some((n) => /Pick a crew name yourself/.test(n)));
   assert.equal(r.draft.vibe, null);
   assert.deepEqual(r.draft.taste.needs, ["safe", "discreet", "women-friendly", "inclusive"]);
   assert.deepEqual(r.draft.taste.likes, ["art", "brunch"]);
@@ -189,8 +189,14 @@ test("end to end: a queer crew's setup leaves needs only, in every store, view, 
   assert.deepEqual(draft.draft.taste.needs, ["safe", "discreet", "women-friendly", "inclusive"]);
   assert.ok(draft.taste.summary?.startsWith("Got it: "));
   const made = await svc.createCrew({ confirm: { ...draft.draft, name: "Saturday girls" }, organiser: { name: "Ada", area: "Yaba" } });
-  // the name the organiser types is checked too
-  await assert.rejects(svc.createCrew({ confirm: { ...draft.draft, name: "Lagos Queer Collective" } }), (e) => /** @type {any} */ (e).fields?.[0]?.field === "name");
+  // a name the organiser types is theirs (25 Oct, Astra's review): kept for the crew, and kept
+  // out of its links, previews and calendar (test/discretion.test.mjs has the rest)
+  const own = await svc.createCrew({ confirm: { ...draft.draft, name: "Lagos Queer Collective" } });
+  assert.equal(own.crew.name, "Lagos Queer Collective");
+  assert.equal(own.crew.shareName, null);
+  assert.ok(!/queer/i.test(own.crew.slug) && !/queer/i.test(own.inviteUrl), own.inviteUrl);
+  // the scan below is about what the app itself writes
+  await store.delete("crews", own.crew.id);
   // the edited chips are checked again
   const typed = await svc.createCrew({ confirm: { ...draft.draft, name: "Brunch club", taste: { ...draft.draft.taste, scenes: ["lesbian"], likes: ["queer art"] } } });
   assert.ok(!IDENTITY.test(JSON.stringify(typed)));
