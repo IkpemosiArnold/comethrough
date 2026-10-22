@@ -205,6 +205,17 @@ function words(/** @type {any} */ xs, max = 6, len = 30) {
   return out;
 }
 
+/** Words that name a kind of group, enough for Gemma's cultural reading of what it likes. */
+const GROUP_WORDS = /\b(students?|uni|university|campus|undergrads?|parents|mums|moms|dads|famil(?:y|ies)|kids|colleagues|work friends|workmates|office|corporate|bankers|lawyers|techies|tech bros|creatives|artists|musicians|gym|runners|footballers?|ballers|gamers|youth|choir|fellowship|alumni|old (?:boys|girls)|class of)\b/i;
+
+/** Kinds of place a need points to, used only when Gemma named none. */
+export const NEED_KINDS = Object.freeze({
+  discreet: ["garden", "cafe", "gallery", "bookshop", "museum"],
+  safe: ["garden", "cafe", "gallery", "museum"],
+  "kid-friendly": ["playground", "park", "zoo", "ice cream"],
+  quiet: ["garden", "library", "bookshop", "cafe"],
+});
+
 const AGE_WORDS = /\b(\d{2}s?|teens?|teenagers?|twenties|thirties|forties|fifties|students?|uni|university|undergrads?|youth|young|retired|retirees|parents|grown)\b/i;
 
 /** An age band as people say it ("late 20s", "30s", "students"), or null. */
@@ -242,7 +253,10 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     scenes = scenes.filter((s) => said(s, src));
     // the rest may be inferred (cultural knowledge), but only from something the sentence says
     const basis = (Array.isArray(d.basis) ? d.basis : []).filter((b) => typeof b === "string" && said(b, src));
-    const anchored = basis.length > 0 || scenes.length > 0 || likes.some((l) => said(l, src));
+    // a kind of group the sentence names (students, parents, a church youth group, an age)
+    // is a basis too, even when Gemma leaves basis empty (it did for "queer and mostly
+    // female" on 21 Oct 2026: it was told not to repeat those words)
+    const anchored = basis.length > 0 || scenes.length > 0 || likes.some((l) => said(l, src)) || impliedNeeds(src).length > 0 || AGE_WORDS.test(src) || GROUP_WORDS.test(src);
     if (!anchored) {
       likes = likes.filter((l) => said(l, src));
       placeKinds = placeKinds.filter((k) => said(k, src));
@@ -253,6 +267,8 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     }
     if (age && !AGE_WORDS.test(src)) age = null;
     needs = [...new Set([...needs, ...impliedNeeds(src)])];
+    // needs imply kinds of place when Gemma named none: a discreet crew still gets somewhere to go
+    if (!placeKinds.length) placeKinds = [...new Set(needs.flatMap((n) => NEED_KINDS[n] || []))].slice(0, 6);
   }
   // a need that rules out drink rules out the kinds that sell it
   if (needs.includes("no alcohol") || needs.includes("kid-friendly")) placeKinds = placeKinds.filter((k) => !PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife);

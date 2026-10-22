@@ -42,6 +42,7 @@ Fields:
   - needs: only from this list: safe, discreet, women-friendly, inclusive, no alcohol, kid-friendly, step-free, quiet, daytime.
   - ageBand: their age as said ("late 20s", "students"), or null.
   - energy: "chill", "lively" or "mixed", or null when unclear.
+- When the text names a kind of group rather than a scene (students, parents with young kids, a church youth group, work friends), fill likes, placeKinds and eventKeywords with what such a group{{inCity}} usually enjoys and can afford. For example: students like free events, street food, parks and cinema; parents with young kids like playgrounds, parks, zoos and ice cream; a church youth group likes parks, cinema, bowling, games and gospel music; work friends in their 30s like restaurants, cafés and live music. A crew that needs safe or discreet gets quiet place kinds (garden, cafe, gallery, bookshop, museum).
 - Who people are is private. If the text mentions sexual orientation, gender identity, religion, health or ethnicity, never repeat those words in any field (not the name, the vibe or the taste). Turn them into needs instead: a queer or LGBTQ+ crew needs safe, discreet and inclusive places (and women-friendly for a women's crew); a church or mosque youth group needs no alcohol; a wheelchair user needs step-free; parents with young kids need kid-friendly and daytime.{{tasteNotes}}
 - confidence: for name, vibe, rhythm and areas, a number from 0 to 1 for how clearly the sentence states it (0 when it does not).
 <!-- user -->
