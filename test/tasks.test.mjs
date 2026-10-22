@@ -128,7 +128,7 @@ test("explanations and invites: grounded numbers or the code's sentence", () => 
   const invented = readExplain({ why: "Freedom Park is 5 minutes from everyone and costs N2000." }, explanation);
   assert.equal(invented.by, "code");
   assert.equal(invented.why, explainFallback(explanation));
-  assert.match(invented.why, /^Freedom Park keeps everyone within about \d+ minutes/);
+  assert.match(invented.why, /^(Freedom Park keeps everyone within about \d+ minutes|Nobody travels more than about \d+ minutes to Freedom Park|Freedom Park is about \d+ minutes for whoever is furthest)/);
   const facts = { title: "Saturday at Freedom Park", day: "Saturday", date: "2026-10-24", time: "4 pm to 7 pm", place: "Freedom Park", weather: "Dry", vibe: "outside and cheap" };
   assert.match(inviteMessages(prompt("write-invite"), facts)[0].content, /vibe: outside and cheap/);
   assert.equal(readInvite({ invite: "Freedom Park this Saturday from 4pm to 7pm — come through!" }, facts, "fallback").invite, "Freedom Park this Saturday from 4pm to 7pm, come through!");

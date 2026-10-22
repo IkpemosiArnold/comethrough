@@ -24,7 +24,7 @@ import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { placeKey, placeKind, scorePlaces } from "./places.mjs";
 import { DAY_NAMES, addDays, daysBetween, localParts, minutesOfDay, hhmm, parseInstant, toIsoLocal, zonedToMs } from "./time.mjs";
 import { GENERIC_SOCIAL_HOURS, RAIN_OK, bestWindow, clockWords, isWeekend, socialWindow } from "./weather.mjs";
-import { LEAKED_FIELDS, fill, noDashes, numbersGrounded, unsafeText } from "./tasks.mjs";
+import { LEAKED_FIELDS, fill, noDashes, numbersGrounded, unsafeText, variant } from "./tasks.mjs";
 import { PLACE_KINDS, eventFit, hasTaste, kindOfTags, overBudget } from "./taste.mjs";
 import { upcomingDates } from "./feeds.mjs";
 
@@ -553,7 +553,13 @@ export function fallbackWhy(/** @type {Candidate} */ c) {
     const what = c.fits?.[0] ?? (c.label ? `a ${c.label}` : "a quiet spot");
     return `${c.title} is ${what}${c.lowKey ? ", quiet and low-key" : ""}${trip ? `, and ${trip}` : ""}.`;
   }
-  return `${c.title} keeps ${trip ? trip.replace(/^nobody's trip is over/, "everyone's trip under") : "the crew close"}${extra}.`;
+  if (!c.travel) return `${c.title} keeps the crew close${extra}.`;
+  // one of a few phrasings, picked by the place, so the card does not read like a form
+  return [
+    `${c.title} keeps everyone's trip under about ${c.travel.maxMin} minutes${extra}.`,
+    `Everyone gets to ${c.title} in about ${c.travel.maxMin} minutes or less${extra}.`,
+    `${c.title} is within about ${c.travel.maxMin} minutes for everyone${extra}.`,
+  ][variant(c.title, 3)];
 }
 
 /**

@@ -621,17 +621,36 @@ export function explainMessages(prompt, explanation) {
 export function explainFallback(explanation) {
   const e = explanation;
   const fit = e.taste?.matched?.[0];
+  // the same facts in one of a few phrasings, picked by the place (the 22 Oct eval found one
+  // sentence shape in 19% of all reasons): nothing is said that the facts do not say
+  const v = variant(e.pick.name, 3);
+  const n = e.maxMinutes;
   if (fit) {
     const quiet = e.taste.lowKey ? ", quiet enough to hear each other" : "";
-    return `${e.pick.name} is ${fit}${quiet}, about ${e.maxMinutes} minutes for whoever is furthest.`;
+    return [
+      `${e.pick.name} is ${fit}${quiet}, about ${n} minutes for whoever is furthest.`,
+      `${e.pick.name} is ${fit}${quiet}, and nobody travels more than about ${n} minutes.`,
+      `${e.pick.name}: ${fit}${quiet}, with the longest trip about ${n} minutes.`,
+    ][v];
   }
-  const bits = [`${e.pick.name} keeps everyone within about ${e.maxMinutes} minutes`];
+  const bits = [[
+    `${e.pick.name} keeps everyone within about ${n} minutes`,
+    `Nobody travels more than about ${n} minutes to ${e.pick.name}`,
+    `${e.pick.name} is about ${n} minutes for whoever is furthest`,
+  ][v]];
   const extras = [];
   if (e.taste?.lowKey) extras.push("it is quiet and easy to keep low-key");
   if (e.pick.green) extras.push(`it is ${e.pick.kind === "beach" ? "by the water" : "green and outdoors"}`);
   if (e.pick.fee === "no") extras.push("it is free");
   if (e.lastUsedDaysAgo == null) extras.push("the crew has not been there lately");
   return `${bits[0]}${extras.length ? `, and ${extras.join(", ")}` : ""}.`;
+}
+
+/** A stable choice among n phrasings for a name (the same place reads the same way each time). */
+export function variant(/** @type {string} */ name, /** @type {number} */ n) {
+  let h = 0;
+  for (const ch of String(name || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % n;
 }
 
 /**

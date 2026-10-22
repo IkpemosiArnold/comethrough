@@ -121,7 +121,7 @@ test("taste picks the place: a gallery for an alte crew, a park for a crew with 
   assert.equal(tasteFit(gardenCafe.osm.tags, alte).matched[0], "a garden café");
   // with no taste, a pick explanation reads as it always did
   const ex = /** @type {any} */ (withTaste.explanation);
-  assert.match(readExplain(null, ex).why, /^(Kaleidoscope Art Space is an art gallery|Mango Garden Cafe is a garden café)/);
+  assert.match(readExplain(null, ex).why, /^(Kaleidoscope Art Space|Mango Garden Cafe)(:| is) (an art gallery|a garden café)/);
 });
 
 test("events: keywords rank, needs and budget rule out", () => {
@@ -259,10 +259,14 @@ test("from the 22 Oct eval: no clubs for a dry or kid crew, a roof for rain by t
   assert.equal(scorePlaces({ members, candidates: [far, near], taste: cleanTaste({ placeKinds: ["gallery"] }) }).pick?.candidate.name, "Near Cafe");
 });
 
-test("a reason that reads a fact's name back (\"fitsTaste\", \"fair and fresh\") is replaced by the code's", () => {
+test("a reason that reads a fact's name back (\"fitsTaste\", \"fair and fresh\") is replaced by the code's", async () => {
   const ex = /** @type {any} */ ({ pick: { name: "TCA Gallery", kind: "gallery", green: false, fee: null }, members: [{ from: "Yaba", minutes: 60 }], maxMinutes: 60, vibeMatched: [], lastUsedDaysAgo: null, reasons: ["fair", "fresh", "taste"], notChosen: [], taste: { matched: ["an art gallery"], lowKey: true } });
   assert.equal(readExplain({ why: "TCA Gallery fitsTaste as an art gallery, about 60 minutes." }, ex).by, "code");
   assert.equal(readExplain({ why: "TCA Gallery: fair and fresh, and about 60 minutes for whoever is furthest." }, ex).by, "code");
   assert.equal(readExplain({ why: "TCA Gallery: quiet art under a roof, about 60 minutes for whoever is furthest." }, ex).by, "gemma");
-  assert.equal(readExplain(null, ex).why, "TCA Gallery is an art gallery, quiet enough to hear each other, about 60 minutes for whoever is furthest.");
+  assert.equal(readExplain(null, ex).why, "TCA Gallery: an art gallery, quiet enough to hear each other, with the longest trip about 60 minutes.");
+  // the same facts in a few phrasings, picked by the place, never one sentence for every crew
+  const { explainFallback } = await import("../src/core/tasks.mjs");
+  const shapes = new Set(["TCA Gallery", "Nike Art Gallery", "Rele Gallery", "Kaleidoscope", "Art Twenty One", "Omenka"].map((name) => explainFallback({ ...ex, pick: { ...ex.pick, name } }).replace(name, "X")));
+  assert.ok(shapes.size >= 2, [...shapes].join(" | "));
 });

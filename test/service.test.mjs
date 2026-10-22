@@ -34,7 +34,8 @@ test("Gemma down: the ritual goes out with the code's explanation and invite", a
   const { store, svc } = make({ places: fakeOverpass([PLACES.freedom]) });
   await store.put("crews", CREW);
   const r = await svc._internal.makeRitual(CREW, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
-  assert.match(r.plan?.why || "", /^Freedom Park keeps everyone within about \d+ minutes/);
+  // one of the code's phrasings, picked by the place (src/core/tasks.mjs, explainFallback)
+  assert.match(r.plan?.why || "", /^(Freedom Park keeps everyone within about \d+ minutes|Nobody travels more than about \d+ minutes to Freedom Park|Freedom Park is about \d+ minutes for whoever is furthest)/);
   assert.match(r.plan?.invite || "", /Come through if you can\. No need to reply\.$/);
 });
 
