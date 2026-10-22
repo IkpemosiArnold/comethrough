@@ -8,41 +8,57 @@
         "swing": "docs/screens/whimsy/swing.png",
         "danfo": "docs/screens/whimsy/danfo.png"
       },
-      "tapToFirstFrameMs": 2,
-      "tapToFirstFrameMs4x": 498,
-      "timing4x": {
-        "frames": 104,
-        "ms": 3633,
-        "medianMs": 16.7,
-        "p95Ms": 133.3,
-        "worstMs": 300,
-        "dropped": 115,
-        "droppedPct": 52.5,
-        "longAnimationFrames": 12
-      }
-    },
-    "reading": {
-      "shots": {
-        "reading": "docs/screens/whimsy/reading.png"
-      },
       "cpu1x": {
-        "frames": 129,
-        "ms": 2133,
+        "frames": 203,
+        "ms": 3367,
         "medianMs": 16.7,
         "p95Ms": 16.8,
         "worstMs": 16.8,
         "dropped": 0,
         "droppedPct": 0,
+        "longAnimationFrames": 0,
+        "tapToFirstFrameMs": [
+          95
+        ]
+      },
+      "cpu4x": {
+        "frames": 88,
+        "ms": 3600,
+        "medianMs": 16.7,
+        "p95Ms": 183.3,
+        "worstMs": 399.9,
+        "dropped": 129,
+        "droppedPct": 59.4,
+        "longAnimationFrames": 10,
+        "tapToFirstFrameMs": [
+          644
+        ]
+      }
+    },
+    "reading": {
+      "shots": {
+        "words": "docs/screens/whimsy/reading-words.png",
+        "eye": "docs/screens/whimsy/reading.png",
+        "greet": "docs/screens/whimsy/invite-greet.png"
+      },
+      "cpu1x": {
+        "frames": 163,
+        "ms": 2717,
+        "medianMs": 16.7,
+        "p95Ms": 16.8,
+        "worstMs": 33.4,
+        "dropped": 1,
+        "droppedPct": 0.6,
         "longAnimationFrames": 0
       },
       "cpu4x": {
-        "frames": 77,
-        "ms": 2517,
+        "frames": 79,
+        "ms": 3233,
         "medianMs": 16.7,
-        "p95Ms": 133.3,
-        "worstMs": 250,
-        "dropped": 75,
-        "droppedPct": 49.3,
+        "p95Ms": 233.4,
+        "worstMs": 333.3,
+        "dropped": 116,
+        "droppedPct": 59.5,
         "longAnimationFrames": 9
       }
     },
@@ -52,40 +68,40 @@
         "doze": "docs/screens/whimsy/doze.png",
         "wake": "docs/screens/whimsy/wake.png"
       },
-      "asleepAfterFive": false,
+      "asleepAfterFive": true,
       "awakeAfterNext": true,
       "cpu1x": {
-        "frames": 257,
-        "ms": 4283,
+        "frames": 256,
+        "ms": 4267,
         "medianMs": 16.7,
-        "p95Ms": 16.7,
-        "worstMs": 33.3,
+        "p95Ms": 16.8,
+        "worstMs": 33.4,
         "dropped": 1,
         "droppedPct": 0.4,
         "longAnimationFrames": 0,
         "tapToFirstFrameMs": [
-          29,
+          28,
           21,
+          27,
           22,
-          25,
-          25
+          28
         ]
       },
       "cpu4x": {
-        "frames": 159,
-        "ms": 4783,
+        "frames": 259,
+        "ms": 4816,
         "medianMs": 16.7,
-        "p95Ms": 116.7,
-        "worstMs": 250,
-        "dropped": 129,
-        "droppedPct": 44.8,
-        "longAnimationFrames": 16,
+        "p95Ms": 16.8,
+        "worstMs": 150,
+        "dropped": 31,
+        "droppedPct": 10.7,
+        "longAnimationFrames": 4,
         "tapToFirstFrameMs": [
+          22,
+          18,
+          21,
           20,
-          20,
-          15,
-          24,
-          22
+          20
         ]
       }
     },
@@ -99,24 +115,24 @@
         "status": "docs/screens/whimsy/status-card.png"
       },
       "cpu1x": {
-        "frames": 92,
-        "ms": 2350,
+        "frames": 99,
+        "ms": 1683,
         "medianMs": 16.7,
-        "p95Ms": 100,
-        "worstMs": 283.3,
-        "dropped": 50,
-        "droppedPct": 35.2,
-        "longAnimationFrames": 6
+        "p95Ms": 16.8,
+        "worstMs": 66.7,
+        "dropped": 3,
+        "droppedPct": 2.9,
+        "longAnimationFrames": 1
       },
       "cpu4x": {
-        "frames": 27,
-        "ms": 1950,
+        "frames": 24,
+        "ms": 1683,
         "medianMs": 16.7,
-        "p95Ms": 116.7,
-        "worstMs": 1183.3,
-        "dropped": 91,
-        "droppedPct": 77.1,
-        "longAnimationFrames": 5
+        "p95Ms": 166.6,
+        "worstMs": 749.9,
+        "dropped": 78,
+        "droppedPct": 76.5,
+        "longAnimationFrames": 7
       }
     },
     "ambient": {
@@ -129,43 +145,43 @@
           "frames": 306,
           "ms": 5083,
           "medianMs": 16.7,
-          "p95Ms": 16.8,
+          "p95Ms": 16.7,
           "worstMs": 16.8,
           "dropped": 0,
           "droppedPct": 0,
           "longAnimationFrames": 0
         },
         "cpu4x": {
-          "frames": 140,
-          "ms": 4950,
+          "frames": 169,
+          "ms": 5100,
           "medianMs": 16.7,
-          "p95Ms": 166.7,
-          "worstMs": 316.7,
-          "dropped": 158,
-          "droppedPct": 53,
-          "longAnimationFrames": 17
+          "p95Ms": 116.7,
+          "worstMs": 366.6,
+          "dropped": 138,
+          "droppedPct": 45,
+          "longAnimationFrames": 16
         }
       },
       "howIdle": {
         "cpu1x": {
-          "frames": 301,
-          "ms": 5016,
+          "frames": 309,
+          "ms": 5133,
           "medianMs": 16.7,
           "p95Ms": 16.7,
-          "worstMs": 33.3,
-          "dropped": 1,
-          "droppedPct": 0.3,
+          "worstMs": 16.8,
+          "dropped": 0,
+          "droppedPct": 0,
           "longAnimationFrames": 0
         },
         "cpu4x": {
-          "frames": 128,
+          "frames": 194,
           "ms": 5100,
           "medianMs": 16.7,
-          "p95Ms": 233.3,
-          "worstMs": 316.6,
-          "dropped": 179,
-          "droppedPct": 58.3,
-          "longAnimationFrames": 2
+          "p95Ms": 100,
+          "worstMs": 249.9,
+          "dropped": 113,
+          "droppedPct": 36.8,
+          "longAnimationFrames": 4
         }
       }
     },
@@ -214,7 +230,7 @@
         }
       ],
       "how": [],
-      "nonOpacityAnimations": 1
+      "movingAnimations": 0
     },
     "hiddenTab": {
       "runningBefore": 1,

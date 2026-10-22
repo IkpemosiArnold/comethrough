@@ -75,6 +75,7 @@ async function record(/** @type {Page} */ p, /** @type {number} */ ms, /** @type
     frames.push({ t, data });
   }
   await p.send("Animation.setPlaybackRate", { playbackRate: 1 });
+  if (process.env.DEBUG) console.log("frames at", frames.map((f) => f.t).join(" "));
   return frames;
 }
 
@@ -189,19 +190,38 @@ if (want("swing")) {
   console.log("swing", JSON.stringify(report.moments.swing));
 }
 
-// ---------- the sloth reads the sentence ----------
+// ---------- the sloth reads the sentence, the draft arrives, the crew is made ----------
 if (want("reading")) {
+  const SENTENCE = "The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki";
   const go = async (/** @type {Page} */ p) => {
-    await p.type("textarea", "The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki");
+    await p.type("textarea", SENTENCE);
     await tap(p, 'button[type="submit"]');
   };
-  const p = await open(`${BASE}/?mock=1&reset=1`, { wait: 1800 });
+  // full speed: the demo answers after 1.5 s, like a quick Gemma
+  let p = await open(`${BASE}/?mock=1&reset=1`, { wait: 1800 });
+  await p.waitFor(".start-branch .sloth");
   const s = await rect(p, ".start-branch .sloth");
-  const frames = await record(p, 2000, () => go(p));
-  const shots = { reading: await sheet("reading", frames, [300, 500, 700, 900, 1100, 1300, 1500, 1700], { x: s.x + s.w * 0.25, y: s.y + s.h * 0.4, w: s.w * 0.5, h: s.h * 0.3 }, 3, "While Gemma reads: the sloth's open eye follows the line") };
+  await p.waitFor("textarea");
+  let frames = await record(p, 2600, () => go(p), 1);
+  const words = await sheet("reading-words", frames, [0, 150, 300, 450, 600, 800, 1000, 1200, 1500, 1650, 1800, 2000, 2300, 2600], { x: 0, y: 0, w: VW, h: 620 }, 0.62, "Gemma reads the crew sentence: the marker reads along word by word, then the draft settles in and the marker strokes the guesses");
   await p.close();
-  const timings = await measure(`${BASE}/?mock=1&reset=1`, async () => {}, go, 2000, null, 1800);
-  report.moments.reading = { shots, ...timings };
+  p = await open(`${BASE}/?mock=1&reset=1`, { wait: 1800 });
+  await p.waitFor("textarea");
+  frames = await record(p, 1400, () => go(p), 0.25);
+  const eye = await sheet("reading", frames, [100, 250, 400, 550, 700, 850, 1000, 1150], { x: s.x + s.w * 0.25, y: s.y + s.h * 0.4, w: s.w * 0.5, h: s.h * 0.3 }, 3, "While Gemma reads: the sloth's open eye follows the line");
+  await p.close();
+  // the crew is made: the sloth on the invite screen swings once, glad
+  p = await open(`${BASE}/?mock=1&reset=1&fast=1`, { wait: 1800 });
+  await p.type("#crew-sentence", SENTENCE);
+  await p.click('button[type="submit"]');
+  await p.waitFor(".preview");
+  await p.type('input[autocomplete="given-name"]', "Tolu");
+  const inv = await record(p, 1800, async () => { await p.click("button", "Make the crew"); await p.waitFor(".invite"); }, 0.25);
+  const ir = await rect(p, ".invite-sloth .sloth");
+  const greet = await sheet("invite-greet", inv, [0, 150, 300, 450, 600, 800, 1000, 1300, 1700], { x: Math.max(0, ir.x - 30), y: Math.max(0, ir.y - 10), w: ir.w + 60, h: ir.h + 20 }, 1.5, "The crew is made: the sloth swings once on its branch");
+  await p.close();
+  const timings = await measure(`${BASE}/?mock=1&reset=1`, async () => {}, go, 2600, null, 1800);
+  report.moments.reading = { shots: { words, eye, greet }, ...timings };
   console.log("reading", JSON.stringify(report.moments.reading));
 }
 
