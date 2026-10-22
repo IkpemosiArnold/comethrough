@@ -215,6 +215,10 @@ Idea {
 
 `draftPlan` is a complete `PlanDraft`: `kind` "found" for an event (its `source.url` is the ticket link, else the post) and "quick" otherwise, `start` and `end` in the crew's zone, the place with its pin when known, the price as stated. One tap sends it through the existing create flow, which validates it as any other plan.
 
+### The rain fallback (25 Oct, from the persona eval)
+
+When the ritual goes under a roof, the crew's own kinds of place (its taste, with the roofed kinds it implies) come before a generic covered spot. No crew is sent to a place of worship or a religious centre (OpenStreetMap's `amenity=place_of_worship`, `religion`, `denomination`, a church or mosque building, or a religious word in the name). Fast food chains (a `brand` tag, or a known chain name) drop by 0.3 unless the crew is free or cheap or into street food. Overpass answers are cached a week by tile, and the last good answer is kept 120 days apart: when every endpoint fails after the week, it stands in.
+
 ### Names and discretion (25 Oct, from Astra's review)
 
 - **The sloth never suggests a name that says who the crew is**, in any category (orientation, gender identity, religion, health, ethnicity): a draft name from Gemma with such a word is dropped and the organiser picks one. The words lists were reviewed across faiths and categories on 25 Oct (the eval's Hindu crew had "temple" stored as an event keyword).

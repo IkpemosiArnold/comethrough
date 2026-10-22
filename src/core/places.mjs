@@ -14,7 +14,24 @@
 
 import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { DEFAULT_TZ, DAY } from "./time.mjs";
-import { PLACE_KINDS, hasTaste, tasteFit } from "./taste.mjs";
+import { PLACE_KINDS, SENSITIVE, hasTaste, tasteFit } from "./taste.mjs";
+
+/**
+ * A place of worship or a religious centre ("Ikeja Islamic Centre", a parish hall): never
+ * suggested to a crew (the 22 Oct eval offered the gamers an Islamic centre in the rain).
+ * From OpenStreetMap's own tags, or a religious word in the name.
+ */
+export function isWorship(/** @type {Record<string, string>} */ tags = {}, /** @type {string} */ name = "") {
+  return tags.amenity === "place_of_worship" || tags.religion != null || tags.denomination != null ||
+    /^(church|cathedral|chapel|mosque|temple|synagogue|shrine|monastery)$/.test(tags.building || "") || SENSITIVE.religion.test(tags.name || name || "");
+}
+
+/** Fast food chains seen in Lagos and beyond; a branded fast food place is one too. */
+const CHAINS = /\b(kfc|domino'?s|chicken republic|mr\.? biggs|tantalizers|kilimanjaro|sweet sensation|mega chicken|tastee fried chicken|burger king|mcdonald'?s|debonairs|pizza hut|cold stone|subway|krispy kreme|bukka hut|the place)\b/i;
+export const isChain = (/** @type {Record<string, string>} */ tags = {}, /** @type {string} */ name = "") =>
+  tags.amenity === "fast_food" && (tags.brand != null || tags["brand:wikidata"] != null || CHAINS.test(tags.name || name || ""));
+/** How far a fast food chain drops, unless the crew's budget or taste wants one. */
+export const CHAIN_PENALTY = 0.3;
 
 /** @typedef {import("./types.mjs").LatLon} LatLon */
 /**
@@ -209,8 +226,11 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
         variety: varietyPenalty(key, recent, now),
       };
     });
-  // a place the crew's needs rule out (a bar for a crew that needs no alcohol) is never picked
-  const allowed = scored.filter((s) => !s.taste.blocked);
+  // a place the crew's needs rule out (a bar for a crew that needs no alcohol) is never
+  // picked, and no crew is sent to a place of worship
+  const allowed = scored.filter((s) => !s.taste.blocked && !isWorship(s.candidate.osm?.tags || s.candidate.tags || {}, s.candidate.name));
+  // fast food chains come last, unless the crew is broke or into street food
+  const wantsChain = budget === "free" || budget === "cheap" || !!taste?.placeKinds?.includes("street food");
   if (!allowed.length) return { ranked: [], pick: null, explanation: null };
 
   // never an hour and more when somewhere fits within much less
@@ -231,7 +251,8 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
         taste: s.taste.score,
         variety: -s.variety.penalty,
       };
-      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget + wTaste * parts.taste) / total - s.variety.penalty - (farOff(s) ? 1 : 0);
+      const chain = !wantsChain && isChain(s.candidate.osm?.tags || s.candidate.tags || {}, s.candidate.name) ? CHAIN_PENALTY : 0;
+      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget + wTaste * parts.taste) / total - s.variety.penalty - chain - (farOff(s) ? 1 : 0);
       return { ...s, parts, score: Math.round(score * 1000) / 1000 };
     })
     // ties go to the fairer place, then to the name, so the order never depends on input order

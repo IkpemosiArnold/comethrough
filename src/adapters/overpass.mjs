@@ -35,7 +35,9 @@ export function tileOf(/** @type {{ lat: number, lon: number }} */ at) {
   const x = Math.round(at.lon / TILE_DEG);
   return { key: `${y},${x}`, center: { lat: +(y * TILE_DEG).toFixed(5), lon: +(x * TILE_DEG).toFixed(5) } };
 }
-const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism", "shop", "fee", "access", "opening_hours", "outdoor_seating", "wheelchair", "addr:street", "addr:city", "website"];
+const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism", "shop", "fee", "access", "opening_hours", "outdoor_seating", "wheelchair", "addr:street", "addr:city", "website", "brand", "brand:wikidata", "religion", "denomination", "building"];
+/** The last good answer per query is kept this long, for when Overpass is down after the week. */
+const STALE_TTL = 120 * 24 * 3600_000;
 
 /**
  * The Overpass QL query for named green places within radiusM of a point.
@@ -86,8 +88,24 @@ export function readOverpass(json) {
  * @returns {{ greenNear(at: { lat: number, lon: number }, radiusM: number): Promise<Candidate[]>, kindsNear(at: { lat: number, lon: number }, radiusM: number, tags: Record<string, string[]>): Promise<Candidate[]> }}
  */
 export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attemptMs = 25000, budgetMs = 40000, now = Date.now }) {
-  /** One query, cached a week, tried on each endpoint in turn. @param {string} key @param {string} query */
-  function ask(key, query) {
+  /**
+   * One query, cached a week, tried on each endpoint in turn. Stale while it revalidates: the
+   * last good answer is kept apart (120 days) and stands in when every endpoint fails, so a
+   * crew is not left with nothing because one Overpass call did not answer (22 Oct eval).
+   * @param {string} key @param {string} query
+   */
+  async function ask(key, query) {
+    try {
+      return await askLive(key, query);
+    } catch (e) {
+      const stale = await cache.get(`stale:${key}`);
+      if (stale !== undefined) return stale;
+      throw e;
+    }
+  }
+
+  /** @param {string} key @param {string} query */
+  function askLive(key, query) {
     return cached(cache, key, TTL, async () => {
       const body = `data=${encodeURIComponent(query)}`;
       const deadline = now() + budgetMs;
@@ -107,7 +125,9 @@ export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attempt
             fetchImpl,
             sleep,
           });
-          return readOverpass(json);
+          const found = readOverpass(json);
+          await cache.set(`stale:${key}`, found, STALE_TTL);
+          return found;
         } catch (e) {
           last = e; // at capacity or slow: the next endpoint, at once
         }

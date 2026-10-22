@@ -27,7 +27,7 @@ import {
   CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
-import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, osmTagsFor, tasteView } from "../core/taste.mjs";
+import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, tasteView } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
@@ -1391,8 +1391,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       // the crew is into (OpenStreetMap's tag says what it is). A crew whose hours are after
       // dark ("Saturday night") goes under a roof too, never to the afternoon.
       const covered = candidates.filter((c) => c.covered === true || (c.indoor === true && kindIndoor(c)));
+      // the crew's own kinds of place (its taste, with the roofed kinds it implies) before a
+      // generic covered spot: the gamers get the arcade, not the nearest hall (22 Oct eval)
+      const kinds = new Set(taste?.placeKinds || []);
+      const theirs = covered.filter((c) => kinds.has(/** @type {string} */ (kindOfTags(c.osm?.tags || c.tags || {}))));
       if (covered.length && coveredHours) {
-        pool = covered;
+        pool = theirs.length ? theirs : covered;
         window = cut(coveredHours);
         date = due.date;
         win = null;
