@@ -1,0 +1,266 @@
+{
+ "landing": {
+  "light": {
+   "words": 38,
+   "fold": 38,
+   "minRatio": 8,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 38,
+   "fold": 38,
+   "minRatio": 10.6,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "preview": {
+  "light": {
+   "words": 51,
+   "fold": 51,
+   "minRatio": 8.6,
+   "minBodyRatio": 8.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 51,
+   "fold": 51,
+   "minRatio": 7.9,
+   "minBodyRatio": 12.3,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "invite": {
+  "light": {
+   "words": 39,
+   "fold": 39,
+   "minRatio": 7.4,
+   "minBodyRatio": 7.4,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 39,
+   "fold": 39,
+   "minRatio": 7.4,
+   "minBodyRatio": 7.4,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "where": {
+  "light": {
+   "words": 51,
+   "fold": 51,
+   "minRatio": 8,
+   "minBodyRatio": 8,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 51,
+   "fold": 51,
+   "minRatio": 11.7,
+   "minBodyRatio": 11.7,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "crew-home": {
+  "light": {
+   "words": 141,
+   "fold": 67,
+   "minRatio": 8.7,
+   "minBodyRatio": 9.7,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 141,
+   "fold": 67,
+   "minRatio": 8.6,
+   "minBodyRatio": 10,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "plan": {
+  "light": {
+   "words": 140,
+   "fold": 59,
+   "minRatio": 7.4,
+   "minBodyRatio": 7.4,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 140,
+   "fold": 59,
+   "minRatio": 7.4,
+   "minBodyRatio": 7.4,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "add-plan": {
+  "light": {
+   "words": 43,
+   "fold": 43,
+   "minRatio": 8,
+   "minBodyRatio": 8.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 43,
+   "fold": 43,
+   "minRatio": 10.6,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "one-tap": {
+  "light": {
+   "words": 32,
+   "fold": 32,
+   "minRatio": 9.1,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 32,
+   "fold": 32,
+   "minRatio": 9.5,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "one-tap-done": {
+  "light": {
+   "words": 94,
+   "fold": 78,
+   "minRatio": 8,
+   "minBodyRatio": 8,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 94,
+   "fold": 78,
+   "minRatio": 9.5,
+   "minBodyRatio": 11.7,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "ideas": {
+  "light": {
+   "words": 84,
+   "fold": 18,
+   "minRatio": 8.8,
+   "minBodyRatio": 16.7,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 84,
+   "fold": 18,
+   "minRatio": 10.4,
+   "minBodyRatio": 14.3,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "status-sheet": {
+  "light": {
+   "words": 25,
+   "fold": 17,
+   "minRatio": 10.6,
+   "minBodyRatio": 10.6,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 25,
+   "fold": 17,
+   "minRatio": 10.5,
+   "minBodyRatio": 10.5,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ },
+ "how": {
+  "light": {
+   "words": 183,
+   "fold": 104,
+   "minRatio": 8,
+   "minBodyRatio": 8,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  },
+  "dark": {
+   "words": 183,
+   "fold": 104,
+   "minRatio": 11.7,
+   "minBodyRatio": 11.7,
+   "share7": 100,
+   "under45": [],
+   "under7": [],
+   "bodySize": 17
+  }
+ }
+}

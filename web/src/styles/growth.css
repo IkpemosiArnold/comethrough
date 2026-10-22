@@ -72,7 +72,7 @@
 .you-face p { flex: 1; }
 .you-actions { gap: var(--s-2); flex-wrap: wrap; }
 .optin { gap: var(--s-3); align-items: flex-start; }
-.optin input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--canopy); flex: none; }
+.optin input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--leaf); flex: none; }
 
 /* The Status card sheet */
 .status-sheet { max-height: 92dvh; overflow-y: auto; }

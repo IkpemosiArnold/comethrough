@@ -264,13 +264,11 @@ button.chip:active { transform: scale(0.96); }
 }
 .sticker-found { color: var(--lagoon); }
 .sticker-hosted { color: var(--zobo); }
-.sticker-ritual { color: var(--canopy); }
+.sticker-ritual { color: var(--leaf); }
 .sticker-quick { color: var(--bark); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .sticker-ritual { color: #9fd3b6; }
   :root:not([data-theme='light']) .sticker-quick { color: var(--fur-light); }
 }
-:root[data-theme='dark'] .sticker-ritual { color: #9fd3b6; }
 :root[data-theme='dark'] .sticker-quick { color: var(--fur-light); }
 
 /* ---------- Avatars ---------- */

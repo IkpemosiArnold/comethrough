@@ -40,7 +40,7 @@ export async function prepareFace(file) {
   let best = null;
   for (const type of ['image/webp', 'image/jpeg']) {
     // JPEG has no see-through corners, so they take the wall's colour
-    draw(type === 'image/jpeg' ? '#e3ebd2' : null);
+    draw(type === 'image/jpeg' ? '#f6f1e7' : null);
     for (const q of QUALITIES) {
       const blob = await new Promise((r) => canvas.toBlob(r, type, q));
       if (!blob || blob.type !== type) break;

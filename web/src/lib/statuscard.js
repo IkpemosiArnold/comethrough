@@ -7,12 +7,12 @@ import { BRANCH, SLOTH } from '../../../src/core/art.mjs';
 
 export const W = 1080;
 export const H = 1920;
-const INK = '#14302a';
-const INK2 = '#3d574e';
-const WALL = '#e3ebd2';
-const PAPER = '#f8faf1';
+const INK = '#1f1b16';
+const INK2 = '#433c33';
+const WALL = '#f6f1e7';
+const PAPER = '#fffcf6';
 const DANFO = '#ffc21a';
-const CANOPY = '#1e4a39';
+const CANOPY = '#2a241e';
 
 /** "Yaba Lot came through." and the slow-and-steady line, or the nameless version for a discreet crew. */
 export function cardLines({ crewName = null, linkups = 1 }) {
@@ -75,7 +75,7 @@ export async function makeStatusCard({ photos = [], crewName = null, linkups = 1
   const ctx = canvas.getContext('2d');
   try { await document.fonts.load('104px Shrikhand'); } catch { /* the fallback face still reads */ }
 
-  // the wall, with a canopy band at the foot like the app's sloth panel
+  // the wall, with a dark band at the foot like the app's sloth panel
   ctx.fillStyle = WALL;
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = CANOPY;

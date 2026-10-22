@@ -12,22 +12,25 @@
 :root {
   color-scheme: light;
 
-  /* Colour: a painted Lagos wall, a danfo, a canopy, zobo, the lagoon, sloth fur */
-  --wall: #e3ebd2;        /* page: leaf-pale painted wall */
-  --wall-2: #d6e2c0;      /* sunken areas, inputs at rest */
-  --paper: #f8faf1;       /* raised surfaces */
-  --ink: #14302a;         /* text and the sign-painter shadow */
-  --ink-2: #2e463e;       /* secondary text: 8.3:1 on wall, 9.7:1 on paper */
-  --ink-3: #3d574e;       /* tertiary text, only for genuinely secondary bits: 6.4:1 on wall */
-  --line: rgb(20 48 42 / 0.14);
+  /* Colour: neutral surfaces, so the colour that is there means something. A sun-bleached
+     plaster wall and poster paper; the danfo yellow is the action; green is a small accent
+     (the sloth's leaf, the "Sloth's pick" label), never a background. */
+  --wall: #f6f1e7;        /* page: warm off-white */
+  --wall-2: #ebe4d6;      /* sunken areas, inputs at rest */
+  --paper: #fffcf6;       /* raised surfaces */
+  --ink: #1f1b16;         /* text and the sign-painter shadow: 15.2:1 on wall */
+  --ink-2: #433c33;       /* secondary text: 9.6:1 on wall, 10.6:1 on paper */
+  --ink-3: #4e463c;       /* tertiary text, only for genuinely secondary bits: 8.2:1 on wall */
+  --line: rgb(31 27 22 / 0.14);
   --danfo: #ffc21a;       /* the one action colour */
   --danfo-press: #f2ae00;
-  --on-danfo: #14302a;
-  --canopy: #1e4a39;      /* the sloth's panel (rituals) */
-  --on-canopy: #eef4e1;
-  --on-canopy-2: #d4e3cf; /* 7.5:1 on canopy */
-  --zobo: #8c1c44;        /* maybe, check this, rain warnings: 7.2:1 on wall */
-  --lagoon: #124f66;      /* weather and links: 7.3:1 on wall */
+  --on-danfo: #1f1b16;
+  --canopy: #2a241e;      /* the sloth's panel (rituals, "Why this spot?"): a dark slab, no longer green */
+  --on-canopy: #f6f0e5;   /* 13.5:1 on the panel */
+  --on-canopy-2: #ddd4c6; /* 10.4:1 */
+  --leaf: #1f5034;        /* the green accent: small marks only, 8.3:1 on wall */
+  --zobo: #8c1c44;        /* maybe, check this, rain warnings: 7.9:1 on wall */
+  --lagoon: #124f66;      /* weather and links: 8:1 on wall */
   --fur: #7a5b3e;         /* the sloth */
   --fur-light: #c9a87f;
   --bark: #5a4129;        /* the branch */
@@ -35,7 +38,7 @@
   --whatsapp-icon: var(--whatsapp);
   --whatsapp-shadow: #06401f;
   --highlight: rgb(255 194 26 / 0.55);
-  --scrim: rgb(14 30 25 / 0.45);
+  --scrim: rgb(22 18 14 / 0.5);
 
   /* Avatar fills: each pairs with a text colour that passes AA */
   --av-1: #ffc21a; --av-1-ink: #14302a;
@@ -72,7 +75,7 @@
   /* Depth: hard painted shadows, never a soft grey blur under everything */
   --sign: 0 3px 0 var(--ink);
   --sign-press: 0 1px 0 var(--ink);
-  --lift: 0 1px 0 rgb(20 48 42 / 0.06), 0 10px 28px -18px rgb(20 48 42 / 0.45);
+  --lift: 0 1px 0 rgb(31 27 22 / 0.06), 0 10px 28px -18px rgb(31 27 22 / 0.45);
 
   /* Motion */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -90,23 +93,25 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --wall: #0f2620;
-    --wall-2: #0a1d18;
-    --paper: #17332a;
-    --ink: #e8f0da;
-    --ink-2: #c6d6c8;
-    --ink-3: #a9bfae;
-    --line: rgb(232 240 218 / 0.14);
-    --canopy: #23503f;
-    --on-canopy: #eef4e1;
-    --on-canopy-2: #dbe8d6;
+    --wall: #16130f;        /* a warm near-black, not green */
+    --wall-2: #0f0d0a;
+    --paper: #221e19;
+    --ink: #f4eee3;         /* 16:1 on wall */
+    --ink-2: #d6cdbf;       /* 11.8:1 */
+    --ink-3: #bcb2a3;       /* 8.8:1 */
+    --line: rgb(244 238 227 / 0.14);
+    --canopy: #2d2721;
+    --on-canopy: #f6f0e5;
+    --on-canopy-2: #ddd4c6;
+    --leaf: #8fd3a6;
     --zobo: #f5a3c1;
     --lagoon: #9cd6ea;
     --fur-light: #d9b98f;
     --bark: #7a5a3c;
     --highlight: rgb(255 194 26 / 0.3);
-    --sign: 0 3px 0 #06120e;
-    --sign-press: 0 1px 0 #06120e;
+    --scrim: rgb(0 0 0 / 0.6);
+    --sign: 0 3px 0 #070605;
+    --sign-press: 0 1px 0 #070605;
     --lift: 0 1px 0 rgb(0 0 0 / 0.2), 0 10px 28px -18px rgb(0 0 0 / 0.8);
     --av-2: #3f8a6b;
     --av-2-ink: #06120e;
@@ -115,21 +120,26 @@
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bark: #7a5a3c;
-  --wall: #0f2620;
-  --wall-2: #0a1d18;
-  --paper: #17332a;
-  --ink: #e8f0da;
-  --ink-2: #c6d6c8;
-  --ink-3: #a9bfae;
-  --line: rgb(232 240 218 / 0.14);
-  --canopy: #23503f;
-  --on-canopy-2: #dbe8d6;
+  --wall: #16130f;    /* a warm near-black, not green */
+  --wall-2: #0f0d0a;
+  --paper: #221e19;
+  --ink: #f4eee3;     /* 16:1 on wall */
+  --ink-2: #d6cdbf;     /* 11.8:1 */
+  --ink-3: #bcb2a3;     /* 8.8:1 */
+  --line: rgb(244 238 227 / 0.14);
+  --canopy: #2d2721;
+  --on-canopy: #f6f0e5;
+  --on-canopy-2: #ddd4c6;
+  --leaf: #8fd3a6;
   --zobo: #f5a3c1;
   --lagoon: #9cd6ea;
+  --fur-light: #d9b98f;
+  --bark: #7a5a3c;
   --highlight: rgb(255 194 26 / 0.3);
-  --sign: 0 3px 0 #06120e;
-  --sign-press: 0 1px 0 #06120e;
+  --scrim: rgb(0 0 0 / 0.6);
+  --sign: 0 3px 0 #070605;
+  --sign-press: 0 1px 0 #070605;
+  --lift: 0 1px 0 rgb(0 0 0 / 0.2), 0 10px 28px -18px rgb(0 0 0 / 0.8);
   --av-2: #3f8a6b;
   --av-2-ink: #06120e;
   --whatsapp-icon: #5fd08a;

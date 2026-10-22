@@ -8,26 +8,31 @@ The users are a Lagos friend crew on their phones, mostly cheap Android phones a
 
 ## The direction: a Saturday afternoon in Lagos, hand-painted
 
-The look comes from three things you see on a lazy Lagos weekend. First, there are the hand-painted shop signs and danfo buses, which use fat leaning letters with a hard painted shadow and a loud yellow. Second, there are the green spaces the crew actually goes to, e.g., Muri Okunola Park, JJT Park and Freedom Park, which give the canopy green and the pale leaf wall. Third, there is the sloth from the challenge theme, which hangs from a branch and does as little as possible.
+The look comes from three things you see on a lazy Lagos weekend. First, there are the hand-painted shop signs and danfo buses, which use fat leaning letters with a hard painted shadow and a loud yellow. Second, there are the green spaces the crew actually goes to, e.g., Muri Okunola Park, JJT Park and Freedom Park. Their green stays a small accent (the sloth's leaf, the "Sloth's pick" label), never a background: Arnold found the all-green screens "so much green on phone" in dark mode on 22 Oct, so the walls and surfaces are now warm neutrals. Third, there is the sloth from the challenge theme, which hangs from a branch and does as little as possible.
 
 The branch ties the three together. The sloth hangs from it, and so does the crew. On every plan, the people who are going hang from a branch by their arms, and the branch sags a little more with each person. That is the product's one signature idea, and every other choice stays quiet around it.
 
 ## Colour
 
-| Token | Hex | Name and source | Used for |
+Surfaces are neutral, so that the colour on screen means something: yellow is the action, blue is a link or an event, red-pink is rain or a host, and green is a small accent.
+
+| Token | Light | Dark | Used for |
 |---|---|---|---|
-| `--wall` | `#E3EBD2` | Painted wall, leaf pale | The page background |
-| `--paper` | `#F8FAF1` | Poster paper | Raised surfaces: plan rows, forms, pods |
-| `--ink` | `#14302A` | Canopy shadow | Text, and the hard shadow under primary buttons |
-| `--danfo` | `#FFC21A` | Danfo bus yellow | The only action colour: "I'm going", "Add a plan", the flyer tile, the highlighter |
-| `--canopy` | `#1E4A39` | Park canopy | The sloth's panel (rituals) and "Why this place" |
-| `--zobo` | `#A3214F` | Zobo (hibiscus drink) | Hosted plans, rain warnings, errors |
-| `--lagoon` | `#1B6782` | Lagos lagoon | Event plans, links, focus rings |
-| `--fur` | `#7A5B3E` | Sloth fur | The sloth, the branch and the hanging arms |
+| `--wall` | `#F6F1E7` warm off-white | `#16130F` warm near-black | The page background |
+| `--wall-2` | `#EBE4D6` | `#0F0D0A` | Sunken areas, inputs at rest |
+| `--paper` | `#FFFCF6` poster paper | `#221E19` | Raised surfaces: plan rows, forms, pods |
+| `--ink` | `#1F1B16` | `#F4EEE3` | Text, and the hard shadow under primary buttons |
+| `--ink-2` / `--ink-3` | `#433C33` / `#4E463C` | `#D6CDBF` / `#BCB2A3` | Secondary text / labels and placeholders |
+| `--danfo` | `#FFC21A` | same | The only action colour: "I'm going", "Add a plan", the flyer tile, the highlighter, the title's painted shadow |
+| `--canopy` | `#2A241E` | `#2D2721` | The sloth's panel (rituals) and "Why this spot?": a dark slab, no longer green |
+| `--leaf` | `#1F5034` | `#8FD3A6` | The green accent: the "Sloth's pick" label and small marks only |
+| `--zobo` | `#8C1C44` | `#F5A3C1` | Hosted plans, rain warnings, errors |
+| `--lagoon` | `#124F66` | `#9CD6EA` | Event plans, links, focus rings |
+| `--fur` / `--bark` | `#7A5B3E` / `#5A4129` | `#7A5A3C` bark | The sloth, the branch and the hanging arms |
 
-Secondary text is `--ink-2` (`#2E463E`) and tertiary text is `--ink-3` (`#3D574E`), which is kept for genuinely secondary bits like field labels and placeholders. Links are `--lagoon` (`#124F66`) and errors and rain are `--zobo` (`#8C1C44`). The WhatsApp button uses `#0B6332`, which is darker than WhatsApp's brand green so that white text on it is 7.4:1.
+The WhatsApp button uses `#0B6332`, which is darker than WhatsApp's brand green so that white text on it is 7.4:1. The sloth's own leaves and the avatars' fills keep their colours: they are small marks.
 
-Contrast (WCAG 2.x ratio, measured): body text aims for 7:1 and never goes under 4.5:1, in both themes. Ink on wall is 11.5, `--ink-2` on wall is 8.3 (9.7 on paper), `--ink-3` on wall is 6.4 (7.5 on paper), lagoon on wall is 7.3, zobo on wall is 7.2, ink on danfo is 8.7, `--on-canopy` on canopy is 8.9 and `--on-canopy-2` is 7.5, and white on the WhatsApp green is 7.4. Every avatar fill is paired with a text colour above 4.5. Dark mode redefines the same tokens (`#0F2620` wall, `#E8F0DA` ink, `#C6D6C8` ink-2 at 10.5, `#A9BFAE` ink-3 at 8.2) and keeps danfo yellow as the action colour. The only text under 7:1 on any screen is a disabled button.
+Contrast (WCAG 2.x ratio, computed from the tokens; the density script measures what is on screen): body text is 7:1 or better in both themes. In light, ink on wall is 15.2, `--ink-2` 9.6 (10.6 on paper), `--ink-3` 8.2, lagoon 8.0, zobo 7.9, leaf 8.3, ink on danfo 10.6, and the panel's text 13.5 and 10.4. In dark, ink on wall is 16.0, `--ink-2` 11.8, `--ink-3` 8.8, lagoon 11.7, zobo 9.6, leaf 10.6. The only text under 7:1 on any screen is a disabled button.
 
 ## Type
 
@@ -53,7 +58,7 @@ The Yaba Lot            (painted title)
 9 of you, around Yaba and Lekki Phase 1
 ==============================(sloth)   branch on the panel's top edge
 | The sloth picked Saturday           |
-| Muri Okunola Park                   |  canopy-green panel
+| Muri Okunola Park                   |  the dark sloth panel
 | 4 to 7pm / 29°. Dry                 |
 | (A)(S)(Z)(D) 4 going                |
 Coming up
@@ -88,7 +93,7 @@ Bring: chips
 
 Text is left-aligned everywhere. Nothing is centred except the reading status and empty pages.
 
-At 960 px and wider, a canopy-green panel with the sloth and the tagline fills the left 42 percent, and the app column sits on the right. The bottom bar moves with the column.
+At 960 px and wider, the dark sloth panel with the sloth and the tagline fills the left 42 percent, and the app column sits on the right. The bottom bar moves with the column.
 
 ## The signature moment: you swing onto the branch
 
@@ -130,6 +135,26 @@ The flyer path is the other moment people should enjoy:
 - Only `transform`, `opacity`, `filter` and `background-size` (the highlighter) are animated.
 - Hover styles exist only under `(hover: hover) and (pointer: fine)`.
 - The idle sloth sways 2.2 degrees over 7 s. It stops with reduced motion.
+- The small signs of life are listed under "Small signs of life" below.
+
+## Small signs of life
+
+Motion is used only at a real moment, never as decoration. Each item below is tied to something happening: a wait, a tap, or good news. Taps answer on the first frame, and nothing waits for ambient motion. Only `transform`, `opacity` and the highlighter's `background-size` move. Every looping animation pauses while the tab is hidden (`data-hidden` on the root), and the Opera Mini pages stay plain. The code is in `web/src/styles/alive.css`, `Sloth.jsx` and `Branch.jsx`, and `scripts/screens-whimsy.mjs` records each moment frame by frame into `docs/screens/whimsy/`.
+
+| Moment | What moves | Reduced motion |
+|---|---|---|
+| Gemma reads the crew sentence (4 to 6 s) | A marker runs over the sentence a word at a time (150 ms apart), lifts, and goes again. The sloth's open eye follows the line. | The sentence stays plain, and the button says the sloth is reading |
+| The draft arrives | Rows settle in 45 ms apart, then the marker strokes over the guesses | A 200 ms fade |
+| The crew is made (invite screen) | The awake sloth swings once on its branch (spring, damping 0.3) | Still |
+| An awake sloth | It blinks slowly, about every 7.4 s | Still |
+| Poking the sloth (start, invite, How, desk) | It swings from its hands on pointer-down. Five quick pokes and it dozes off with "zzz", and the next poke wakes it. Nothing says so. | No swing, and the dozing still shows |
+| Empty pages | The sloth is asleep, with "zzz" drifting up | The "zzz" stays, still |
+| I'm going | The swing above, plus a leaf shaken loose that falls side to side behind the faces (1.8 s) | No leaf |
+| Your ride pod forms | A small danfo pulls out from behind the faces and brakes at its stop (spring, damping 0.7) | Parked |
+| Rain on a plan | The rain icon drips four times, then holds still | Still |
+| The Status card | The card drops onto the wall and a strip of tape presses on it | A fade |
+
+Considered and left out: a sun shimmer on dry days and idle bobbing (motion with nothing behind it), confetti, a yawn (more drawing for little gain), and transforms on page changes (they would trap the fixed bottom bar).
 
 ## The sloth
 
@@ -212,15 +237,15 @@ The app speaks plainly, in the second person, like a friend in the group chat. T
 
 | Generic default | What Come Through does instead |
 |---|---|
-| Cream background, serif display, terracotta accent | A leaf-green painted wall, a leaning sign-painter face, and danfo yellow. All three come from Lagos streets and parks. |
-| Near-black background with one acid accent | The light theme is the default, because people read it outdoors in the sun. The dark theme is canopy green, not black. |
-| The SaaS card kit: identical rounded cards and soft grey shadows | Radius follows hierarchy. The ritual is a canopy slab with a branch on its edge, plan rows hang off a date rail, flyers are tilted paper, and primary buttons sit on hard painted shadows. |
+| Cream background, serif display, terracotta accent | A sun-bleached plaster wall, a leaning sign-painter face, and danfo yellow, with green only in the sloth's leaf. All three come from Lagos streets and parks. |
+| Near-black background with one acid accent | The light theme is the default, because people read it outdoors in the sun. The dark theme is a warm near-black, so the yellow and the sloth carry it. |
+| The SaaS card kit: identical rounded cards and soft grey shadows | Radius follows hierarchy. The ritual is a dark slab with a branch on its edge, plan rows hang off a date rail, flyers are tilted paper, and primary buttons sit on hard painted shadows. |
 | All-caps eyebrows, middle-dot meta strings, monospace labels, arrows on buttons | Labels are sentence case. Meta lines use commas ("8pm, Glover Court suya spot"). There is no monospace, and buttons have no arrows. |
-| Fade-and-slide on every section | There is one orchestrated moment (the swing), one supporting moment (the highlighter), and press feedback. Everything else is still. |
+| Fade-and-slide on every section | There is one orchestrated moment (the swing), a few small signs of life tied to real moments (the sloth reading along, the danfo, the taped card), and press feedback. Nothing moves just to move. |
 | A generic illustration style | One small sloth drawn for this app, used in about six places, with three moods. |
 
 Remaining risks to watch:
 
 - Shrikhand at small sizes gets heavy, so it is never used below 19 px.
-- The green wall could look washed out on low-quality Android screens. The paper surfaces and the ink text keep contrast high, but this needs a check on a real phone.
+- The warm off-white could look yellowish on low-quality Android screens. Check it on a real phone in the sun.
 - The 2.2 s swing could feel slow to someone who taps "Going" on many plans. It plays only on your own tap and never blocks input, but this should be tested with the crew.

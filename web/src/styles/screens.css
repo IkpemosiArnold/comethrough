@@ -213,7 +213,7 @@ fieldset.field legend { padding: 0; }
 .crew-name { font-size: clamp(2.4rem, 12vw, 3.25rem); overflow-wrap: anywhere; }
 .crew-sub { margin-top: var(--s-2); color: var(--ink-2); }
 
-/* The sloth's panel. A canopy-green slab with the sloth hanging off its top edge. */
+/* The sloth's panel. A dark slab with the sloth hanging off its top edge. */
 .ritual {
   position: relative;
   display: block;
@@ -223,7 +223,7 @@ fieldset.field legend { padding: 0; }
   background: var(--canopy);
   color: var(--on-canopy);
   text-decoration: none;
-  box-shadow: 0 4px 0 #0d2a20;
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.5);
   transition: transform var(--d-press) var(--ease-out);
 }
 a.ritual:active { transform: scale(0.98); }
@@ -304,7 +304,7 @@ a.ritual:active { transform: scale(0.98); }
   object-fit: cover;
   border-radius: 4px;
   transform: rotate(3deg);
-  box-shadow: 0 2px 0 rgb(20 48 42 / 0.15), 0 6px 14px -6px rgb(20 48 42 / 0.4);
+  box-shadow: 0 2px 0 rgb(31 27 22 / 0.15), 0 6px 14px -6px rgb(31 27 22 / 0.4);
   align-self: flex-start;
   margin: -2px -2px 0 0;
 }
@@ -393,15 +393,15 @@ a.ritual:active { transform: scale(0.98); }
   height: 256px;
   filter: saturate(0.55) sepia(0.12) hue-rotate(28deg) contrast(0.96);
 }
-.map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); filter: drop-shadow(0 2px 0 rgb(20 48 42 / 0.25)); }
+.map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); filter: drop-shadow(0 2px 0 rgb(31 27 22 / 0.25)); }
 .map-attr {
   position: absolute;
   right: 0;
   bottom: 0;
   padding: 6px 10px;
   font-size: 11px;
-  color: #14302a;
-  background: rgb(248 250 241 / 0.88);
+  color: #1f1b16;
+  background: rgb(255 252 246 / 0.88);
   border-top-left-radius: 8px;
   text-decoration: none;
 }
@@ -501,7 +501,7 @@ a.ritual:active { transform: scale(0.98); }
 .bring-list .chip { white-space: normal; min-height: 40px; }
 
 .source { display: flex; gap: var(--s-4); align-items: flex-start; margin-bottom: var(--s-8); }
-.source-flyer { width: 120px; height: auto; border-radius: 4px; transform: rotate(-2deg); box-shadow: 0 2px 0 rgb(20 48 42 / 0.15), 0 10px 20px -10px rgb(20 48 42 / 0.5); flex: none; }
+.source-flyer { width: 120px; height: auto; border-radius: 4px; transform: rotate(-2deg); box-shadow: 0 2px 0 rgb(31 27 22 / 0.15), 0 10px 20px -10px rgb(31 27 22 / 0.5); flex: none; }
 .source p { margin-bottom: var(--s-2); }
 
 .plan-share { margin-bottom: var(--s-4); }
@@ -527,7 +527,7 @@ a.ritual:active { transform: scale(0.98); }
   padding: 6px;
   border-radius: var(--r-md);
   background: var(--paper);
-  box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgb(20 48 42 / 0.55);
+  box-shadow: 0 0 0 1px var(--line), 0 18px 40px -16px rgb(31 27 22 / 0.55);
   transform-origin: 20% 100%;
   animation: pop-in 170ms var(--ease-out) both;
   display: grid;
@@ -580,7 +580,7 @@ a.ritual:active { transform: scale(0.98); }
 
 /* Gemma reading */
 .reading-stage { display: grid; justify-items: center; gap: var(--s-6); padding-top: var(--s-6); }
-.poster { border-radius: 6px; box-shadow: 0 3px 0 rgb(20 48 42 / 0.18), 0 22px 40px -22px rgb(20 48 42 / 0.65); background: var(--paper); }
+.poster { border-radius: 6px; box-shadow: 0 3px 0 rgb(31 27 22 / 0.18), 0 22px 40px -22px rgb(31 27 22 / 0.65); background: var(--paper); }
 .reading-poster { position: relative; width: min(68vw, 260px); transform: rotate(-2.5deg); overflow: hidden; }
 .reading-poster img { width: 100%; height: auto; display: block; }
 .reading-quote {
