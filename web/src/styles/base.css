@@ -8,6 +8,15 @@ html {
   text-size-adjust: 100%;
   overscroll-behavior-y: none;
   background: var(--wall);
+  /* 17px body, scaled by the browser's own text size setting; every size is in rem */
+  font-size: 106.25%;
+}
+/* iPhone: the root follows Dynamic Type (17px at the default setting), so bigger text in
+   Settings makes the whole app bigger. Touch only: on a Mac this keyword is 13px. */
+@supports (font: -apple-system-body) {
+  @media (pointer: coarse) {
+    html { font: -apple-system-body; font-family: var(--font-body); }
+  }
 }
 
 body {
@@ -17,7 +26,7 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--t-md);
-  line-height: 1.5;
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -141,7 +150,7 @@ button, [role='button'], .chip, .btn {
 .btn:active { transform: scale(0.97); }
 .btn[disabled], .btn[aria-disabled='true'] { cursor: default; }
 .btn:not(.primary)[disabled] { opacity: 0.45; }
-.btn.primary[disabled] { --btn-bg: var(--wall-2); --btn-ink: var(--ink-3); box-shadow: none; }
+.btn.primary[disabled] { --btn-bg: var(--wall-2); --btn-ink: var(--ink-2); box-shadow: none; }
 .btn.primary[disabled]:has(.dots) { --btn-bg: var(--danfo); --btn-ink: var(--on-danfo); box-shadow: var(--sign); }
 .btn[disabled]:active { transform: none; }
 .btn svg { flex: none; }
@@ -161,8 +170,8 @@ button, [role='button'], .chip, .btn {
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 .btn.ghost { --btn-bg: transparent; padding: 0 var(--s-3); }
-.btn.whatsapp { --btn-bg: var(--whatsapp); --btn-ink: #fff; box-shadow: 0 3px 0 #08502a; }
-.btn.whatsapp:active { transform: translateY(2px); box-shadow: 0 1px 0 #08502a; }
+.btn.whatsapp { --btn-bg: var(--whatsapp); --btn-ink: #fff; box-shadow: 0 3px 0 #06401f; }
+.btn.whatsapp:active { transform: translateY(2px); box-shadow: 0 1px 0 #06401f; }
 .btn.canopy { --btn-bg: var(--on-canopy); --btn-ink: var(--canopy); }
 
 .icon-btn {
@@ -256,7 +265,7 @@ button.chip:active { transform: scale(0.96); }
 .sticker-found { color: var(--lagoon); }
 .sticker-hosted { color: var(--zobo); }
 .sticker-ritual { color: var(--canopy); }
-.sticker-quick { color: var(--fur); }
+.sticker-quick { color: var(--bark); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .sticker-ritual { color: #9fd3b6; }
   :root:not([data-theme='light']) .sticker-quick { color: var(--fur-light); }
