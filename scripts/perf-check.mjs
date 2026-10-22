@@ -12,7 +12,8 @@
 //   The guide is synthetic (invented events at real Lagos venues, so the venue lookups are
 //   real); no curator's feed is fetched. About 8 Gemini calls per run; --skip crew makes the
 //   crew from a written draft with no regular day (no setup call, no first pick) and
-//   --skip quiet leaves out the quiet link, and --skip ideas the busy ones. The two busy links are different event pages,
+//   --skip quiet leaves out the quiet link, and --skip ideas the busy ones; --skip draft makes
+//   a crew with a regular day from a written draft (the first pick, without the setup call). The two busy links are different event pages,
 //   so neither finds the other's venue in the cache: one is read while Gemma reads the
 //   guide, the other right after, while the guide's venues are looked up.
 //   Prints a JSON report; tokens are never printed.
@@ -108,11 +109,15 @@ try {
     token = made.body.memberToken;
     report.crew = { skipped: true, createMs: made.ms };
   } else {
-  // 1. Start a crew: the sentence, then the confirm (the invite screen shows after this)
-  const draft = await call("POST", "/api/crews", { json: { sentence: SENTENCE, hint: { tz: "Africa/Lagos" } } });
+  // 1. Start a crew: the sentence, then the confirm (the invite screen shows after this);
+  //    --skip draft confirms a written draft with a regular day instead (no setup call)
+  const draft = SKIP.includes("draft")
+    ? { ms: 0, status: 200, body: { draft: { name: "Perf crew", vibe: "outside and cheap", vibeTags: ["outside"], budget: "cheap", rhythm: { every: "2w", day: 6, window: { from: "15:00", to: "19:00" } }, taste: null, areas: [{ label: "Yaba", lat: 6.5068, lon: 3.3755 }, { label: "Lekki Phase 1", lat: 6.4474, lon: 3.4723 }], region: { center: { lat: 6.4771, lon: 3.4239 }, countryCode: "NG", city: "Lagos", timezone: "Africa/Lagos", tzSource: "open-meteo" } } } }
+    : await call("POST", "/api/crews", { json: { sentence: SENTENCE, hint: { tz: "Africa/Lagos" } } });
   if (draft.status !== 200) throw new Error(`draft: ${draft.status} ${JSON.stringify(draft.body)}`);
   const { confidence, low, notes, ai, pack, taste, ...rest } = draft.body;
-  const made = await call("POST", "/api/crews", { json: { confirm: rest.draft, organiser: { name: "Tolu", area: "Yaba" }, hint: { tz: "Africa/Lagos" } } });
+  const organiser = SKIP.includes("draft") ? { name: "Tolu", area: { label: "Yaba", lat: 6.5068, lon: 3.3755 } } : { name: "Tolu", area: "Yaba" };
+  const made = await call("POST", "/api/crews", { json: { confirm: rest.draft, organiser, hint: { tz: "Africa/Lagos" } } });
   if (made.status !== 201) throw new Error(`create: ${made.status} ${JSON.stringify(made.body)}`);
   slug = made.body.crew.slug;
   token = made.body.memberToken;

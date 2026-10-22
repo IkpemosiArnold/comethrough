@@ -144,11 +144,82 @@ Built by `node scripts/build-spots.mjs` on 21 Oct 2026: 26 spots, every coordina
 
 Not found in OSM under their names on 21 Oct 2026: Elegushi Beach (only a road), Landmark Beach, Atican Beach, Alpha Beach, Eleko Beach, Bar Beach, JJT Park, Ndubuisi Kanu Park, Jhalobia Recreation Park, Omu Resort, Lagos Yacht Club, Dreamworld Africana, Lekki Leisure Lake, Point of No Return. Twelve of them are now added from Wikidata (CC0) by `scripts/add-wikidata-spots.mjs`; Alpha Beach and Lekki Leisure Lake have no open coordinates anywhere, and Bar Beach is left out on purpose. Details in LOCAL-FACTS.md, "Famous spots". Mapping these in OpenStreetMap would still help everyone.
 
+## Speed: the first pick in the background, and two lanes, Thu 22 Oct 2026
+
+The UX builder measured about 43 s to make a crew and see its invite with the sloth's
+pick, and about 48 s to post a link plan while the ideas card read the guides.
+`scripts/perf-check.mjs` drives both flows live over HTTP on port 3200 (fresh data folder,
+`TIMING=1`, Gemini gemma-4-26b-a4b-it, Photon, Overpass, OSRM, Open-Meteo, the Eventbrite
+pages below) and takes `--root` to run an older copy through the same steps. The guide is
+synthetic (20 invented events at real Lagos venues, so the venue lookups are real); no
+curator's feed was fetched. "Before" is commit c9fedb1 (the old code with the timing logs
+added), run at 10:12 and 10:15 WAT; "after" is 4dd12de, run at 10:50, 11:11 and 11:12 WAT.
+19 Gemini calls in all. The machine was busy for the after runs (load average 300 to 800:
+another project's build and other test runs), and Photon refused connections at 11:11.
+
+| Step | Before | After |
+|---|---|---|
+| Setup sentence (POST /api/crews `{ sentence }`) | 7.7 s: Gemma 5.2, areas 1.2, region 1.2 | 15.8 s: Gemma **10.1**, areas 1.3, region 1.0. Again: 7.7 s, Gemma 5.4, areas 2.1 (Photon down, no pins) |
+| Make the crew (confirm) | 10 ms | 1.1 s (a 0.75 s file write on the busy machine); 1.6 s as a cold process's first request (0.4 s in the server) |
+| The first pick | **45.0 s inside POST /first-pick**: Overpass 40.0 (no endpoint answered), forecast 1.1, OSRM 1.1, explain 1.6, invite 1.3 | **In the background**, ready 14.6 s after the crew: map 8.0 (its budget; the curated spots carried it), forecast 2.7 at the same time, OSRM 1.6, explain 2.3, invite 1.8. Nobody waits: the invite screen offers "Share now" |
+| Sentence to invite screen | 7.7 s (then 45 s more for the pick card) | the setup call plus the confirm: 9.7 s and 16.9 s here, both set by Gemma |
+| Link plan, quiet | 5.9 s: page 0.5, Gemma 4.5, pin 0.9 | 6.4 s: page 0.4, Gemma 4.6, pin 1.1 |
+| Link plan while Gemma reads the guide (a 45 s call in flight) | 7.7 s: page 1.8, Gemma 5.0, pin 0.9 | 5.9 s: page 0.8, Gemma 4.5, pin 0.7 |
+| Link plan while the guide's 20 venues are looked up | 6.6 s: page 1.7, Gemma 4.0, pin 0.9 | 4.8 s: page 0.6, Gemma 3.9, pin 0.3 |
+| Ideas card, cold | 41.4 and 52.2 s (map 15.0 budget, guides 25.0 budget, partial) | 31.5 s (map 6.3, guides 25.0 budget, partial) |
+
+What the numbers say:
+
+- **The 43 s was the first pick, and the first pick was Overpass.** Every public Overpass
+  instance timed out (40 s budget) in both runs; the curated spots then carried the pick.
+  The pick is now a background job, the map gets 8 s on it (then the curated spots or
+  Wikidata's parks, and the query goes on filling the week-long tile cache), and a new
+  crew's places and forecast are already being looked up while the organiser reads the
+  draft.
+- **The 48 s did not reproduce.** With a 45 s guide read in flight, and with the guide's 20
+  venues being looked up, a link plan took 6.6 to 7.7 s before and 4.8 to 5.9 s after.
+  Gemini answered the plan at its normal speed beside a long call, and the old Photon queue
+  held at most one venue lookup ahead of the pin, because the guide looks venues up one at
+  a time. What could make 48 s, and is now closed: two guides read at once (two long
+  Gemma calls, then two venue loops) with Overpass and OSRM queues shared by everyone; a
+  Gemma 429 or 5xx while the background used the quota, then the retry and the fallback
+  model (up to about 100 s); a slow Photon or Open-Meteo with retries. Now user calls have
+  their own slots at Gemma, Photon, Nominatim and OSRM, the background gets one Gemma call
+  at a time and six a minute, and someone waiting is given up on with an honest fallback
+  (Gemma 35 s, the pin 8 s, the forecast 6 s).
+- **The setup sentence is Gemma's time.** One Gemma call reads the name, rhythm, vibe, areas
+  and taste (checked: `CREW_SCHEMA` has `taste`, and `draftCrew` makes one call; the
+  "what you're into" line goes in the same call). The same sentence took Gemma 5.2, 5.4
+  and 10.1 s. The rest is 1 to 2 s: the areas, now looked up together (two at a time at
+  Photon), and the region's city and zone, now asked at once and cached by area (0.05 and
+  0.25 degrees), so every crew in a city after the first skips them. On a good connection
+  that is about 5 to 6 s for a second Lagos crew, 6 to 7 s for the first.
+
+What changed (4dd12de, 781a3e3):
+
+- `crew.firstPick: { status: "pending"|"ready"|"failed", planId, reason, attempts, ... }`
+  (src/core/firstpick.mjs). The confirm answers with it pending; the pick starts once the
+  answer is sent; `GET /api/crews/:slug/first-pick?wait=25` follows it; the heartbeat
+  retries a failed pick after 1 min, 15 min and 3 h (4 tries), and one cut off by a restart
+  after 3 minutes. The plan id is still the crew and the date, so a second run finds it.
+- `src/adapters/lanes.mjs`: the user and background lanes (AsyncLocalStorage), a gate with
+  per-lane concurrency, a shared gap and the user lane first, and `laneAi` around the LLM
+  port. Background: the heartbeat, the first pick, the ideas card and the guides.
+- Overpass cached by 2.2 km tile, OSRM by 550 m tile with one row per member area (a new
+  ritual asks only for new places).
+- Parallel: a crew's areas, its city and zone, the ritual's places and forecast, pod
+  routes, the ideas card's places and forecast.
+- The invite screen: "The sloth is picking Saturday...", "Share now" with the plain invite,
+  then "Share with the plan" when the pick lands (docs/SPEC.md, UI requests, 22 Oct).
+
+`TIMING=1` logs one `timing` line per flow with its stages, and `lane_wait` for every wait
+of 100 ms or more in a lane.
+
 ## Running it
 
 ```sh
 npm install
-npm test               # 179 tests: core, city packs, adapters (fakes and a local HTTP server), service, API end to end
+npm test               # 192 tests: core, city packs, adapters (fakes and a local HTTP server), service, API end to end
 npm run typecheck      # tsc over the JSDoc types
 npm run dev            # http://localhost:3000, reads .env; serves web/dist too when it is built
 OFFLINE=1 npm run dev  # no keys, no network: fakes for every outside service
@@ -160,6 +231,8 @@ node scripts/pidgin-eval.mjs                # 16 Pidgin and mixed English inputs
 node scripts/cities-check.mjs [city ...]    # a crew in Lagos, London, Berlin, Nairobi, Bengaluru and New York, live (LOCAL-FACTS.md, "Beyond Lagos")
 node scripts/events-check.mjs <url> ...     # real event pages through the link reader
 npm run e2e -- <base> <event link>          # the whole flow over HTTP (scripts/e2e.mjs)
+node scripts/perf-check.mjs [--root <older copy>] [--skip crew,draft,quiet,ideas]   # crew and link-plan timings, live, on port 3200
+TIMING=1 npm run dev                         # a `timing` log line per slow flow, with its stages
 node scripts/push-check.mjs <base>          # real Web Push through headless Chrome and FCM
 node scripts/screens-real.mjs <base> docs/screens/real <event link>   # screenshots on live data
 node scripts/screens-mock.mjs <base> docs/screens                    # the plan screens on the demo data
@@ -201,4 +274,9 @@ Exact steps, checks after deploy and the phone checklist: [DEPLOY.md](DEPLOY.md)
   one guide event was still to come. Re-run `scripts/ideas-check.mjs` on Friday.
 - Ollama was tested only with a 4B text model on an old CPU. The two ideas tasks were not
   run on it, and no vision model was tried.
+- A crew whose areas found no pin at setup (Photon down, as at 11:11 on 22 Oct) gets a
+  failed first pick (`no_location`) that retries cannot fix until a member joins with an
+  area on the map; the heartbeat's own ritual comes then. The invite shares without a plan.
+- The 48 s link plan of 21 Oct was not reproduced (see "Speed"); watch `lane_wait` and
+  `timing` in the logs with `TIMING=1` on Render for a day.
 - No email or account recovery by design: losing the member link means joining again. A "send me my link" option could come later.
