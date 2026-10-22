@@ -1048,9 +1048,28 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return new Set(podGroups(plan, members, crew).pods.filter((p) => p.memberIds.length > 1).map((p) => p.memberIds.join(",")));
   }
 
+  /**
+   * What the pods depend on: the time, the place (or where it is near), the host and who is
+   * going from where. Kept pods are used only while this is unchanged.
+   */
+  const podSig = (/** @type {Plan} */ plan, /** @type {Member[]} */ members) => JSON.stringify([plan.start, plan.place?.lat ?? null, plan.place?.lon ?? null, nearOf(plan, members), plan.host ?? null, riders(plan, members).map((r) => [r.id, r.area?.lat ?? null, r.area?.lon ?? null])]);
+
+  /** The pods last worked out with road routes for this plan, when they still fit; else null. */
+  async function keptPods(/** @type {Plan} */ plan, /** @type {Member[]} */ members) {
+    const doc = await store.get("podcache", plan.id);
+    return doc && doc.sig === podSig(plan, members) && doc.result ? doc.result : null;
+  }
+
+  /** Pods with road routes, worked out now and kept (background jobs and the answer's own pod check). */
+  async function routedPods(/** @type {Plan} */ plan, /** @type {Member[]} */ members, /** @type {Crew} */ crew) {
+    const r = await computePods(plan, members, crew);
+    await store.put("podcache", { id: plan.id, crewId: crew.id, sig: podSig(plan, members), result: r, at: new Date(now()).toISOString(), expiresAt: plan.expiresAt });
+    return r;
+  }
+
   async function notifyNewPods(plan, crew, members, before) {
     if ((!isLatLon(plan.place) && !nearOf(plan, members)) || plan.status === "cancelled") return;
-    for (const pod of (await computePods(plan, members, crew)).pods) {
+    for (const pod of (await routedPods(plan, members, crew)).pods) {
       const key = pod.memberIds.join(",");
       if (pod.memberIds.length < 2 || before.has(key)) continue;
       await notify(pod.memberIds, { title: `Ride pod for ${plan.title}`, body: pod.shareText, url: links.plan(crew, plan.id), tag: `${plan.id}-pod` }, `${plan.id}:pod:${key}`);
@@ -1082,13 +1101,20 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // the ride apps the crew's pack has verified (in Lagos: Bolt, inDrive, LagRide; none
     // takes a drop-off from a link); elsewhere none, and "Get directions" instead
     const { pack } = placeOf(crew);
-    return { ...(await computePods(plan, members, crew)), rides: ridesForApi(pack.rides), directions: directionsLinks(plan.place) };
+    const kept = await keptPods(plan, members);
+    return { ...(kept ?? (await routedPods(plan, members, crew))), rides: ridesForApi(pack.rides), directions: directionsLinks(plan.place) };
   }
 
-  /** The member's pod line and leave-by for a plan, for the calendar. */
+  /**
+   * The member's pod line and leave-by for a plan, for the calendar. Calendar apps and
+   * Google's servers read feeds on their own schedule, so a read never asks OSRM: it uses
+   * the pods kept by the background (the heartbeat, an answer's pod check), else the
+   * straight-line estimate, which says it is one.
+   */
   async function podExtras(plan, members, memberId, crew) {
     if (plan.rsvps?.[memberId] !== "going" || (!isLatLon(plan.place) && !nearOf(plan, members))) return {};
-    const pod = (await computePods(plan, members, crew)).pods.find((p) => p.memberIds.includes(memberId));
+    const pods = ((await keptPods(plan, members)) ?? podGroups(plan, members, crew)).pods;
+    const pod = pods.find((/** @type {any} */ p) => p.memberIds.includes(memberId));
     return pod?.leaveBy ? { leaveBy: pod.leaveBy, podText: pod.shareText } : {};
   }
 
@@ -1490,7 +1516,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   async function heartbeat() {
     const t = now();
-    const out = { rituals: 0, firstPicks: 0, weatherChecked: 0, rainAlerts: 0, pushes: 0, expired: 0, errors: 0 };
+    const out = { rituals: 0, firstPicks: 0, weatherChecked: 0, rainAlerts: 0, pushes: 0, podsRouted: 0, expired: 0, errors: 0 };
     const crews = /** @type {Crew[]} */ (await store.find("crews"));
     for (const crew of crews) {
       try {
@@ -1511,6 +1537,16 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         if (due.due) {
           const r = await makeRitual(crew, due, live);
           if (r.made) out.rituals++;
+        }
+        // the pods of the coming week's plans, with road routes, kept for calendar reads
+        const members = live.some((p) => goingIds(p).length) ? await membersOf(crew.id) : [];
+        for (const p of live) {
+          const start = parseInstant(p.start);
+          if (p.status === "cancelled" || start < t || start - t > 7 * DAY || !goingIds(p).length || (!isLatLon(p.place) && !nearOf(p, members))) continue;
+          if (!(await keptPods(p, members))) {
+            await routedPods(p, members, crew);
+            out.podsRouted++;
+          }
         }
         // outdoor plans in the forecast's useful range are rechecked; alerts only within 3 days,
         // because a forecast further out changes too often to be worth a buzz
@@ -1545,7 +1581,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     // MongoDB's TTL index removes expired flyers and deliveries by itself; the file store needs a sweep
     if (store.kind !== "mongo") {
-      for (const c of ["flyers", "deliveries"]) for (const f of await store.find(c)) if (Date.parse(f.expiresAt) <= t) await store.delete(c, f.id);
+      for (const c of ["flyers", "deliveries", "podcache"]) for (const f of await store.find(c)) if (Date.parse(f.expiresAt) <= t) await store.delete(c, f.id);
     }
     log("tick", out);
     return out;

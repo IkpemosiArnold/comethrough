@@ -103,6 +103,10 @@ Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, cross
 
 Times are ISO 8601 with an offset (`2026-10-24T16:00:00+01:00`). Plans expire 30 days after they end. A hosted place marked `private` (a home address) is visible only to crew members. `seq` goes up on every change (it is the calendar SEQUENCE). `token` is the member's own link secret (read and write as that member); `calToken` only reads the calendar feed, because calendar apps and Google's servers see that URL.
 
+### Calendar reads do no routing (25 Oct, from Astra's review)
+
+Calendar apps and Google's servers fetch `/cal/<calToken>.ics` on their own schedule, so a feed read (and the one-event file) never asks OSRM. Pods with road routes are worked out in the background, by the heartbeat for every plan in the coming week with someone going, and by an answer's own pod check, and kept in `podcache` (by plan, with a signature of the time, the place, the host and who is going from where; removed with the plan). A read uses the kept pods while the signature matches, else the straight-line estimate, which says it is one. The feed text itself is built per read from stored data, which is cheap.
+
 ### Concurrent writes (25 Oct, from Astra's review)
 
 Two people answering at the same moment, or the heartbeat's forecast landing beside an answer, never undo each other. Every document carries a `version` (missing on old documents, read as none), bumped by every change. `put` replaces a whole document and is used only to create one; `insert` creates only when the id is new (the ritual's plan, push deliveries). Changes go through `update`, a targeted `$set` / `$unset` / `$inc` (Mongo `findOneAndUpdate`; the memory and file stores apply it in one synchronous step of the single process, which is their per-document lock):

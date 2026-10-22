@@ -43,7 +43,7 @@ import path from "node:path";
  * @typedef {{ set?: Record<string, any>, unset?: string[], inc?: Record<string, number> }} Change
  */
 
-export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "deliveries", "flyers", "faces"];
+export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "deliveries", "podcache", "flyers", "faces"];
 
 /** A path segment may not start with $ or hold a dot inside it (ids are [A-Za-z0-9_-]). */
 const SAFE_PATH = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;
@@ -256,6 +256,8 @@ export const MONGO_INDEXES = {
   sent: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   // push deliveries: the heartbeat looks for the ones due again (src/app/service.mjs, notify)
   deliveries: [[{ state: 1, nextAt: 1 }, {}], [{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
+  // a plan's pods as last worked out with road routes (calendar reads use them, never OSRM)
+  podcache: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   flyers: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   // a member's photo, by member id (about 27 KB as base64; Mongo's limit is 16 MB)
   faces: [[{ crewId: 1 }, {}]],
