@@ -1,0 +1,4531 @@
+{
+ "version": "v2",
+ "about": "Persona eval v2 for Come Through: 60 crews from explicit dimensions, frozen before any run. See eval/personas/FROZEN.md for the rules and the hash, and eval/checks.mjs for what each hard constraint means.",
+ "seed": 20261022,
+ "target": {
+  "date": "2026-10-24",
+  "weekday": "Saturday",
+  "now": "2026-10-22T11:00:00Z"
+ },
+ "dimensions": {
+  "budget": [
+   "broke",
+   "cheap",
+   "mid",
+   "comfortable"
+  ],
+  "age": [
+   "teens",
+   "students",
+   "20s",
+   "30s",
+   "40s+",
+   "retirees"
+  ],
+  "size": [
+   "small (4 to 5)",
+   "medium (6 to 9)",
+   "large (10 or more)"
+  ],
+  "interests": [
+   "alte",
+   "afrobeats nightlife",
+   "gospel",
+   "football watch parties",
+   "gamers",
+   "foodies",
+   "book club",
+   "fitness",
+   "art",
+   "tech meetups",
+   "owambe",
+   "chess",
+   "family",
+   "quiet",
+   "hangout"
+  ],
+  "constraints": [
+   "no alcohol: church",
+   "no alcohol: mosque",
+   "no alcohol: faith",
+   "no alcohol: sober",
+   "kids",
+   "step-free",
+   "night-shift",
+   "women-only"
+  ],
+  "sensitive": [
+   "lgbtq",
+   "religious-minority"
+  ],
+  "language": [
+   "pidgin",
+   "mixed",
+   "plain"
+  ]
+ },
+ "interests": {
+  "alte": {
+   "kinds": [
+    "gallery",
+    "arts centre",
+    "cafe",
+    "bookshop",
+    "thrift",
+    "live music"
+   ],
+   "keywords": [
+    "art",
+    "exhibition",
+    "alte",
+    "indie",
+    "fashion",
+    "thrift",
+    "gallery",
+    "poetry",
+    "live music",
+    "vintage"
+   ]
+  },
+  "afrobeats nightlife": {
+   "kinds": [
+    "nightclub",
+    "bar",
+    "live music",
+    "restaurant",
+    "pub"
+   ],
+   "keywords": [
+    "afrobeats",
+    "amapiano",
+    "party",
+    "club",
+    "dj",
+    "concert",
+    "rave",
+    "live",
+    "highlife",
+    "night"
+   ]
+  },
+  "gospel": {
+   "kinds": [
+    "community centre",
+    "theatre",
+    "live music",
+    "park",
+    "garden"
+   ],
+   "keywords": [
+    "gospel",
+    "worship",
+    "praise",
+    "choir",
+    "concert",
+    "hymn"
+   ]
+  },
+  "football watch parties": {
+   "kinds": [
+    "sports",
+    "bar",
+    "pub",
+    "restaurant",
+    "street food"
+   ],
+   "keywords": [
+    "football",
+    "match",
+    "viewing",
+    "premier league",
+    "champions league",
+    "screening",
+    "watch party",
+    "derby",
+    "sports"
+   ]
+  },
+  "gamers": {
+   "kinds": [
+    "arcade",
+    "bowling",
+    "cinema",
+    "cafe"
+   ],
+   "keywords": [
+    "gaming",
+    "games",
+    "game",
+    "esports",
+    "arcade",
+    "fifa",
+    "playstation",
+    "board game",
+    "console"
+   ]
+  },
+  "foodies": {
+   "kinds": [
+    "restaurant",
+    "street food",
+    "market",
+    "cafe",
+    "ice cream"
+   ],
+   "keywords": [
+    "food",
+    "brunch",
+    "tasting",
+    "suya",
+    "market",
+    "chef",
+    "dinner",
+    "buka",
+    "grill",
+    "jollof",
+    "feira",
+    "street food",
+    "pop-up"
+   ]
+  },
+  "book club": {
+   "kinds": [
+    "bookshop",
+    "library",
+    "cafe",
+    "garden"
+   ],
+   "keywords": [
+    "book",
+    "books",
+    "reading",
+    "author",
+    "literary",
+    "poetry",
+    "library",
+    "writers"
+   ]
+  },
+  "fitness": {
+   "kinds": [
+    "park",
+    "sports",
+    "beach",
+    "garden"
+   ],
+   "keywords": [
+    "run",
+    "running",
+    "fitness",
+    "yoga",
+    "workout",
+    "hike",
+    "walk",
+    "cycling",
+    "5k",
+    "bootcamp"
+   ]
+  },
+  "art": {
+   "kinds": [
+    "gallery",
+    "museum",
+    "arts centre"
+   ],
+   "keywords": [
+    "art",
+    "exhibition",
+    "gallery",
+    "museum",
+    "painting",
+    "craft",
+    "installation",
+    "opening"
+   ]
+  },
+  "tech meetups": {
+   "kinds": [
+    "cafe",
+    "community centre",
+    "library"
+   ],
+   "keywords": [
+    "tech",
+    "startup",
+    "developer",
+    "developers",
+    "meetup",
+    "ai",
+    "hackathon",
+    "coding",
+    "product",
+    "founders"
+   ]
+  },
+  "owambe": {
+   "kinds": [
+    "restaurant",
+    "community centre",
+    "market",
+    "live music"
+   ],
+   "keywords": [
+    "owambe",
+    "party",
+    "fuji",
+    "juju",
+    "highlife",
+    "food",
+    "dance",
+    "aso ebi",
+    "celebration"
+   ]
+  },
+  "chess": {
+   "kinds": [
+    "park",
+    "cafe",
+    "library",
+    "community centre"
+   ],
+   "keywords": [
+    "chess",
+    "board game",
+    "board games",
+    "tournament",
+    "draughts"
+   ]
+  },
+  "family": {
+   "kinds": [
+    "playground",
+    "park",
+    "zoo",
+    "ice cream",
+    "theme park",
+    "garden"
+   ],
+   "keywords": [
+    "kids",
+    "family",
+    "children",
+    "fun day",
+    "carnival",
+    "storytime",
+    "puppet"
+   ]
+  },
+  "quiet": {
+   "kinds": [
+    "garden",
+    "park",
+    "cafe",
+    "museum",
+    "gallery",
+    "library",
+    "bookshop"
+   ],
+   "keywords": [
+    "garden",
+    "walk",
+    "tea",
+    "lunch",
+    "exhibition"
+   ]
+  },
+  "hangout": {
+   "kinds": [
+    "park",
+    "garden",
+    "cafe",
+    "restaurant",
+    "beach",
+    "cinema"
+   ],
+   "keywords": [
+    "hangout",
+    "picnic",
+    "games",
+    "comedy",
+    "film",
+    "brunch"
+   ]
+  }
+ },
+ "personas": [
+  {
+   "id": "lag-alte-yaba",
+   "label": "Alte crew, mid 20s",
+   "sentence": "Alte crew, 6 of us, mid 20s, thrift and gallery people, every other Saturday around Yaba and Surulere",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "alte"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "gallery",
+     "arts centre",
+     "cafe",
+     "bookshop",
+     "thrift",
+     "live music"
+    ],
+    "keywords": [
+     "art",
+     "exhibition",
+     "alte",
+     "indie",
+     "fashion",
+     "thrift",
+     "gallery",
+     "poetry",
+     "live music",
+     "vintage"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    }
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-turnup-vi",
+   "label": "Afrobeats turn-up squad",
+   "sentence": "Na we be the turn up squad, 8 of us for VI and Lekki, Afrobeats and amapiano every Saturday night, money no be problem",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    },
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "afrobeats nightlife"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "VI",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "nightclub",
+     "bar",
+     "live music",
+     "restaurant",
+     "pub"
+    ],
+    "keywords": [
+     "afrobeats",
+     "amapiano",
+     "party",
+     "club",
+     "dj",
+     "concert",
+     "rave",
+     "live",
+     "highlife",
+     "night"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-choir-ikeja",
+   "label": "Choir friends, gospel",
+   "sentence": "Choir friends from church, about 10 of us, gospel music lovers, every other Saturday afternoon around Ikeja and Maryland, nothing with alcohol",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Maryland",
+     "lat": 6.571,
+     "lon": 3.367,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "large",
+    "interests": [
+     "gospel"
+    ],
+    "constraints": [
+     "no alcohol: church"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "community centre",
+     "theatre",
+     "live music",
+     "park",
+     "garden"
+    ],
+    "keywords": [
+     "gospel",
+     "worship",
+     "praise",
+     "choir",
+     "concert",
+     "hymn"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-football-surulere",
+   "label": "Football boys, Surulere",
+   "sentence": "Na we dey watch match for Surulere every Saturday, Arsenal and Chelsea boys, 12 of us, small money abeg",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "20s",
+    "size": "large",
+    "interests": [
+     "football watch parties"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Surulere",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "sports",
+     "bar",
+     "pub",
+     "restaurant",
+     "street food"
+    ],
+    "keywords": [
+     "football",
+     "match",
+     "viewing",
+     "premier league",
+     "champions league",
+     "screening",
+     "watch party",
+     "derby",
+     "sports"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-gamers-ikorodu",
+   "label": "Gamers, Ikorodu",
+   "sentence": "Gamers from Ikorodu, FIFA and PS5 heads, 5 of us, early 20s, every other Saturday, cheap things only",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikorodu",
+     "lat": 6.619,
+     "lon": 3.511,
+     "tolKm": 10
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "20s",
+    "size": "small",
+    "interests": [
+     "gamers"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Ikorodu",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "arcade",
+     "bowling",
+     "cinema",
+     "cafe"
+    ],
+    "keywords": [
+     "gaming",
+     "games",
+     "game",
+     "esports",
+     "arcade",
+     "fifa",
+     "playstation",
+     "board game",
+     "console"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-foodie-girls-lekki",
+   "label": "Foodie girls, 30s",
+   "sentence": "Foodie girls, 4 of us in our 30s, we try new restaurants every other Saturday around Lekki and Ikoyi, budget is fine",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    },
+    {
+     "label": "Ikoyi",
+     "lat": 6.452,
+     "lon": 3.435,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "foodies"
+    ],
+    "constraints": [
+     "women-only"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Lekki",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "needsInclude": [
+     "women-friendly"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-bookclub-yaba",
+   "label": "Book club, quiet",
+   "sentence": "Book club, 7 of us, late 20s to 30s, we meet every other Saturday around Yaba and Gbagada, quiet places please",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Gbagada",
+     "lat": 6.555,
+     "lon": 3.389,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "book club"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "bookshop",
+     "library",
+     "cafe",
+     "garden"
+    ],
+    "keywords": [
+     "book",
+     "books",
+     "reading",
+     "author",
+     "literary",
+     "poetry",
+     "library",
+     "writers"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noNightlife": true
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-runclub-lekki",
+   "label": "Run club, 7am",
+   "sentence": "Run club, 15 of us, we run Saturday mornings around 7am in Lekki Phase 1 and VI, then breakfast after",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Lekki Phase 1",
+     "lat": 6.448,
+     "lon": 3.472,
+     "tolKm": 4
+    },
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "large",
+    "interests": [
+     "fitness"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Lekki Phase 1",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "sports",
+     "beach",
+     "garden"
+    ],
+    "keywords": [
+     "run",
+     "running",
+     "fitness",
+     "yoga",
+     "workout",
+     "hike",
+     "walk",
+     "cycling",
+     "5k",
+     "bootcamp"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "withinHours": [
+     "06:00",
+     "11:00"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-art-ikoyi",
+   "label": "Art lovers, comfortable",
+   "sentence": "Art lovers in our 30s and 40s, galleries and exhibitions every other Saturday around Ikoyi and VI, money is not an issue",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikoyi",
+     "lat": 6.452,
+     "lon": 3.435,
+     "tolKm": 4
+    },
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "40s+",
+    "size": "small",
+    "interests": [
+     "art"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikoyi",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "gallery",
+     "museum",
+     "arts centre"
+    ],
+    "keywords": [
+     "art",
+     "exhibition",
+     "gallery",
+     "museum",
+     "painting",
+     "craft",
+     "installation",
+     "opening"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-tech-yaba",
+   "label": "Techies, Yaba",
+   "sentence": "Techies from Yaba, devs and product people in our 20s, we like meetups and hackathons, every other Saturday around Yaba and Ikeja",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "tech meetups"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "cafe",
+     "community centre",
+     "library"
+    ],
+    "keywords": [
+     "tech",
+     "startup",
+     "developer",
+     "developers",
+     "meetup",
+     "ai",
+     "hackathon",
+     "coding",
+     "product",
+     "founders"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-owambe-aunties",
+   "label": "Owambe aunties",
+   "sentence": "Owambe aunties from Surulere and Festac, we love party, fuji music and good food, every other Saturday afternoon, 10 of us in our 50s",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    },
+    {
+     "label": "Festac",
+     "lat": 6.466,
+     "lon": 3.284,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "40s+",
+    "size": "large",
+    "interests": [
+     "owambe"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Surulere",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "community centre",
+     "market",
+     "live music"
+    ],
+    "keywords": [
+     "owambe",
+     "party",
+     "fuji",
+     "juju",
+     "highlife",
+     "food",
+     "dance",
+     "aso ebi",
+     "celebration"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-chess-ikeja",
+   "label": "Chess club, Ikeja GRA",
+   "sentence": "Chess club, 6 guys of mixed ages, every Saturday afternoon around Ikeja GRA, cheap or free",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja GRA",
+     "lat": 6.578,
+     "lon": 3.355,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "chess"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikeja GRA",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "cafe",
+     "library",
+     "community centre"
+    ],
+    "keywords": [
+     "chess",
+     "board game",
+     "board games",
+     "tournament",
+     "draughts"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-teens-festac",
+   "label": "Teens with a parent, Festac",
+   "sentence": "My teenagers and their friends, 13 to 16, I come with them, every other Saturday around Festac, no parties and nothing late",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Festac",
+     "lat": 6.466,
+     "lon": 3.284,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "teens",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "kids"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Festac",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "noNightlife": true
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-unilag-broke",
+   "label": "Broke UNILAG students",
+   "sentence": "Broke UNILAG students, 8 of us, every other Saturday around Yaba and Akoka, free or very cheap only",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Akoka",
+     "lat": 6.523,
+     "lon": 3.388,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "students",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-ajah-free",
+   "label": "Free things only, Ajah (Pidgin)",
+   "sentence": "Abeg we no get money o, na free things only, 5 of us for Ajah, every other Saturday, anything wey no cost",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ajah",
+     "lat": 6.468,
+     "lon": 3.577,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "20s",
+    "size": "small",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Ajah",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 0,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-mosque-ikeja",
+   "label": "Brothers from the mosque",
+   "sentence": "Brothers from the mosque, 20s and 30s, every other Saturday after Asr around Ikeja and Ojota, no alcohol",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Ojota",
+     "lat": 6.587,
+     "lon": 3.381,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "no alcohol: mosque"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-sober-lekki",
+   "label": "Sober crew, in recovery",
+   "sentence": "Sober crew, 30s, all of us in recovery, no bars or drinks at all, every other Saturday around Lekki and Ajah",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    },
+    {
+     "label": "Ajah",
+     "lat": 6.468,
+     "lon": 3.577,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "no alcohol: sober"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Lekki",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-wheelchair-ikeja",
+   "label": "Wheelchair user in the crew",
+   "sentence": "One of us uses a wheelchair, so step-free places only, 5 friends in our 30s, every other Saturday around Ikeja and Maryland",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Maryland",
+     "lat": 6.571,
+     "lon": 3.367,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "step-free"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "stepFree": true,
+    "needsInclude": [
+     "step-free"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-nightshift-ikeja",
+   "label": "Night-shift call centre crew",
+   "sentence": "We all work night shift at a call centre, 20s, Saturday afternoons between 2 and 6 are our only free time, around Ikeja and Ogba",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Ogba",
+     "lat": 6.627,
+     "lon": 3.339,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "night-shift"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "withinHours": [
+     "14:00",
+     "18:00"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-nightshift-vi-pidgin",
+   "label": "Night workers, VI (Pidgin)",
+   "sentence": "Na night work we dey do for VI, security and nurses, we only free Saturday afternoon from 1 to 5, 6 of us, around VI and Obalende",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    },
+    {
+     "label": "Obalende",
+     "lat": 6.448,
+     "lon": 3.404,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "night-shift"
+    ],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "VI",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "withinHours": [
+     "13:00",
+     "17:00"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-sisterhood-surulere",
+   "label": "Women only, 30s and 40s",
+   "sentence": "Women only, 9 of us in our 30s and 40s, a sisterhood that hangs out every other Saturday around Surulere and Yaba, nothing rowdy",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    },
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "40s+",
+    "size": "large",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [
+     "women-only"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Surulere",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "needsInclude": [
+     "women-friendly"
+    ],
+    "noNightlife": true
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-queer-girls-pidgin",
+   "label": "Queer women (Pidgin)",
+   "sentence": "Na my girls, we be queer women, 5 of us, late 20s, abeg somewhere quiet every other Saturday for Yaba and Lekki",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "small",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [
+     "women-only"
+    ],
+    "sensitive": "lgbtq",
+    "language": "pidgin",
+    "geo": "across the lagoon",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "needsInclude": [
+     "safe",
+     "discreet"
+    ],
+    "discreetNoLabel": {
+     "labels": "queer|lesbian|lesbians|\\bgay\\b|\\bgays\\b|lgbt\\w*|sapphic|bisexual|\\bbi\\b|homosexual|same[- ]sex"
+    }
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-gay-men-ikoyi",
+   "label": "Gay men, early 30s",
+   "sentence": "Gay guys, 4 of us, early 30s, we need somewhere discreet where nobody stares, every other Saturday around Ikoyi and Surulere",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikoyi",
+     "lat": 6.452,
+     "lon": 3.435,
+     "tolKm": 4
+    },
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": "lgbtq",
+    "language": "plain",
+    "geo": "across the lagoon",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "needsInclude": [
+     "safe",
+     "discreet"
+    ],
+    "discreetNoLabel": {
+     "labels": "queer|lesbian|lesbians|\\bgay\\b|\\bgays\\b|lgbt\\w*|sapphic|bisexual|\\bbi\\b|homosexual|same[- ]sex"
+    }
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-hindu-temple",
+   "label": "Hindu temple friends",
+   "sentence": "Hindu friends from the temple community, vegetarian, about 8 of us, every other Saturday around Ikeja and Surulere, no alcohol",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "foodies"
+    ],
+    "constraints": [
+     "no alcohol: faith"
+    ],
+    "sensitive": "religious-minority",
+    "language": "plain",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol"
+    ],
+    "discreetNoLabel": {
+     "labels": "hindu|hindus|temple|mandir"
+    }
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-toddlers-lekki",
+   "label": "Parents with toddlers, mornings",
+   "sentence": "Parents with toddlers, 4 families, every other Saturday morning around Lekki and Ajah, kid-friendly only",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    },
+    {
+     "label": "Ajah",
+     "lat": 6.468,
+     "lon": 3.577,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "family"
+    ],
+    "constraints": [
+     "kids"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Lekki",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "playground",
+     "park",
+     "zoo",
+     "ice cream",
+     "theme park",
+     "garden"
+    ],
+    "keywords": [
+     "kids",
+     "family",
+     "children",
+     "fun day",
+     "carnival",
+     "storytime",
+     "puppet"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "kidFriendly": true,
+    "needsInclude": [
+     "kid-friendly"
+    ],
+    "withinHours": [
+     "08:00",
+     "13:00"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-pikin-ikorodu",
+   "label": "Families with small pikin (Pidgin)",
+   "sentence": "Mama and papa dem with small pikin, 6 families for Ikorodu, every other Saturday, somewhere wey pikin fit play, no too cost",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikorodu",
+     "lat": 6.619,
+     "lon": 3.511,
+     "tolKm": 10
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "30s",
+    "size": "large",
+    "interests": [
+     "family"
+    ],
+    "constraints": [
+     "kids"
+    ],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Ikorodu",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "playground",
+     "park",
+     "zoo",
+     "ice cream",
+     "theme park",
+     "garden"
+    ],
+    "keywords": [
+     "kids",
+     "family",
+     "children",
+     "fun day",
+     "carnival",
+     "storytime",
+     "puppet"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "kidFriendly": true,
+    "needsInclude": [
+     "kid-friendly"
+    ],
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    }
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-retirees-ikoyi",
+   "label": "Retired couples, Ikoyi",
+   "sentence": "Retired couples, 60s and 70s, 8 of us, a quiet lunch or a garden every other Saturday around Ikoyi and VI, nothing loud, we can afford it",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikoyi",
+     "lat": 6.452,
+     "lon": 3.435,
+     "tolKm": 4
+    },
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "retirees",
+    "size": "medium",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Ikoyi",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noNightlife": true
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-retirees-festac-pidgin",
+   "label": "Retired school friends (Pidgin)",
+   "sentence": "Old school friends, we don retire, 65 plus, we dey Festac and Surulere, every other Saturday afternoon, nothing wey get noise",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Festac",
+     "lat": 6.466,
+     "lon": 3.284,
+     "tolKm": 5
+    },
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "retirees",
+    "size": "medium",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Festac",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noNightlife": true
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-lagoon-ikorodu-lekki",
+   "label": "Across the lagoon: Ikorodu and Lekki",
+   "sentence": "Mainland and island people, 6 of us, early 30s, half in Ikorodu and half in Lekki, every other Saturday, somewhere fair for everybody",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikorodu",
+     "lat": 6.619,
+     "lon": 3.511,
+     "tolKm": 10
+    },
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "across the lagoon",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxTripMin": 90
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-lagoon-three-areas",
+   "label": "Workmates in Ajah, Ikeja, Yaba",
+   "sentence": "Workmates, 5 of us, two in Ajah, two in Ikeja and one in Yaba, every other Saturday, a chill hangout",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ajah",
+     "lat": 6.468,
+     "lon": 3.577,
+     "tolKm": 8
+    },
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "across the lagoon",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxTripMin": 90
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-bankers-vi",
+   "label": "Banking colleagues, VI",
+   "sentence": "Banking colleagues, 30s, every other Saturday after a long week, around VI and Ikoyi, nice places, money is fine",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "VI",
+     "lat": 6.428,
+     "lon": 3.422,
+     "tolKm": 4
+    },
+    {
+     "label": "Ikoyi",
+     "lat": 6.452,
+     "lon": 3.435,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "comfortable",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "foodies"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "VI",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-diaspora-from-london",
+   "label": "Planned from London for Lagos cousins",
+   "sentence": "I'm in London but I'm planning for my cousins in Lagos, 6 of them, around Surulere and Yaba, every other Saturday",
+   "city": "Lagos",
+   "hintTz": "Europe/London",
+   "areas": [
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    },
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Surulere",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-gameboys-yaba-pidgin",
+   "label": "Game boys, Yaba (Pidgin)",
+   "sentence": "Na we be the game boys for Yaba, PS5 and board games, 6 of us, we no get plenty money, every Saturday",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "gamers"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "arcade",
+     "bowling",
+     "cinema",
+     "cafe"
+    ],
+    "keywords": [
+     "gaming",
+     "games",
+     "game",
+     "esports",
+     "arcade",
+     "fifa",
+     "playstation",
+     "board game",
+     "console"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-concert-babes-lekki",
+   "label": "Uni girls who love concerts",
+   "sentence": "Uni babes who love Afrobeats concerts, early 20s, 6 of us, every other Saturday around Lekki and Ajah, cheap abeg",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Lekki",
+     "lat": 6.447,
+     "lon": 3.472,
+     "tolKm": 8
+    },
+    {
+     "label": "Ajah",
+     "lat": 6.468,
+     "lon": 3.577,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "students",
+    "size": "medium",
+    "interests": [
+     "afrobeats nightlife"
+    ],
+    "constraints": [
+     "women-only"
+    ],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Lekki",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "nightclub",
+     "bar",
+     "live music",
+     "restaurant",
+     "pub"
+    ],
+    "keywords": [
+     "afrobeats",
+     "amapiano",
+     "party",
+     "club",
+     "dj",
+     "concert",
+     "rave",
+     "live",
+     "highlife",
+     "night"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "needsInclude": [
+     "women-friendly"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-chop-ikeja-pidgin",
+   "label": "Foodies, Ikeja (Pidgin)",
+   "sentence": "Make we go chop! Foodies wey like suya, amala and new spots, 7 of us for Ikeja and Ogba, every Saturday, mid budget",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Ikeja",
+     "lat": 6.601,
+     "lon": 3.351,
+     "tolKm": 6
+    },
+    {
+     "label": "Ogba",
+     "lat": 6.627,
+     "lon": 3.339,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "foodies"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Ikeja",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-church-youth-festac",
+   "label": "Church youth fellowship",
+   "sentence": "Our church youth fellowship, teens and early 20s, 15 of us, every other Saturday around Festac and Satellite Town, no alcohol and nothing late",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Festac",
+     "lat": 6.466,
+     "lon": 3.284,
+     "tolKm": 5
+    },
+    {
+     "label": "Satellite Town",
+     "lat": 6.441,
+     "lon": 3.256,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "teens",
+    "size": "large",
+    "interests": [
+     "gospel"
+    ],
+    "constraints": [
+     "no alcohol: church"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Festac",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "community centre",
+     "theatre",
+     "live music",
+     "park",
+     "garden"
+    ],
+    "keywords": [
+     "gospel",
+     "worship",
+     "praise",
+     "choir",
+     "concert",
+     "hymn"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "noNightlife": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "lag-draughts-surulere-pidgin",
+   "label": "Chess and draughts, 40s (Pidgin)",
+   "sentence": "Chess and draughts guys for Surulere, 40s, we dey play every Saturday afternoon, quiet place abeg",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "40s+",
+    "size": "small",
+    "interests": [
+     "chess"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "pidgin",
+    "geo": "Surulere",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "cafe",
+     "library",
+     "community centre"
+    ],
+    "keywords": [
+     "chess",
+     "board game",
+     "board games",
+     "tournament",
+     "draughts"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noNightlife": true
+   },
+   "split": "test"
+  },
+  {
+   "id": "lag-art-students-yabatech",
+   "label": "Art students, Yaba Tech",
+   "sentence": "Art students from Yaba Tech, 19 to 23, sketching and exhibitions, every other Saturday around Yaba and Surulere, very cheap",
+   "city": "Lagos",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Yaba",
+     "lat": 6.509,
+     "lon": 3.378,
+     "tolKm": 4
+    },
+    {
+     "label": "Surulere",
+     "lat": 6.497,
+     "lon": 3.354,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "students",
+    "size": "medium",
+    "interests": [
+     "art"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Yaba",
+    "region": "Lagos"
+   },
+   "taste": {
+    "kinds": [
+     "gallery",
+     "museum",
+     "arts centre"
+    ],
+    "keywords": [
+     "art",
+     "exhibition",
+     "gallery",
+     "museum",
+     "painting",
+     "craft",
+     "installation",
+     "opening"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "bbox": {
+      "south": 6.35,
+      "north": 6.75,
+      "west": 2.7,
+      "east": 4.4
+     }
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "maxPrice": {
+     "amount": 5000,
+     "currency": "NGN"
+    },
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "abj-tech-wuse",
+   "label": "Tech crowd, Abuja",
+   "sentence": "Tech bros in Abuja, 20s and 30s, meetups and co-working, every other Saturday around Wuse 2 and Jabi",
+   "city": "Abuja",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Wuse 2",
+     "lat": 9.08,
+     "lon": 7.475,
+     "tolKm": 5
+    },
+    {
+     "label": "Jabi",
+     "lat": 9.068,
+     "lon": 7.425,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "tech meetups"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Abuja",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "cafe",
+     "community centre",
+     "library"
+    ],
+    "keywords": [
+     "tech",
+     "startup",
+     "developer",
+     "developers",
+     "meetup",
+     "ai",
+     "hackathon",
+     "coding",
+     "product",
+     "founders"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      9.06,
+      7.47
+     ],
+     "km": 40
+    },
+    "timezoneCorrect": "Africa/Lagos"
+   },
+   "split": "test"
+  },
+  {
+   "id": "abj-sisters-garki",
+   "label": "Muslim sisters, Abuja",
+   "sentence": "Muslim sisters in Abuja, 8 of us, 20s and 30s, women only, no alcohol, every other Saturday afternoon around Garki and Wuse",
+   "city": "Abuja",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Garki",
+     "lat": 9.035,
+     "lon": 7.49,
+     "tolKm": 6
+    },
+    {
+     "label": "Wuse",
+     "lat": 9.07,
+     "lon": 7.47,
+     "tolKm": 6
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [
+     "no alcohol: mosque",
+     "women-only"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Abuja",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      9.06,
+      7.47
+     ],
+     "km": 40
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol",
+     "women-friendly"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "abj-families-gwarinpa",
+   "label": "Families with young kids, Abuja",
+   "sentence": "Families from Gwarinpa and Kubwa with young kids, every other Saturday, kid-friendly and cheap",
+   "city": "Abuja",
+   "hintTz": "Africa/Lagos",
+   "areas": [
+    {
+     "label": "Gwarinpa",
+     "lat": 9.105,
+     "lon": 7.405,
+     "tolKm": 6
+    },
+    {
+     "label": "Kubwa",
+     "lat": 9.155,
+     "lon": 7.335,
+     "tolKm": 8
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "30s",
+    "size": "large",
+    "interests": [
+     "family"
+    ],
+    "constraints": [
+     "kids"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Abuja",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "playground",
+     "park",
+     "zoo",
+     "ice cream",
+     "theme park",
+     "garden"
+    ],
+    "keywords": [
+     "kids",
+     "family",
+     "children",
+     "fun day",
+     "carnival",
+     "storytime",
+     "puppet"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      9.06,
+      7.47
+     ],
+     "km": 40
+    },
+    "timezoneCorrect": "Africa/Lagos",
+    "kidFriendly": true,
+    "needsInclude": [
+     "kid-friendly"
+    ],
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "acc-nightout-osu",
+   "label": "Accra nights out",
+   "sentence": "Accra crew, Afrobeats and highlife, 20s, nights out in Osu and Labone every other Saturday",
+   "city": "Accra",
+   "hintTz": "Africa/Accra",
+   "areas": [
+    {
+     "label": "Osu",
+     "lat": 5.556,
+     "lon": -0.182,
+     "tolKm": 4
+    },
+    {
+     "label": "Labone",
+     "lat": 5.566,
+     "lon": -0.171,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "afrobeats nightlife"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Accra",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "nightclub",
+     "bar",
+     "live music",
+     "restaurant",
+     "pub"
+    ],
+    "keywords": [
+     "afrobeats",
+     "amapiano",
+     "party",
+     "club",
+     "dj",
+     "concert",
+     "rave",
+     "live",
+     "highlife",
+     "night"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      5.6,
+      -0.19
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Accra"
+   },
+   "split": "test"
+  },
+  {
+   "id": "acc-queer-lowkey",
+   "label": "Queer crew, Accra",
+   "sentence": "Small queer crew in Accra, 4 of us, late 20s, we keep it low-key, every other Saturday around East Legon and Cantonments",
+   "city": "Accra",
+   "hintTz": "Africa/Accra",
+   "areas": [
+    {
+     "label": "East Legon",
+     "lat": 5.636,
+     "lon": -0.161,
+     "tolKm": 6
+    },
+    {
+     "label": "Cantonments",
+     "lat": 5.579,
+     "lon": -0.172,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "small",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": "lgbtq",
+    "language": "plain",
+    "geo": "Accra",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      5.6,
+      -0.19
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Accra",
+    "needsInclude": [
+     "safe",
+     "discreet"
+    ],
+    "discreetNoLabel": {
+     "labels": "queer|lesbian|lesbians|\\bgay\\b|\\bgays\\b|lgbt\\w*|sapphic|bisexual|\\bbi\\b|homosexual|same[- ]sex"
+    }
+   },
+   "split": "dev"
+  },
+  {
+   "id": "acc-church-women-madina",
+   "label": "Church women, Madina",
+   "sentence": "Church women's group from Madina and Adenta, 40s and 50s, every other Saturday afternoon, no alcohol",
+   "city": "Accra",
+   "hintTz": "Africa/Accra",
+   "areas": [
+    {
+     "label": "Madina",
+     "lat": 5.683,
+     "lon": -0.165,
+     "tolKm": 6
+    },
+    {
+     "label": "Adenta",
+     "lat": 5.705,
+     "lon": -0.163,
+     "tolKm": 6
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "40s+",
+    "size": "large",
+    "interests": [
+     "gospel"
+    ],
+    "constraints": [
+     "no alcohol: church",
+     "women-only"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Accra",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "community centre",
+     "theatre",
+     "live music",
+     "park",
+     "garden"
+    ],
+    "keywords": [
+     "gospel",
+     "worship",
+     "praise",
+     "choir",
+     "concert",
+     "hymn"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      5.6,
+      -0.19
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Accra",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol",
+     "women-friendly"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "nbo-runclub",
+   "label": "Nairobi run club, 7am",
+   "sentence": "Nairobi run club, Saturday 7am runs, 20 of us, around Westlands and Kilimani",
+   "city": "Nairobi",
+   "hintTz": "Africa/Nairobi",
+   "areas": [
+    {
+     "label": "Westlands",
+     "lat": -1.268,
+     "lon": 36.811,
+     "tolKm": 5
+    },
+    {
+     "label": "Kilimani",
+     "lat": -1.29,
+     "lon": 36.785,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "large",
+    "interests": [
+     "fitness"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Nairobi",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "sports",
+     "beach",
+     "garden"
+    ],
+    "keywords": [
+     "run",
+     "running",
+     "fitness",
+     "yoga",
+     "workout",
+     "hike",
+     "walk",
+     "cycling",
+     "5k",
+     "bootcamp"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -1.29,
+      36.82
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Nairobi",
+    "withinHours": [
+     "06:00",
+     "10:00"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "nbo-gamers-southb",
+   "label": "Broke gamers, South B",
+   "sentence": "Gamers from South B and South C, FIFA nights and arcades, early 20s, broke kabisa, every Saturday",
+   "city": "Nairobi",
+   "hintTz": "Africa/Nairobi",
+   "areas": [
+    {
+     "label": "South B",
+     "lat": -1.31,
+     "lon": 36.838,
+     "tolKm": 4
+    },
+    {
+     "label": "South C",
+     "lat": -1.318,
+     "lon": 36.83,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "gamers"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Nairobi",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "arcade",
+     "bowling",
+     "cinema",
+     "cafe"
+    ],
+    "keywords": [
+     "gaming",
+     "games",
+     "game",
+     "esports",
+     "arcade",
+     "fifa",
+     "playstation",
+     "board game",
+     "console"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -1.29,
+      36.82
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Nairobi",
+    "budgetRead": [
+     "cheap",
+     "free"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "nbo-bookclub-wheelchair",
+   "label": "Book club with a wheelchair user, Nairobi",
+   "sentence": "Book club in Kilimani and Kileleshwa, one member uses a wheelchair, 30s, every other Saturday afternoon",
+   "city": "Nairobi",
+   "hintTz": "Africa/Nairobi",
+   "areas": [
+    {
+     "label": "Kilimani",
+     "lat": -1.29,
+     "lon": 36.785,
+     "tolKm": 4
+    },
+    {
+     "label": "Kileleshwa",
+     "lat": -1.28,
+     "lon": 36.778,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "book club"
+    ],
+    "constraints": [
+     "step-free"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Nairobi",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "bookshop",
+     "library",
+     "cafe",
+     "garden"
+    ],
+    "keywords": [
+     "book",
+     "books",
+     "reading",
+     "author",
+     "literary",
+     "poetry",
+     "library",
+     "writers"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -1.29,
+      36.82
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Africa/Nairobi",
+    "stepFree": true,
+    "needsInclude": [
+     "step-free"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "ldn-naija-peckham",
+   "label": "Naija crew in London",
+   "sentence": "Naija crew in London, 30s, around Peckham and Brixton, jollof and Afrobeats, every other Saturday",
+   "city": "London",
+   "hintTz": "Europe/London",
+   "areas": [
+    {
+     "label": "Peckham",
+     "lat": 51.474,
+     "lon": -0.069,
+     "tolKm": 4
+    },
+    {
+     "label": "Brixton",
+     "lat": 51.461,
+     "lon": -0.116,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "foodies",
+     "afrobeats nightlife"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "London",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream",
+     "nightclub",
+     "bar",
+     "live music",
+     "pub"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up",
+     "afrobeats",
+     "amapiano",
+     "party",
+     "club",
+     "dj",
+     "concert",
+     "rave",
+     "live",
+     "highlife",
+     "night"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      51.507,
+      -0.128
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Europe/London"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "ldn-sober-hackney",
+   "label": "Sober curious, Hackney",
+   "sentence": "Sober curious friends in Hackney and Stratford, 30s, no pubs please, every other Saturday",
+   "city": "London",
+   "hintTz": "Europe/London",
+   "areas": [
+    {
+     "label": "Hackney",
+     "lat": 51.545,
+     "lon": -0.055,
+     "tolKm": 5
+    },
+    {
+     "label": "Stratford",
+     "lat": 51.541,
+     "lon": -0.003,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "no alcohol: sober"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "London",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      51.507,
+      -0.128
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Europe/London",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "ldn-retired-croydon",
+   "label": "Retired teachers, Croydon",
+   "sentence": "Retired teachers in Croydon, 70s, a gentle walk and a cuppa every other Saturday, step-free if possible",
+   "city": "London",
+   "hintTz": "Europe/London",
+   "areas": [
+    {
+     "label": "Croydon",
+     "lat": 51.372,
+     "lon": -0.1,
+     "tolKm": 6
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "retirees",
+    "size": "small",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "London",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      51.507,
+      -0.128
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Europe/London",
+    "noNightlife": true
+   },
+   "split": "test"
+  },
+  {
+   "id": "ber-kunst-kreuzberg",
+   "label": "Gallery people, Kreuzberg",
+   "sentence": "Kunst people in Kreuzberg and Neukölln, galleries and openings, 30s, every other Saturday",
+   "city": "Berlin",
+   "hintTz": "Europe/Berlin",
+   "areas": [
+    {
+     "label": "Kreuzberg",
+     "lat": 52.497,
+     "lon": 13.403,
+     "tolKm": 4
+    },
+    {
+     "label": "Neukölln",
+     "lat": 52.481,
+     "lon": 13.435,
+     "tolKm": 5
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "small",
+    "interests": [
+     "art"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "Berlin",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "gallery",
+     "museum",
+     "arts centre"
+    ],
+    "keywords": [
+     "art",
+     "exhibition",
+     "gallery",
+     "museum",
+     "painting",
+     "craft",
+     "installation",
+     "opening"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      52.52,
+      13.405
+     ],
+     "km": 30
+    },
+    "timezoneCorrect": "Europe/Berlin"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "ber-hijabi-wedding",
+   "label": "Hijabi sisters, Berlin",
+   "sentence": "Hijabi sisters in Berlin, Wedding and Moabit, 20s, women only, no alcohol, every other Saturday afternoon",
+   "city": "Berlin",
+   "hintTz": "Europe/Berlin",
+   "areas": [
+    {
+     "label": "Wedding",
+     "lat": 52.55,
+     "lon": 13.36,
+     "tolKm": 4
+    },
+    {
+     "label": "Moabit",
+     "lat": 52.53,
+     "lon": 13.34,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "quiet"
+    ],
+    "constraints": [
+     "no alcohol: faith",
+     "women-only"
+    ],
+    "sensitive": "religious-minority",
+    "language": "plain",
+    "geo": "Berlin",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "garden",
+     "park",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "garden",
+     "walk",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      52.52,
+      13.405
+     ],
+     "km": 30
+    },
+    "timezoneCorrect": "Europe/Berlin",
+    "noAlcohol": true,
+    "needsInclude": [
+     "no alcohol",
+     "women-friendly"
+    ],
+    "discreetNoLabel": {
+     "labels": "hijabi|hijabis|hijab|muslim|muslims|islam|islamic|mosque|masjid"
+    }
+   },
+   "split": "test"
+  },
+  {
+   "id": "ber-chess-prenzlauer",
+   "label": "Chess nerds, 40s, Berlin",
+   "sentence": "Chess nerds in Prenzlauer Berg and Friedrichshain, 40s, every Saturday afternoon, quiet cafés",
+   "city": "Berlin",
+   "hintTz": "Europe/Berlin",
+   "areas": [
+    {
+     "label": "Prenzlauer Berg",
+     "lat": 52.539,
+     "lon": 13.424,
+     "tolKm": 4
+    },
+    {
+     "label": "Friedrichshain",
+     "lat": 52.515,
+     "lon": 13.454,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "40s+",
+    "size": "small",
+    "interests": [
+     "chess"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Berlin",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "cafe",
+     "library",
+     "community centre"
+    ],
+    "keywords": [
+     "chess",
+     "board game",
+     "board games",
+     "tournament",
+     "draughts"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      52.52,
+      13.405
+     ],
+     "km": 30
+    },
+    "timezoneCorrect": "Europe/Berlin",
+    "noNightlife": true
+   },
+   "split": "dev"
+  },
+  {
+   "id": "blr-startup-koramangala",
+   "label": "Startup folks, Bengaluru",
+   "sentence": "Startup folks in Koramangala and HSR Layout, 20s, meetups and filter coffee, every other Saturday",
+   "city": "Bengaluru",
+   "hintTz": "Asia/Kolkata",
+   "areas": [
+    {
+     "label": "Koramangala",
+     "lat": 12.935,
+     "lon": 77.624,
+     "tolKm": 4
+    },
+    {
+     "label": "HSR Layout",
+     "lat": 12.912,
+     "lon": 77.638,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "medium",
+    "interests": [
+     "tech meetups"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Bengaluru",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "cafe",
+     "community centre",
+     "library"
+    ],
+    "keywords": [
+     "tech",
+     "startup",
+     "developer",
+     "developers",
+     "meetup",
+     "ai",
+     "hackathon",
+     "coding",
+     "product",
+     "founders"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      12.97,
+      77.59
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Asia/Kolkata"
+   },
+   "split": "dev"
+  },
+  {
+   "id": "blr-football-indiranagar",
+   "label": "Premier League watch party, Bengaluru",
+   "sentence": "Football watch party crew in Indiranagar and Whitefield, Premier League Saturdays, 10 of us, late 20s",
+   "city": "Bengaluru",
+   "hintTz": "Asia/Kolkata",
+   "areas": [
+    {
+     "label": "Indiranagar",
+     "lat": 12.978,
+     "lon": 77.64,
+     "tolKm": 4
+    },
+    {
+     "label": "Whitefield",
+     "lat": 12.97,
+     "lon": 77.75,
+     "tolKm": 7
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "20s",
+    "size": "large",
+    "interests": [
+     "football watch parties"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Bengaluru",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "sports",
+     "bar",
+     "pub",
+     "restaurant",
+     "street food"
+    ],
+    "keywords": [
+     "football",
+     "match",
+     "viewing",
+     "premier league",
+     "champions league",
+     "screening",
+     "watch party",
+     "derby",
+     "sports"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      12.97,
+      77.59
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Asia/Kolkata"
+   },
+   "split": "test"
+  },
+  {
+   "id": "blr-teens-jayanagar",
+   "label": "Parents with teens, Bengaluru",
+   "sentence": "Parents taking our teens, 13 to 15, out every other Saturday around Jayanagar and Malleshwaram, nothing late and no parties",
+   "city": "Bengaluru",
+   "hintTz": "Asia/Kolkata",
+   "areas": [
+    {
+     "label": "Jayanagar",
+     "lat": 12.925,
+     "lon": 77.593,
+     "tolKm": 4
+    },
+    {
+     "label": "Malleshwaram",
+     "lat": 13.003,
+     "lon": 77.57,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "teens",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [
+     "kids"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "Bengaluru",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      12.97,
+      77.59
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "Asia/Kolkata",
+    "noAlcohol": true,
+    "noNightlife": true
+   },
+   "split": "test"
+  },
+  {
+   "id": "sp-foodies-pinheiros",
+   "label": "Foodies, São Paulo (mixed Portuguese)",
+   "sentence": "Galera foodie de Pinheiros e Vila Madalena, 30s, every other Saturday, feiras e comida de rua",
+   "city": "São Paulo",
+   "hintTz": "America/Sao_Paulo",
+   "areas": [
+    {
+     "label": "Pinheiros",
+     "lat": -23.567,
+     "lon": -46.69,
+     "tolKm": 4
+    },
+    {
+     "label": "Vila Madalena",
+     "lat": -23.556,
+     "lon": -46.69,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "30s",
+    "size": "medium",
+    "interests": [
+     "foodies"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "mixed",
+    "geo": "São Paulo",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "restaurant",
+     "street food",
+     "market",
+     "cafe",
+     "ice cream"
+    ],
+    "keywords": [
+     "food",
+     "brunch",
+     "tasting",
+     "suya",
+     "market",
+     "chef",
+     "dinner",
+     "buka",
+     "grill",
+     "jollof",
+     "feira",
+     "street food",
+     "pop-up"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -23.55,
+      -46.633
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "America/Sao_Paulo"
+   },
+   "split": "test"
+  },
+  {
+   "id": "sp-gospel-youth-mooca",
+   "label": "Evangelical youth, São Paulo",
+   "sentence": "Evangelical youth group from Mooca and Liberdade, gospel music, late teens, no alcohol, every other Saturday",
+   "city": "São Paulo",
+   "hintTz": "America/Sao_Paulo",
+   "areas": [
+    {
+     "label": "Mooca",
+     "lat": -23.55,
+     "lon": -46.6,
+     "tolKm": 5
+    },
+    {
+     "label": "Liberdade",
+     "lat": -23.559,
+     "lon": -46.635,
+     "tolKm": 3
+    }
+   ],
+   "dims": {
+    "budget": "cheap",
+    "age": "teens",
+    "size": "large",
+    "interests": [
+     "gospel"
+    ],
+    "constraints": [
+     "no alcohol: church"
+    ],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "São Paulo",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "community centre",
+     "theatre",
+     "live music",
+     "park",
+     "garden"
+    ],
+    "keywords": [
+     "gospel",
+     "worship",
+     "praise",
+     "choir",
+     "concert",
+     "hymn"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -23.55,
+      -46.633
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "America/Sao_Paulo",
+    "noAlcohol": true,
+    "noNightlife": true,
+    "needsInclude": [
+     "no alcohol"
+    ]
+   },
+   "split": "dev"
+  },
+  {
+   "id": "sp-usp-broke",
+   "label": "Broke students, São Paulo",
+   "sentence": "Broke USP students around Butantã and Pinheiros, every Saturday, free stuff only",
+   "city": "São Paulo",
+   "hintTz": "America/Sao_Paulo",
+   "areas": [
+    {
+     "label": "Butantã",
+     "lat": -23.572,
+     "lon": -46.72,
+     "tolKm": 6
+    },
+    {
+     "label": "Pinheiros",
+     "lat": -23.567,
+     "lon": -46.69,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "broke",
+    "age": "students",
+    "size": "medium",
+    "interests": [
+     "hangout"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "São Paulo",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "garden",
+     "cafe",
+     "restaurant",
+     "beach",
+     "cinema"
+    ],
+    "keywords": [
+     "hangout",
+     "picnic",
+     "games",
+     "comedy",
+     "film",
+     "brunch"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      -23.55,
+      -46.633
+     ],
+     "km": 35
+    },
+    "timezoneCorrect": "America/Sao_Paulo",
+    "maxPrice": {
+     "amount": 0,
+     "currency": "BRL"
+    },
+    "budgetRead": [
+     "free"
+    ]
+   },
+   "split": "test"
+  },
+  {
+   "id": "tot-walkers",
+   "label": "Walking group, Totnes (small town)",
+   "sentence": "Walking group in Totnes and Dartington, 60s, every other Saturday, a countryside walk and tea after",
+   "city": "Totnes",
+   "hintTz": "Europe/London",
+   "areas": [
+    {
+     "label": "Totnes",
+     "lat": 50.432,
+     "lon": -3.684,
+     "tolKm": 4
+    },
+    {
+     "label": "Dartington",
+     "lat": 50.45,
+     "lon": -3.7,
+     "tolKm": 4
+    }
+   ],
+   "dims": {
+    "budget": "mid",
+    "age": "retirees",
+    "size": "medium",
+    "interests": [
+     "fitness",
+     "quiet"
+    ],
+    "constraints": [],
+    "sensitive": null,
+    "language": "plain",
+    "geo": "small town",
+    "region": "elsewhere"
+   },
+   "taste": {
+    "kinds": [
+     "park",
+     "sports",
+     "beach",
+     "garden",
+     "cafe",
+     "museum",
+     "gallery",
+     "library",
+     "bookshop"
+    ],
+    "keywords": [
+     "run",
+     "running",
+     "fitness",
+     "yoga",
+     "workout",
+     "hike",
+     "walk",
+     "cycling",
+     "5k",
+     "bootcamp",
+     "garden",
+     "tea",
+     "lunch",
+     "exhibition"
+    ]
+   },
+   "hard": {
+    "areasOnMap": true,
+    "cityCorrect": {
+     "center": [
+      50.432,
+      -3.684
+     ],
+     "km": 15
+    },
+    "timezoneCorrect": "Europe/London",
+    "noNightlife": true
+   },
+   "split": "dev"
+  }
+ ]
+}
