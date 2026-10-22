@@ -10,7 +10,7 @@ import { Dots } from './misc.jsx';
 
 const round = (x) => Math.round(x * 100) / 100;
 
-function roughPosition() {
+export function roughPosition() {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) { reject(new Error('unsupported')); return; }
     navigator.geolocation.getCurrentPosition(

@@ -4,8 +4,8 @@
 // Lagos time, neutral ones anywhere else.
 import { setZone } from './format.js';
 
-const LAGOS_UI = { id: 'lagos', areaPlaceholder: 'Yaba, Lekki Phase 1, Ikeja...', pricePlaceholder: 'Free, or ₦5,000 at the gate', directions: false };
-const NEUTRAL_UI = { id: 'default', areaPlaceholder: 'Your neighbourhood', pricePlaceholder: 'Free, or the price at the door', directions: true };
+const LAGOS_UI = { id: 'lagos', areaPlaceholder: 'Yaba, Lekki Phase 1, Ikeja...', pricePlaceholder: 'Free, or ₦5,000 at the gate', intoPlaceholder: 'art, live music, suya, somewhere quiet', directions: false };
+const NEUTRAL_UI = { id: 'default', areaPlaceholder: 'Your neighbourhood', pricePlaceholder: 'Free, or the price at the door', intoPlaceholder: 'art, live music, somewhere quiet', directions: true };
 
 let current = null; // { tz, region, pack }
 

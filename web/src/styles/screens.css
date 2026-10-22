@@ -861,6 +861,45 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .area-ask { display: grid; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); box-shadow: inset 0 0 0 2px var(--danfo), var(--lift); }
 .area-ask-title { font-family: var(--font-display); font-size: var(--t-lg); font-weight: 400; line-height: 1.2; }
 
+/* Where's your crew? One question in the setup, when the areas are not on the map */
+.where { display: grid; gap: var(--s-4); }
+.where .pv-top { margin-bottom: 0; }
+.where-sloth { margin: var(--s-2) 0 calc(var(--s-3) * -1); }
+.where-title { line-height: 1.08; overflow-wrap: anywhere; }
+.where .lede { overflow-wrap: anywhere; }
+.where-why { font-size: var(--t-md); line-height: 1.5; }
+.where-choices { display: grid; gap: var(--s-2); }
+.where-choices .section-label { margin: 0; }
+.where-choice {
+  display: flex; gap: var(--s-3); align-items: center; width: 100%; min-height: 64px; padding: var(--s-3) var(--s-4);
+  border: 0; border-radius: var(--r-md); background: var(--paper); box-shadow: inset 0 0 0 2px var(--line), var(--lift);
+  color: var(--ink); text-align: left; font: inherit; cursor: pointer;
+  transition: transform var(--d-press) var(--ease-out), box-shadow var(--d-fast) var(--ease-out);
+}
+.where-choice svg { flex: none; color: var(--lagoon); }
+.where-choice:active { transform: scale(0.98); box-shadow: inset 0 0 0 2px var(--danfo); }
+.where-choice[disabled] { opacity: 0.5; cursor: default; transform: none; }
+.where-choice-text { display: grid; gap: 2px; min-width: 0; }
+.where-choice-label { font-weight: 700; font-size: var(--t-md); overflow-wrap: anywhere; }
+.where-choice-detail { font-size: var(--t-sm); color: var(--ink-2); overflow-wrap: anywhere; }
+@media (hover: hover) and (pointer: fine) { .where-choice:hover { box-shadow: inset 0 0 0 2px var(--danfo), var(--lift); } }
+.where-other { margin-top: var(--s-1); }
+.where-cities { display: grid; gap: var(--s-2); }
+.where-neither { justify-self: start; min-height: 44px; }
+.where-skip { margin-top: var(--s-4); padding-top: var(--s-4); border-top: 1px dashed var(--line); }
+.where-skip .link-btn { min-height: 44px; }
+.area-find { display: grid; gap: var(--s-2); }
+.area-chip.off-map { box-shadow: inset 0 0 0 2px var(--highlight); }
+.area-chip .off-map-tag { font-size: var(--t-xs); color: var(--ink-2); font-weight: 600; }
+
+/* What the sloth understood from the sentence: removable chips */
+.taste-got { margin: var(--s-2) 0 0; display: grid; gap: var(--s-2); }
+.taste-summary { font-weight: 650; color: var(--ink); line-height: 1.4; }
+.taste-chips { gap: var(--s-2); }
+.taste-needs-title { font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); margin-top: var(--s-1); }
+.into-field .label { display: flex; gap: var(--s-2); align-items: baseline; }
+.optional { font-size: var(--t-xs); font-weight: 600; color: var(--ink-3); }
+
 /* The organiser's moment: the yellow paint drops in behind the crew's name, once */
 .paint-in { animation: paint-in 480ms var(--ease-out) 120ms both; }
 @keyframes paint-in { from { text-shadow: 0 0 0 transparent; } }

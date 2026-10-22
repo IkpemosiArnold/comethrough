@@ -173,29 +173,92 @@ function view(db, plan, viewerId) {
 
 // ---------- crews ----------
 
-function draftCrew(sentence) {
+// Areas the demo cannot place on its own: "Ibeju" has two namesakes, and a made-up area
+// (anything not in AREAS) is not on the map at all until the city is named.
+const AMBIGUOUS = {
+  ibeju: [
+    { label: 'Ibeju-Lekki', detail: 'Lekki Free Zone side, Lagos', lat: 6.4336, lon: 3.9606 },
+    { label: 'Lekki Phase 1', detail: 'Eti-Osa, Lagos', lat: 6.4474, lon: 3.4723 },
+  ],
+};
+const CITIES = { Lagos: [6.5244, 3.3792], Abuja: [9.0579, 7.4951], 'Port Harcourt': [4.8156, 7.0498], Ibadan: [7.3775, 3.947] };
+
+function areaWords(sentence) {
+  const m = sentence.match(/\b(?:around|in|near)\s+(.+)$/i);
+  if (!m) return [];
+  return m[1].split(/,|\band\b|\bor\b/i).map((x) => x.replace(/^\s*(the)\s+/i, '').replace(/[.!]+$/, '').trim()).filter((x) => x && x.length > 1 && !/^(every|each|on)\b/i.test(x)).slice(0, 4);
+}
+
+function draftCrew(sentence, { into, hint } = {}) {
   const s = sentence.toLowerCase();
   const first = sentence.split(/[,.]/)[0].trim();
   const vague = first.split(/\s+/).length > 5 || first.length < 3;
   const name = vague ? 'The crew' : first.replace(/^\w/, (c) => c.toUpperCase());
   const every = /every other|fortnight|every two/.test(s) ? '2w' : /month/.test(s) ? '4w' : /every|weekly/.test(s) ? '1w' : null;
   const dayIdx = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].findIndex((d) => s.includes(d));
-  const found = AREAS.filter(([l]) => s.includes(l.toLowerCase().split(' ')[0])).slice(0, 4).map(([l, , lat, lon]) => ({ label: l, lat, lon }));
+  const city = hint?.city && CITIES[hint.city] ? hint.city : null;
+  const areas = [];
+  const unresolved = [];
+  const suggestions = {};
+  const words = areaWords(sentence);
+  for (const w of words.length ? words : AREAS.filter(([l]) => s.includes(l.toLowerCase().split(' ')[0])).map(([l]) => l)) {
+    const known = AREAS.find(([l]) => l.toLowerCase() === w.toLowerCase() || l.toLowerCase().split(' ')[0] === w.toLowerCase().split(' ')[0]);
+    const amb = AMBIGUOUS[w.toLowerCase()];
+    if (known && !amb) { areas.push({ label: known[0], lat: known[2], lon: known[3] }); continue; }
+    if (city && !amb) { const [lat, lon] = CITIES[city]; areas.push({ label: w, lat: lat + 0.01 * areas.length, lon }); continue; }
+    areas.push({ label: w, lat: null, lon: null });
+    unresolved.push(w);
+    suggestions[w] = amb || [];
+  }
+  const blocking = !areas.some((a) => a.lat != null);
+  const quoted = unresolved.map((l) => `"${l}"`);
+  const needsLocation = unresolved.length || blocking ? {
+    blocking,
+    message: blocking
+      ? `Which city is the crew in? ${unresolved.length ? `Could not find ${quoted.join(' or ')} on the map, so` : 'No area is on the map yet, so'} the sloth will not suggest anything until you pick an area or name the city.`
+      : `Pick the right place for ${quoted.join(' and ')}, so rides and fair picks count it.`,
+    unresolved, suggestions, cities: blocking ? Object.keys(CITIES) : [],
+  } : null;
   const tags = [];
   if (/outside|outdoor|park|beach/.test(s)) tags.push('outdoors');
   if (/cheap|budget|broke/.test(s)) tags.push('cheap');
   if (/chill|lazy|calm/.test(s)) tags.push('chill');
   const vibe = tags.length ? tags.join(' and ').replace(/^\w/, (c) => c.toUpperCase()).replace('Outdoors', 'Outside') : 'Easy and low-key';
-  const confidence = { name: vague ? 0.3 : 0.85, rhythm: every ? 0.9 : 0.35, areas: found.length ? 0.9 : 0.3, vibe: tags.length ? 0.8 : 0.4 };
+  const confidence = { name: vague ? 0.3 : 0.85, rhythm: every ? 0.9 : 0.35, areas: areas.length && !unresolved.length ? 0.9 : 0.3, vibe: tags.length ? 0.8 : 0.4 };
+  // the taste, from both lines (the real one is Gemma's; src/core/taste.mjs)
+  const t = `${s} ${String(into || '').toLowerCase()}`;
+  const pick = (list) => list.filter((x) => t.includes(x));
+  const taste = { scenes: pick(['alte', 'church', 'campus']), likes: pick(['art', 'live music', 'suya', 'football', 'board games']), placeKinds: pick(['park', 'beach', 'gallery', 'rooftop']), avoid: [], needs: [...(/quiet|low-key|lowkey/.test(t) ? ['lowKey'] : []), ...(/no alcohol|sober|don't drink/.test(t) ? ['noAlcohol'] : [])], ageBand: /uni|campus|students/.test(t) ? 'early 20s' : null, energy: null };
+  const NEEDS = { lowKey: 'Low-key places', noAlcohol: 'No alcohol' };
+  const chips = [
+    ...['scenes', 'likes', 'placeKinds'].flatMap((f) => taste[f].map((v) => ({ field: f, value: v, label: v }))),
+    ...taste.needs.map((v) => ({ field: 'needs', value: v, label: NEEDS[v] })),
+    ...(taste.ageBand ? [{ field: 'ageBand', value: taste.ageBand, label: taste.ageBand }] : []),
+  ];
+  const and = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  const located = areas.filter((a) => a.lat != null).map((a) => a.label);
+  const bits = [...taste.scenes.slice(0, 2), taste.likes.length ? and(taste.likes.slice(0, 2)) : taste.placeKinds.length ? and(taste.placeKinds.slice(0, 2)) : null, taste.ageBand, located.length ? `around ${and(located.slice(0, 2))}` : null].filter(Boolean);
+  const notes = unresolved.filter((l) => !suggestions[l].length).map((l) => `Could not find "${l}" on the map. Rides and fair picks will skip it until it is fixed.`);
   return {
     draft: {
       name, vibe, vibeTags: tags, budget: tags.includes('cheap') ? 'cheap' : 'any',
       rhythm: every ? { every, day: dayIdx >= 0 ? dayIdx : 6, window: { from: '15:00', to: '19:00' } } : null,
-      areas: found.length ? found : [area('Yaba')],
+      areas, taste,
+      region: { center: blocking ? null : { lat: 6.5244, lon: 3.3792 }, countryCode: 'NG', city: blocking ? null : city || 'Lagos', timezone: 'Africa/Lagos' },
     },
+    taste: { chips, summary: bits.length ? `Got it: ${bits.join(', ')}.` : null },
     confidence,
     low: Object.entries(confidence).filter(([, v]) => v < 0.6).map(([k]) => k),
+    notes,
+    needsLocation,
   };
+}
+
+// "Use my rough location" in the demo: the phone's rounded point, named as the nearest area.
+export async function roughArea(at) {
+  await wait(700);
+  const near = [...AREAS].sort((a, b) => Math.hypot(a[2] - at.lat, a[3] - at.lon) - Math.hypot(b[2] - at.lat, b[3] - at.lon))[0];
+  return { label: near[0], lat: near[2], lon: near[3] };
 }
 
 function createCrew(db, { confirm, organiser }) {
@@ -204,7 +267,11 @@ function createCrew(db, { confirm, organiser }) {
   db.crew = { ...db.crew, ...confirm, slug, id: 'c-new', inviteToken };
   db.members = [];
   db.plans = [];
-  const out = { crew: db.crew, inviteUrl: `${location.origin}/c/${slug}?t=${inviteToken}`, inviteToken };
+  const pinned = (confirm.areas || []).filter((a) => a.lat != null);
+  const unresolved = (confirm.areas || []).filter((a) => a.lat == null).map((a) => a.label);
+  if (pinned.length) db.crew.region = { ...(confirm.region || {}), center: { lat: pinned[0].lat, lon: pinned[0].lon }, city: confirm.region?.city || 'Lagos' };
+  const needsLocation = unresolved.length || !pinned.length ? { blocking: !pinned.length, message: '', unresolved, suggestions: {}, cities: [] } : null;
+  const out = { crew: db.crew, inviteUrl: `${location.origin}/c/${slug}?t=${inviteToken}`, inviteToken, needsLocation };
   if (organiser?.name) Object.assign(out, addMember(db, organiser));
   return out;
 }
@@ -360,7 +427,7 @@ export async function handle(method, path, { body, form, token }) {
 
   if (method === 'POST' && p === '/api/crews') {
     await wait(body.sentence ? 1500 : 700);
-    if (body.sentence) return draftCrew(body.sentence);
+    if (body.sentence) return draftCrew(body.sentence, body);
     const out = createCrew(db, body);
     save(db);
     return out;

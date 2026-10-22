@@ -29,7 +29,7 @@ export function AreaInput({ value, onChange, placeholder = packUi().areaPlacehol
         setOpen(true);
         setActive(-1);
       } catch { /* aborted or offline: free text still works */ }
-    }, 220);
+    }, 300);
     return () => clearTimeout(timer);
   }, [text]);
 

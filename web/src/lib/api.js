@@ -104,9 +104,24 @@ function withRsvps(plan, members = [], you = null) {
 export const api = {
   // Step 1 of starting a crew: Gemma reads the sentence. Nothing is saved yet.
   // The visitor's own zone goes with it, so a crew started in Berlin is not looked for in Lagos.
-  async draftCrew(sentence) {
-    const r = await req('POST', '/api/crews', { body: { sentence, hint: hint() } });
-    return { ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false };
+  // `into` is the optional "what you're into" line. `city` is the city the organiser picked
+  // when the sloth could not find the areas (needsLocation), so they are looked up there.
+  // `needsLocation` and `understood` (taste.summary and taste.chips) are for this screen only.
+  async draftCrew(sentence, { into, city } = {}) {
+    const h = { ...(hint() || {}), ...(city ? { city } : {}) };
+    const r = await req('POST', '/api/crews', { body: { sentence, ...(into ? { into } : {}), hint: Object.keys(h).length ? h : null } });
+    return {
+      ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false,
+      needsLocation: r.needsLocation || null, understood: r.taste || null,
+    };
+  },
+  // "Use my rough location" while setting up a crew: { label, lat, lon } for the neighbourhood
+  // at a point this phone has already rounded to two decimals (about a kilometre).
+  async roughArea(at) {
+    if (MOCK) return (await mock()).roughArea(at);
+    const tz = hint()?.tz;
+    const r = await req('GET', `/api/areas/near?at=${at.lat},${at.lon}${tz ? `&tz=${enc(tz)}` : ''}`);
+    return r?.area || null;
   },
   // Step 2: the organiser confirms the edited draft, and can join in the same step.
   async createCrew(draft, organiser) {

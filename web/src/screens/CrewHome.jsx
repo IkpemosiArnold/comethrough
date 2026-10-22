@@ -289,7 +289,8 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
       </a>
     );
   }
-  if (!crew.rhythm) return null;
+  // no area on the map: the sloth picks nothing, so it promises nothing (docs/SPEC.md, needsLocation)
+  if (!crew.rhythm || (crew.region && !crew.region.center)) return null;
   const dayName = DAYS[crew.rhythm.day];
   const postBy = DAYS[(crew.rhythm.day + 5) % 7];
   return (

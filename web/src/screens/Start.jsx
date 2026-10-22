@@ -1,18 +1,19 @@
 // Start a crew: one sentence (or a voice note), then the crew as friends will see it, with
 // each thing Gemma read as a row to tap and fix, then the invite with the sloth's first pick.
+// When the areas are not on the map, one question comes first ("Where's your crew?").
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../lib/api.js';
 import { myCrews, saveCrew } from '../lib/store.js';
 import { useSpeech } from '../lib/speech.js';
 import { copyText } from '../lib/platform.js';
 import { DAYS, rhythmText, clock, nameList, dayLabel, timeRange } from '../lib/format.js';
-import { exampleSentence, setPlace } from '../lib/place.js';
+import { exampleSentence, setPlace, packUi } from '../lib/place.js';
 import { whatsappUrl } from '../lib/share.js';
 import { crewInvite } from './CrewHome.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { MicButton } from '../ui/MicButton.jsx';
-import { AreaInput } from '../ui/AreaInput.jsx';
+import { WhereAsk, AreaFind } from '../ui/WhereAsk.jsx';
 import { Dots } from '../ui/misc.jsx';
 import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { toast } from '../ui/toast.jsx';
@@ -24,6 +25,26 @@ const UNSURE = 0.6;
 const top = () => window.scrollTo(0, 0);
 // "Saturday", or "tomorrow" in the middle of a sentence
 const dayWord = (d) => { const w = dayLabel(d); return /^(Today|Tonight|Tomorrow)$/.test(w) ? w.toLowerCase() : w; };
+const pinned = (a) => a && Number.isFinite(a.lat) && Number.isFinite(a.lon);
+
+// The questions a draft's needsLocation asks, one at a time: "Where's your crew?" when no area
+// is on the map, else "Which Lekki?" for each area the map has more than one of.
+function asksFor(d) {
+  const n = d.needsLocation;
+  if (!n) return [];
+  const labels = (n.unresolved || []).filter((l) => d.areas.some((a) => a.label === l && !pinned(a)));
+  if (n.blocking && !d.areas.some(pinned)) return [{ blocking: true, labels, suggestions: n.suggestions || {}, cities: n.cities || [] }];
+  return labels.map((l) => ({ label: l, options: (n.suggestions?.[l] || []).filter(pinned).slice(0, 3) })).filter((q) => q.options.length);
+}
+
+// An answer to "where is it": the area as the map knows it, in place of the word typed.
+function placeArea(areas, label, area) {
+  const a = { label: area.label, lat: area.lat, lon: area.lon };
+  const rest = areas.filter((x) => x.label !== label);
+  if (rest.some((x) => x.label.toLowerCase() === a.label.toLowerCase())) return rest;
+  const i = areas.findIndex((x) => x.label === label);
+  return i < 0 ? [...areas, a] : [...areas.slice(0, i), a, ...areas.slice(i + 1)];
+}
 
 export function Start({ query }) {
   const [step, setStep] = useState('describe'); // describe | reading | preview | creating | invite
@@ -31,6 +52,11 @@ export function Start({ query }) {
   const [draft, setDraft] = useState(null);
   const [created, setCreated] = useState(null);
   const [error, setError] = useState(null);
+  const [into, setInto] = useState('');
+  const [city, setCity] = useState(null);
+  const [asks, setAsks] = useState([]);
+  const [askAt, setAskAt] = useState(0);
+  const [rereading, setRereading] = useState(null);
   const speech = useSpeech(setSentence);
   const crews = myCrews().filter((c) => c.memberId);
 
@@ -42,22 +68,51 @@ export function Start({ query }) {
     setError(null);
     setStep('reading');
     try {
-      const d = await api.draftCrew(sentence.trim());
-      // the crew's own city: its examples, and area suggestions near the crew
-      if (d.region) setPlace({ tz: d.region.timezone, region: d.region, pack: d.pack });
-      setDraft(d);
-      setStep('preview');
-      top();
+      const d = await api.draftCrew(sentence.trim(), { into: into.trim() || null });
+      setCity(null);
+      took(d);
     } catch (err) {
       setError(err.message);
       setStep('describe');
     }
   }
 
+  // a fresh draft: ask where the crew is first when the map could not place it
+  function took(d) {
+    // the crew's own city: its examples, and area suggestions near the crew
+    if (d.region) setPlace({ tz: d.region.timezone, region: d.region, pack: d.pack });
+    setDraft(d);
+    const q = asksFor(d);
+    setAsks(q);
+    setAskAt(0);
+    setStep(q.length ? 'where' : 'preview');
+    top();
+  }
+
+  function nextAsk(blockingDone) {
+    if (blockingDone || askAt + 1 >= asks.length) { setStep('preview'); top(); return; }
+    setAskAt(askAt + 1);
+    top();
+  }
+
+  // "Or just pick the city": the sentence is read again, with the areas looked up there
+  async function inCity(c) {
+    setRereading(c);
+    try {
+      const d = await api.draftCrew(sentence.trim(), { into: into.trim() || null, city: c });
+      setCity(c);
+      took(d);
+    } catch (err) {
+      toast(err.message || "Couldn't look there just now. Try again.");
+    }
+    setRereading(null);
+  }
+
   async function create(name) {
     setStep('creating');
+    setError(null);
     try {
-      const { confidence, low, notes, ai, pack, ...clean } = draft;
+      const { confidence, low, notes, ai, pack, needsLocation, understood, ...clean } = draft;
       const res = await api.createCrew(clean, { name });
       saveCrew(res.crew.slug, { name: res.crew.name, invite: res.crew.inviteToken, inviteUrl: res.inviteUrl, organiser: true });
       if (res.member && res.memberToken) {
@@ -70,14 +125,31 @@ export function Start({ query }) {
       setStep('invite');
       top();
     } catch (err) {
-      setError(err.message);
+      // a name that says who the crew is: the message goes next to the name
+      const named = (err.fields || []).find((f) => f.field === 'name');
+      setError(named ? { name: named.message || err.message } : err.message);
       setStep('preview');
     }
   }
 
+  const backToSentence = () => { setStep('describe'); setError(null); top(); };
   if (step === 'invite' && created) return <Invite created={created} />;
-  if ((step === 'preview' || step === 'creating') && draft) {
-    return <Preview draft={draft} setDraft={setDraft} busy={step === 'creating'} error={error} onBack={() => { setStep('describe'); setError(null); top(); }} onCreate={create} />;
+  if (step === 'where' && draft && asks[askAt]) {
+    const ask = asks[askAt];
+    return (
+      <WhereAsk
+        key={`${askAt}-${city || ''}`}
+        ask={ask} step={askAt} steps={asks.length} city={city} rereading={rereading}
+        onBack={backToSentence}
+        onAnswer={(label, area) => { setDraft({ ...draft, areas: placeArea(draft.areas, label, area) }); nextAsk(ask.blocking); }}
+        onAdd={(area) => { if (!draft.areas.some((x) => x.label.toLowerCase() === area.label.toLowerCase())) setDraft({ ...draft, areas: [...draft.areas, area] }); nextAsk(true); }}
+        onCity={inCity}
+        onSkip={() => nextAsk(ask.blocking)}
+      />
+    );
+  }
+  if ((step === 'preview' || step === 'creating' || step === 'where') && draft) {
+    return <Preview draft={draft} setDraft={setDraft} busy={step === 'creating'} error={error} onBack={backToSentence} onCreate={create} />;
   }
 
   const reading = step === 'reading';
@@ -128,8 +200,13 @@ export function Start({ query }) {
             )}
           </div>
         </div>
-        <p class="hint" id="crew-hint">Who they are, when you link up, and roughly where.</p>
+        <p class="hint" id="crew-hint">What you're into, when you link up, and roughly where.</p>
         {speech.error && <p class="error-text">{speech.error}</p>}
+        <label class="field into-field">
+          <span class="label">What you're into <span class="optional">Optional</span></span>
+          <input class="input" value={into} maxLength={200} onInput={(e) => setInto(e.currentTarget.value)} placeholder={packUi().intoPlaceholder || 'art, live music, somewhere quiet'} disabled={reading} enterkeyhint="go" aria-describedby="into-hint" />
+          <span class="hint" id="into-hint">Tell the sloth what you're into and what makes a place feel right. You don't need to say who you are.</span>
+        </label>
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={reading}>
           {reading ? <>The sloth is reading it <Dots /></> : 'Set up my crew'}
@@ -140,7 +217,7 @@ export function Start({ query }) {
       <section class="how" aria-labelledby="how-title">
         <h2 id="how-title" class="section-label">How it works</h2>
         <ol class="how-steps">
-          <li><b>Say who the crew is.</b> The sloth fills in the name, the day and the areas.</li>
+          <li><b>Say what the crew is into.</b> The sloth fills in the name, the day and the areas.</li>
           <li><b>Send the link to the group chat.</b> Friends see the plans and tap once, with no app and no sign-up.</li>
           <li><b>Add plans the lazy way,</b> from a flyer, a link or a sentence. Rides sort themselves.</li>
         </ol>
@@ -187,6 +264,42 @@ function Row({ label, value, unsure, note, open, onToggle, children }) {
   );
 }
 
+// "Got it: alte, art and live music, early 20s, around Yaba." Rebuilt as chips come off and
+// areas land on the map, the way the server first wrote it (src/core/taste.mjs, tasteView).
+function tasteSummary(t, areas) {
+  if (!t) return null;
+  const and = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  const list = (f) => (Array.isArray(t[f]) ? t[f] : []);
+  const bits = [
+    ...list('scenes').slice(0, 2),
+    list('likes').length ? and(list('likes').slice(0, 2)) : list('placeKinds').length ? and(list('placeKinds').slice(0, 2)) : null,
+    t.ageBand,
+    areas.length ? `around ${and(areas.slice(0, 2))}` : null,
+  ].filter(Boolean);
+  return bits.length ? `Got it: ${bits.join(', ')}.` : null;
+}
+
+const hasChip = (t, c) => (Array.isArray(t?.[c.field]) ? t[c.field].includes(c.value) : t?.[c.field] === c.value);
+function dropChip(t, c) {
+  if (Array.isArray(t[c.field])) return { ...t, [c.field]: t[c.field].filter((v) => v !== c.value) };
+  return { ...t, [c.field]: null };
+}
+
+function TasteChips({ chips, onRemove }) {
+  return (
+    <ul class="row wrap taste-chips">
+      {chips.map((c) => (
+        <li key={c.field + c.value} class="chip area-chip">
+          {c.label}
+          <button type="button" class="chip-x" aria-label={`Remove ${c.label}`} onClick={() => onRemove(c)}>
+            <Icon name="close" size={16} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function knownName() {
   return (myCrews().find((x) => x.memberName) || {}).memberName || '';
 }
@@ -199,13 +312,19 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
   const [open, setOpen] = useState(null);
   const [editName, setEditName] = useState(draft.ai === false || !draft.name);
   const [me, setMe] = useState(knownName);
-  const [newArea, setNewArea] = useState(null);
-  const [areaKey, setAreaKey] = useState(0);
   const toggle = (k) => setOpen(open === k ? null : k);
-  const anyUnsure = ['name', 'rhythm', 'vibe', 'areas'].some(low) || draft.ai === false;
-  // the guessed-time note is said in the row itself
+  const offMap = draft.areas.filter((a) => !pinned(a));
+  const onMap = draft.areas.filter(pinned);
+  const anyUnsure = ['name', 'rhythm', 'vibe', 'areas'].some(low) || offMap.length > 0 || draft.ai === false;
+  // the guessed-time note is said in the row itself; the areas the sloth asked about, in theirs
   const timeGuessed = (draft.notes || []).some((t) => /^No time was given/.test(t));
-  const notes = (draft.notes || []).filter((t) => !/^No time was given/.test(t));
+  const asked = draft.needsLocation?.unresolved || [];
+  const notes = (draft.notes || []).filter((t) => !/^No time was given/.test(t) && !asked.some((l) => t.includes(`"${l}"`)));
+  const nameError = error && typeof error === 'object' ? error.name : null;
+  // what the sloth understood: the summary, and chips to take things off (members only, never shared)
+  const chips = (draft.understood?.chips || []).filter((c) => hasChip(draft.taste, c));
+  const summary = draft.understood?.summary ? tasteSummary(draft.taste, onMap.map((a) => a.label)) : null;
+  const removeChip = (c) => set({ taste: dropChip(draft.taste, c) });
 
   function setEvery(every) {
     if (!every) set({ rhythm: null });
@@ -215,10 +334,9 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
     if (!a || !a.label || !a.label.trim()) return;
     if (draft.areas.some((x) => x.label.toLowerCase() === a.label.trim().toLowerCase())) return;
     set({ areas: [...draft.areas, { ...a, label: a.label.trim() }] });
-    setNewArea(null);
-    setAreaKey(areaKey + 1);
   }
-  const ready = draft.name?.trim() && draft.areas.length && me.trim();
+  // no area is fine: the crew is made, and the sloth picks nothing until one is on the map
+  const ready = draft.name?.trim() && me.trim();
 
   return (
     <div class="column screen-enter has-bar preview">
@@ -229,10 +347,11 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
         </p>
       </header>
 
-      {editName ? (
+      {editName || nameError ? (
         <label class="pv-name-edit">
           <span class="sr-only">Crew name</span>
-          <input class="input display-input" value={draft.name || ''} maxLength={40} placeholder="Crew name" onInput={(e) => set({ name: e.currentTarget.value })} onBlur={() => draft.name?.trim() && setEditName(false)} autocapitalize="words" />
+          <input class="input display-input" value={draft.name || ''} maxLength={40} placeholder="Crew name" onInput={(e) => set({ name: e.currentTarget.value })} onBlur={() => draft.name?.trim() && !nameError && setEditName(false)} autocapitalize="words" aria-invalid={!!nameError} aria-describedby={nameError ? 'name-error' : undefined} />
+          {nameError && <span class="error-text" id="name-error" role="alert">{nameError}</span>}
         </label>
       ) : (
         <button type="button" class={`pv-name${low('name') ? ' unsure' : ''}`} onClick={() => setEditName(true)} aria-label={`Crew name: ${draft.name}. Tap to change it.`}>
@@ -245,6 +364,19 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
         <ul class="draft-notes" aria-label="Notes">
           {notes.map((t) => <li key={t}>{t}</li>)}
         </ul>
+      )}
+
+      {(summary || chips.length > 0) && (
+        <div class="taste-got">
+          {summary && <p class="taste-summary">{summary}</p>}
+          {chips.some((c) => c.field !== 'needs') && <TasteChips chips={chips.filter((c) => c.field !== 'needs')} onRemove={removeChip} />}
+          {chips.some((c) => c.field === 'needs') && (
+            <>
+              <p class="taste-needs-title">What makes a place feel right</p>
+              <TasteChips chips={chips.filter((c) => c.field === 'needs')} onRemove={removeChip} />
+            </>
+          )}
+        </div>
       )}
 
       <div class="pv-card surface">
@@ -275,24 +407,21 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
           <p class="hint">The sloth uses this when it picks a spot.</p>
         </Row>
 
-        <Row label="Where the crew lives" value={draft.areas.length ? nameList(draft.areas.map((a) => a.label), 4) : 'Add an area'} unsure={low('areas') || !draft.areas.length} open={open === 'areas'} onToggle={() => toggle('areas')} note="Guesses. Add the areas people come from.">
+        <Row label="Where the crew lives" value={draft.areas.length ? nameList(draft.areas.map((a) => a.label), 4) : 'Add an area'} unsure={low('areas') || !onMap.length || offMap.length > 0} open={open === 'areas'} onToggle={() => toggle('areas')}
+          note={!onMap.length ? "No area on the map yet, so the sloth won't pick spots. Add one." : offMap.length ? `${nameList(offMap.map((a) => a.label), 2)} ${offMap.length === 1 ? "isn't" : "aren't"} on the map, so rides leave ${offMap.length === 1 ? 'it' : 'them'} out.` : 'Guesses. Add the areas people come from.'}>
           <ul class="row wrap area-chips" aria-label="Areas">
             {draft.areas.map((a) => (
-              <li key={a.label} class="chip area-chip">
+              <li key={a.label} class={`chip area-chip${pinned(a) ? '' : ' off-map'}`}>
                 <Icon name="pin" size={16} />
                 {a.label}
+                {!pinned(a) && <span class="off-map-tag">not on the map</span>}
                 <button type="button" class="chip-x" aria-label={`Remove ${a.label}`} onClick={() => set({ areas: draft.areas.filter((x) => x !== a) })}>
                   <Icon name="close" size={16} />
                 </button>
               </li>
             ))}
           </ul>
-          <div class="add-area row">
-            <div class="grow">
-              <AreaInput key={areaKey} value={newArea} onChange={(a) => (a.lat != null ? addArea(a) : setNewArea(a))} onEnter={() => addArea(newArea)} label="Add an area" />
-            </div>
-            <button type="button" class="btn secondary" onClick={() => addArea(newArea)} disabled={!newArea?.label}>Add</button>
-          </div>
+          <AreaFind label="Add an area" onFound={addArea} />
         </Row>
       </div>
 
@@ -302,7 +431,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
         <span class="hint">So the crew sees who started it.</span>
       </label>
 
-      {error && <p class="error-text" role="alert">{error}</p>}
+      {error && !nameError && <p class="error-text" role="alert">{error}</p>}
 
       <div class="bottom-bar">
         <div>
@@ -322,10 +451,11 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
 const PICK_TIMEOUT_MS = 90000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function useFirstPick(crew) {
-  const [pick, setPick] = useState(crew.rhythm ? 'picking' : null);
+function useFirstPick(crew, located) {
+  const on = !!crew.rhythm && located;
+  const [pick, setPick] = useState(on ? 'picking' : null);
   useEffect(() => {
-    if (!crew.rhythm) return;
+    if (!on) return;
     let alive = true;
     (async () => {
       const until = Date.now() + PICK_TIMEOUT_MS;
@@ -354,7 +484,9 @@ function useFirstPick(crew) {
 
 function Invite({ created }) {
   const { crew, inviteUrl } = created;
-  const pick = useFirstPick(crew);
+  // no area on the map: the sloth picks nothing, and says so once
+  const unplaced = !!created.needsLocation?.blocking;
+  const pick = useFirstPick(crew, !unplaced);
   const [sharedEarly, setSharedEarly] = useState(false);
   const picking = pick === 'picking';
   const plan = pick && !picking && !pick.skipped ? pick : null;
@@ -387,6 +519,7 @@ function Invite({ created }) {
         </a>
       )}
       {pick?.skipped && <p class="muted small rain-skip">{pick.skipped.rainPlan?.note}</p>}
+      {unplaced && crew.rhythm && <p class="muted small">No area is on the map yet, so the sloth isn't picking {day}'s spot. Plans the crew adds still work.</p>}
 
       <div class="stack" style={{ '--stack': 'var(--s-3)' }}>
         <a class="btn whatsapp block big" href={whatsappUrl(message)} target="_blank" rel="noopener" data-external onClick={() => picking && setSharedEarly(true)}>
