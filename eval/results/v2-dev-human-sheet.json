@@ -1,0 +1,617 @@
+{
+ "set": "dev",
+ "at": "2026-10-22T14:13:22.821Z",
+ "crews": [
+  {
+   "n": 1,
+   "key": "f5f600d4c6",
+   "sentence": "Muslim sisters in Abuja, 8 of us, 20s and 30s, women only, no alcohol, every other Saturday afternoon around Garki and Wuse",
+   "ritual": {
+    "place": "Calabar Pot",
+    "when": "Saturday 24 October, 2 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Calabar Pot is a restaurant, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Saturday at Calabar Pot. Join us this Saturday from 2 pm to 5 pm at Calabar Pot. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Kings Delicacy Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Kings Delicacy Restaurant is a restaurant for a Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Biobak Kitchen",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Biobak Kitchen is a restaurant for a Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "RENAO ABUJA",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "RENAO ABUJA is a restaurant for lahe 4 pm to 7 pm on Saturday 24 October.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "key": "e570ed7695",
+   "sentence": "My teenagers and their friends, 13 to 16, I come with them, every other Saturday around Festac, no parties and nothing late",
+   "ritual": {
+    "place": "Garden Top Hotel, Festac, Nigeria",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": true,
+    "note": "Rain all afternoon on Saturday (up to 96% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "Rain all afternoon on Saturday (up to 96% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": [
+    {
+     "title": "Lagos Trivia Night",
+     "when": "Sunday 25 October, 5 pm to 8 pm",
+     "why": "Awe Lagos lists Lagos Trivia Night (Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000), and nobody's trip is over about 70 minutes.",
+     "price": "Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "key": "d3fcc4e3a4",
+   "sentence": "Na we dey watch match for Surulere every Saturday, Arsenal and Chelsea boys, 12 of us, small money abeg",
+   "ritual": {
+    "place": "Rita Lori Gym",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Rita Lori Gym is a sports ground, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Catch us at Rita Lori Gym this Saturday from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Lagos National Stadium Complex",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Lagos National Stadium Complex is a sports ground on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Evans Square",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Evans Square is a sports ground available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Debby bar",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Debby bar is a bar, and nobody's trip is over about 8 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "key": "50635c78c8",
+   "sentence": "Our church youth fellowship, teens and early 20s, 15 of us, every other Saturday around Festac and Satellite Town, no alcohol and nothing late",
+   "ritual": {
+    "place": "KFC",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "KFC is a food spot, about 17 minutes for whoever is furthest."
+   },
+   "invite": "Let's link up this Saturday at KFC from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Lagos Trivia Night",
+     "when": "Sunday 25 October, 5 pm to 8 pm",
+     "why": "Lagos Trivia Night on Sunday 25 October from 5 pm to 8 pm is a fun social experience for games lovers.",
+     "price": "Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000"
+    },
+    {
+     "title": "Tantalizers",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Tantalizers is a food spot that is only 22 minutes away at most.",
+     "price": null
+    },
+    {
+     "title": "Domino's",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Domino's is a food spot, and nobody's trip is over about 24 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "key": "44f21ed595",
+   "sentence": "Gamers from Ikorodu, FIFA and PS5 heads, 5 of us, early 20s, every other Saturday, cheap things only",
+   "ritual": {
+    "place": "Alaka Events Centre",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Alaka Events Centre is a community centre, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Catch us at Alaka Events Centre this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Aga Community Developement Hall",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Aga Community Developement Hall is a community centre for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Oriwu Club",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Oriwu Club is a community centre available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Nasfat Islamic Centre",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Nasfat Islamic Centre is a community centre, and nobody's trip is over about 12 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "key": "5a907c98a6",
+   "sentence": "Families from Gwarinpa and Kubwa with young kids, every other Saturday, kid-friendly and cheap",
+   "ritual": null,
+   "invite": null,
+   "ideas": [
+    {
+     "title": "Casino Cinema",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Casino Cinema offers a cinema experience from 4 pm to 7 pm on Saturday 24 October.",
+     "price": null
+    },
+    {
+     "title": "Ozone Cinema",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Ozone Cinema provides a cinema experience from 4 pm to 7 pm on Saturday 24 October.",
+     "price": null
+    },
+    {
+     "title": "Tejuosho Shopping Centre",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Tejuosho Shopping Centre is a mall.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "key": "f671e7fc93",
+   "sentence": "Art students from Yaba Tech, 19 to 23, sketching and exhibitions, every other Saturday around Yaba and Surulere, very cheap",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café, about 17 minutes for whoever is furthest."
+   },
+   "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "National Gallery of Modern Arts",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The National Gallery of Modern Arts is an art space on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Iponri Market",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Iponri Market is a market on Saturday 24 October from 4 pm to 7 pm and is a 13 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Market",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Market is a market on Saturday 24 October from 4 pm to 7 pm and is a 16 minute trip.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "key": "d543ceaad7",
+   "sentence": "Owambe aunties from Surulere and Festac, we love party, fuji music and good food, every other Saturday afternoon, 10 of us in our 50s",
+   "ritual": {
+    "place": "Mega Chicken",
+    "when": "Saturday 24 October, 1 pm to 4 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Mega Chicken is a food spot, about 21 minutes for whoever is furthest."
+   },
+   "invite": "Get ready for fuji music and good food this Saturday at Mega Chicken from 1 pm to 4 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Beachland Club",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Beachland Club is a restaurant for a lively daytime session on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Domino's",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Domino's is a food spot available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Tantalizers",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Tantalizers is a food spot for the weekend with a longest trip of 33 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "key": "7029b8353c",
+   "sentence": "Na we be the turn up squad, 8 of us for VI and Lekki, Afrobeats and amapiano every Saturday night, money no be problem",
+   "ritual": {
+    "place": "Spice Bowl",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Spice Bowl is a restaurant, about 135 minutes for whoever is furthest."
+   },
+   "invite": "Catching vibes this Saturday at Spice Bowl from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": []
+  },
+  {
+   "n": 10,
+   "key": "6467da47b7",
+   "sentence": "Kunst people in Kreuzberg and Neukölln, galleries and openings, 30s, every other Saturday",
+   "ritual": {
+    "place": "Atelier Lächeln des Lichts",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Atelier Lächeln des Lichts is an art gallery, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Join us this Saturday at Atelier Lächeln des Lichts from 3 pm to 6 pm. It is an art gallery and it is covered so we can stay dry. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "MOEON",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "MOEON is an art gallery open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Studio für Gestaltung",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Studio für Gestaltung is an art gallery available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Urbanraum",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "why Urbanraum is an art space available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "key": "610b802c95",
+   "sentence": "Broke UNILAG students, 8 of us, every other Saturday around Yaba and Akoka, free or very cheap only",
+   "ritual": {
+    "place": "Chicken Republic",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Chicken Republic is a food spot, about 13 minutes for whoever is furthest."
+   },
+   "invite": "Let's link up this Saturday at Chicken Republic from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Ozone Cinema",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Ozone Cinema is a cinema for a Saturday 24 October afternoon.",
+     "price": null
+    },
+    {
+     "title": "Ita baale",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Ita baale is a food spot available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Casino Cinema",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Casino Cinema is a cinema for a Saturday 24 October afternoon.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "key": "4ddbee10be",
+   "sentence": "Retired couples, 60s and 70s, 8 of us, a quiet lunch or a garden every other Saturday around Ikoyi and VI, nothing loud, we can afford it",
+   "ritual": {
+    "place": "Bogobiri House Hotel and Restaurant",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Bogobiri House Hotel and Restaurant is a restaurant, about 8 minutes for whoever is furthest."
+   },
+   "invite": "Join us for a quiet lunch or a garden vibe at Bogobiri House Hotel and Restaurant this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Purple Jasmine cafe",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Purple Jasmine cafe is a low-key café for a chill afternoon on Saturday 24 October.",
+     "price": null
+    },
+    {
+     "title": "Marco Polo Express",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Marco Polo Express is a restaurant for a quiet dining experience on Saturday 24 October.",
+     "price": null
+    },
+    {
+     "title": "Lagos Trivia Night",
+     "when": "Sunday 25 October, 5 pm to 8 pm",
+     "why": "Awe Lagos lists Lagos Trivia Night (Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000), and nobody's trip is over about 10 minutes.",
+     "price": "Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000"
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "key": "a0f0c4204d",
+   "sentence": "Abeg we no get money o, na free things only, 5 of us for Ajah, every other Saturday, anything wey no cost",
+   "ritual": {
+    "place": "Nike Art Gallery",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Nike Art Gallery keeps everyone within about 37 minutes, and the crew has not been there lately."
+   },
+   "invite": "Catch the vibes at Nike Art Gallery this Saturday from 3 pm to 6 pm. It is free things only 🎨 Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Nike Art Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Nike Art Gallery keeps everyone's trip under about 46 minutes, and it has a roof.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "key": "ddac52a611",
+   "sentence": "Startup folks in Koramangala and HSR Layout, 20s, meetups and filter coffee, every other Saturday",
+   "ritual": {
+    "place": "Beijing Bites",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Beijing Bites is a restaurant, about 6 minutes for whoever is furthest."
+   },
+   "invite": "Heading to Beijing Bites this Saturday from 3 pm to 6 pm. Since rain is likely, we'll be under a roof. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Barista",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Barista is a café for socializing and is only 5 minutes away from Koramangala.",
+     "price": null
+    },
+    {
+     "title": "Fiorano Ristorante",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Fiorano Ristorante is a restaurant for a lively weekend afternoon at 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Sri Ganesh Food Point",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Sri Ganesh Food Point is a restaurant, and nobody's trip is over about 8 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "key": "ab73d3e190",
+   "sentence": "Small queer crew in Accra, 4 of us, late 20s, we keep it low-key, every other Saturday around East Legon and Cantonments",
+   "ritual": {
+    "place": "D Cafe",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "D Cafe is a garden café, quiet enough to hear each other, about 9 minutes for whoever is furthest."
+   },
+   "invite": "Saturday at D Cafe from 3 pm to 6 pm. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "honeycomp Cafe",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "honeycomp Cafe is a low-key café for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Choco' Pain",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Choco' Pain is a low-key café for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "A night in at one of yours",
+     "when": "Tomorrow, 6 pm to 9 pm",
+     "why": "A night in at one of your places: private, easy to keep low-key, and nobody pays at a door.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "key": "8a8bab20ff",
+   "sentence": "Book club, 7 of us, late 20s to 30s, we meet every other Saturday around Yaba and Gbagada, quiet places please",
+   "ritual": {
+    "place": "University of Lagos Bookshop",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "University of Lagos Bookshop is a bookshop, quiet enough to hear each other, about 23 minutes for whoever is furthest."
+   },
+   "invite": "Catch us at University of Lagos Bookshop this Saturday from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Central Library",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Central Library is a library that is low-key and only 6 minutes from Yaba.",
+     "price": null
+    },
+    {
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cafe Neo is a café that is low-key and only 5 minutes from Yaba.",
+     "price": null
+    },
+    {
+     "title": "Unilag Main Library",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Unilag Main Library is a library that is low-key and only 14 minutes from Yaba.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "key": "53bdd99f63",
+   "sentence": "Naija crew in London, 30s, around Peckham and Brixton, jollof and Afrobeats, every other Saturday",
+   "ritual": {
+    "place": "The Golden Goose",
+    "when": "Sunday 25 October, 3 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "The Golden Goose is a pub, about 6 minutes for whoever is furthest."
+   },
+   "invite": "Sunday at The Golden Goose from 3 pm to 5 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "The Mansion House",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Mansion House is a pub that is only 10 minutes away.",
+     "price": null
+    },
+    {
+     "title": "The Dog House",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Dog House is a pub with a 11 minute trip.",
+     "price": null
+    },
+    {
+     "title": "The Little Apple",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Little Apple is a pub that is 11 minutes away.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "key": "daf8221819",
+   "sentence": "We all work night shift at a call centre, 20s, Saturday afternoons between 2 and 6 are our only free time, around Ikeja and Ogba",
+   "ritual": {
+    "place": "Krispy Kreme",
+    "when": "Saturday 24 October, 2 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Krispy Kreme is a café, about 17 minutes for whoever is furthest."
+   },
+   "invite": "Catching some vibes this Saturday at Krispy Kreme from 2 pm to 5 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Casper & Gambini's",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Casper & Gambini's is a restaurant for a Saturday afternoon from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Mugg & Bean",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Mugg & Bean is a café for a Saturday afternoon from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Silverbird",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "why Silverbird is a cinema for a Saturday afternoon from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "key": "7930b30f56",
+   "sentence": "Walking group in Totnes and Dartington, 60s, every other Saturday, a countryside walk and tea after",
+   "ritual": {
+    "place": "Borough Park",
+    "when": "Sunday 25 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Borough Park is a park, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Sunday at Borough Park from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Dartington Hall Gardens",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Dartington Hall Gardens is a park for a Sunday afternoon from 4 pm to 7 pm in dry weather.",
+     "price": null
+    },
+    {
+     "title": "Follaton Arboretum",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Follaton Arboretum is a park available on Sunday 25 October from 4 pm to 7 pm in dry weather.",
+     "price": null
+    },
+    {
+     "title": "Community Orchard and Wood",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Community Orchard and Wood is a park for a Sunday afternoon in dry weather with a 7 minute trip from Totnes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "key": "4cec02f1d0",
+   "sentence": "Women only, 9 of us in our 30s and 40s, a sisterhood that hangs out every other Saturday around Surulere and Yaba, nothing rowdy",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café, about 17 minutes for whoever is furthest."
+   },
+   "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Mr Biggs",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Mr Biggs is a food spot that is only 13 minutes away.",
+     "price": null
+    },
+    {
+     "title": "Ita baale",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Ita baale is a food spot with a trip of 18 minutes.",
+     "price": null
+    },
+    {
+     "title": "yamoriah",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "yamoriah is a restaurant for a Saturday afternoon from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  }
+ ]
+}
