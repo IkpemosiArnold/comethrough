@@ -44,7 +44,7 @@ test("Eventbrite, a SocialEvent priced in dollars: From USD 50, flagged for a se
   assert.equal(meta.event?.price, "From USD 50", "lowPrice 50.0, highPrice 161.9");
   assert.equal(meta.event?.currency, "USD");
   const r = readPlan({}, { url, pageMeta: meta, today, member });
-  assert.equal(r.draft.title, "Selfie Sunday at Alali VI! : Things to do in Lagos Every Sunday");
+  assert.equal(r.draft.title, "Selfie Sunday at Alali VI", "the site's tail goes (src/core/titles.mjs)");
   assert.equal(r.draft.start, "2026-10-25T16:30:00+01:00", "the next of its repeating dates");
   assert.equal(r.draft.place.address, "32 Musa Yar' Adua Street, Lagos, LA 106104");
   assert.deepEqual(r.draft.price, { text: "From USD 50", free: false });
