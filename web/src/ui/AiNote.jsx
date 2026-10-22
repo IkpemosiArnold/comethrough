@@ -14,7 +14,7 @@ export function AiNote() {
   if (aiNoted()) return null;
   return (
     <p class="fine ai-note">
-      The sloth uses Gemma, Google's open model, to read and write. What you send here goes to Google. <a href="/how">How the sloth works</a>
+      What you send goes to Google's Gemma. <a href="/how" aria-label="How the sloth works">How?</a>
     </p>
   );
 }

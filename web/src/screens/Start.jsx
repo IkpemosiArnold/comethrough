@@ -17,7 +17,10 @@ import { WhereAsk, AreaFind } from '../ui/WhereAsk.jsx';
 import { Dots } from '../ui/misc.jsx';
 import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { toast } from '../ui/toast.jsx';
-import { AiNote, markAiNoted } from '../ui/AiNote.jsx';
+import { AiNote, aiNoted, markAiNoted } from '../ui/AiNote.jsx';
+// the server's own list of words that say who people are (src/core/sensitive.mjs): when the
+// sentence has one, the screen says, at that moment, that nobody needs to say who they are
+import { hasSensitive } from '../../../src/core/sensitive.mjs';
 
 // A Lagos example on a phone set to Lagos time; a nearby city's elsewhere (src/lib/place.js)
 const EXAMPLE = exampleSentence();
@@ -52,6 +55,7 @@ export function Start({ query }) {
   const [draft, setDraft] = useState(null);
   const [created, setCreated] = useState(null);
   const [error, setError] = useState(null);
+  // what the crew is into, added on the preview when the sentence said nothing about it
   const [into, setInto] = useState('');
   const [city, setCity] = useState(null);
   const [asks, setAsks] = useState([]);
@@ -132,6 +136,14 @@ export function Start({ query }) {
     }
   }
 
+  // "What you're into", added on the preview: the sentence is read again with that line,
+  // and only the taste is taken from the new reading, so nothing the organiser fixed changes
+  async function addInto(text) {
+    const d = await api.draftCrew(sentence.trim(), { into: text, city });
+    setInto(text);
+    setDraft((cur) => ({ ...cur, taste: d.taste, understood: d.understood }));
+  }
+
   const backToSentence = () => { setStep('describe'); setError(null); top(); };
   if (step === 'invite' && created) return <Invite created={created} />;
   if (step === 'where' && draft && asks[askAt]) {
@@ -149,10 +161,12 @@ export function Start({ query }) {
     );
   }
   if ((step === 'preview' || step === 'creating' || step === 'where') && draft) {
-    return <Preview draft={draft} setDraft={setDraft} busy={step === 'creating'} error={error} onBack={backToSentence} onCreate={create} />;
+    return <Preview draft={draft} setDraft={setDraft} busy={step === 'creating'} error={error} onBack={backToSentence} onCreate={create} onInto={addInto} />;
   }
 
   const reading = step === 'reading';
+  // said only when it applies: the sentence names who people are
+  const sensitive = hasSensitive(sentence);
   return (
     <div class="column start screen-enter">
       <header class="start-hero">
@@ -160,7 +174,6 @@ export function Start({ query }) {
           <Sloth size={92} mood={reading ? 'reading' : 'sleepy'} class={reading ? 'sloth-reading' : ''} />
         </div>
         <h1 class="display painted start-title">Come through</h1>
-        <p class="start-tag">The lazy way to link up. You send one sentence, your crew taps once.</p>
       </header>
 
       {crews.length > 0 && (
@@ -179,7 +192,7 @@ export function Start({ query }) {
         </nav>
       )}
 
-      <form class="start-form surface" onSubmit={read} aria-busy={reading}>
+      <form class="start-form" onSubmit={read} aria-busy={reading}>
         <label class="start-label" for="crew-sentence">{crews.length ? 'Start another crew, in one sentence' : 'Your crew, in one sentence'}</label>
         <div class="composer">
           <textarea
@@ -191,22 +204,14 @@ export function Start({ query }) {
             onInput={(e) => setSentence(e.currentTarget.value)}
             disabled={reading}
             enterkeyhint="go"
-            aria-describedby="crew-hint"
+            aria-describedby={sensitive ? 'crew-hint' : undefined}
           />
           <div class="composer-tools">
             <MicButton speech={speech} value={sentence} />
-            {!sentence && (
-              <button type="button" class="chip" onClick={() => setSentence(EXAMPLE)}>Try the example</button>
-            )}
           </div>
         </div>
-        <p class="hint" id="crew-hint">What you're into, when you link up, and roughly where.</p>
+        {sensitive && <p class="hint just-in-time" id="crew-hint" role="status">You don't need to say who you are. Say what makes a place feel right, like quiet or safe.</p>}
         {speech.error && <p class="error-text">{speech.error}</p>}
-        <label class="field into-field">
-          <span class="label">What you're into <span class="optional">Optional</span></span>
-          <input class="input" value={into} maxLength={200} onInput={(e) => setInto(e.currentTarget.value)} placeholder={packUi().intoPlaceholder || 'art, live music, somewhere quiet'} disabled={reading} enterkeyhint="go" aria-describedby="into-hint" />
-          <span class="hint" id="into-hint">Tell the sloth what you're into and what makes a place feel right. You don't need to say who you are.</span>
-        </label>
         {error && <p class="error-text" role="alert">{error}</p>}
         <button class="btn primary block big" type="submit" disabled={reading}>
           {reading ? <>The sloth is reading it <Dots /></> : 'Set up my crew'}
@@ -214,18 +219,10 @@ export function Start({ query }) {
         <AiNote />
       </form>
 
-      <section class="how" aria-labelledby="how-title">
-        <h2 id="how-title" class="section-label">How it works</h2>
-        <ol class="how-steps">
-          <li><b>Say what the crew is into.</b> The sloth fills in the name, the day and the areas.</li>
-          <li><b>Send the link to the group chat.</b> Friends see the plans and tap once, with no app and no sign-up.</li>
-          <li><b>Add plans the lazy way,</b> from a flyer, a link or a sentence. Rides sort themselves.</li>
-        </ol>
-        <p class="how-note">Sloths come down from their tree about once a week, and so does your crew. Give it a regular day, and when nobody plans anything, the sloth picks a green spot in the middle of everyone and checks the weather.</p>
-        <p class="fine credits">
-          <a href="/how">How the sloth works</a>. Maps © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors. Weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a>. <a href="https://github.com/IkpemosiArnold/comethrough" target="_blank" rel="noopener">Open source</a>.
-        </p>
-      </section>
+      <footer class="fine credits start-credits">
+        {aiNoted() && <><a href="/how">How the sloth works</a>. </>}
+        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+      </footer>
     </div>
   );
 }
@@ -248,7 +245,7 @@ function TimeSelect({ value, onChange, label }) {
 }
 
 // A row of the preview: what Gemma read, plain, and the editor when tapped.
-function Row({ label, value, unsure, note, open, onToggle, children }) {
+function Row({ label, value, unsure, note, open, onToggle, edit = 'Change', children }) {
   return (
     <div class={`pv-row${unsure ? ' unsure' : ''}${open ? ' open' : ''}`}>
       <button type="button" class="pv-head" aria-expanded={open} onClick={onToggle}>
@@ -257,26 +254,11 @@ function Row({ label, value, unsure, note, open, onToggle, children }) {
           <span class="pv-value"><span class="pv-ink">{value}</span></span>
           {unsure && !open && <span class="pv-note">{note}</span>}
         </span>
-        <span class="pv-edit">{open ? 'Done' : 'Change'}</span>
+        <span class="pv-edit">{open ? 'Done' : edit}</span>
       </button>
       {open && <div class="pv-body">{children}</div>}
     </div>
   );
-}
-
-// "Got it: alte, art and live music, early 20s, around Yaba." Rebuilt as chips come off and
-// areas land on the map, the way the server first wrote it (src/core/taste.mjs, tasteView).
-function tasteSummary(t, areas) {
-  if (!t) return null;
-  const and = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
-  const list = (f) => (Array.isArray(t[f]) ? t[f] : []);
-  const bits = [
-    ...list('scenes').slice(0, 2),
-    list('likes').length ? and(list('likes').slice(0, 2)) : list('placeKinds').length ? and(list('placeKinds').slice(0, 2)) : null,
-    t.ageBand,
-    areas.length ? `around ${and(areas.slice(0, 2))}` : null,
-  ].filter(Boolean);
-  return bits.length ? `Got it: ${bits.join(', ')}.` : null;
 }
 
 const hasChip = (t, c) => (Array.isArray(t?.[c.field]) ? t[c.field].includes(c.value) : t?.[c.field] === c.value);
@@ -304,7 +286,37 @@ function knownName() {
   return (myCrews().find((x) => x.memberName) || {}).memberName || '';
 }
 
-function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
+// The tap-to-add for what the crew is into, when the sentence said nothing about it (or to add more)
+function IntoAdd({ onInto }) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  async function add() {
+    const t = text.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await onInto(t);
+      setText('');
+    } catch (e) {
+      setErr(e.message || "Couldn't read that just now. Try again.");
+    }
+    setBusy(false);
+  }
+  return (
+    <>
+      <div class="row add-area">
+        <input class="input grow" value={text} maxLength={200} placeholder={packUi().intoPlaceholder || 'art, live music, somewhere quiet'} onInput={(e) => setText(e.currentTarget.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} enterkeyhint="done" aria-label="What you're into" disabled={busy} />
+        <button type="button" class="btn secondary" onClick={add} disabled={busy || !text.trim()}>{busy ? <Dots /> : 'Add'}</button>
+      </div>
+      {hasSensitive(text) && <p class="hint" role="status">You don't need to say who you are. Say what makes a place feel right, like quiet or safe.</p>}
+      {err && <p class="error-text" role="alert">{err}</p>}
+    </>
+  );
+}
+
+function Preview({ draft, setDraft, busy, error, onBack, onCreate, onInto }) {
   const c = draft.confidence || {};
   const low = (f) => (draft.low || []).includes(f) || (c[f] != null && c[f] < UNSURE);
   const set = (patch) => setDraft({ ...draft, ...patch });
@@ -321,9 +333,8 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
   const asked = draft.needsLocation?.unresolved || [];
   const notes = (draft.notes || []).filter((t) => !/^No time was given/.test(t) && !asked.some((l) => t.includes(`"${l}"`)));
   const nameError = error && typeof error === 'object' ? error.name : null;
-  // what the sloth understood: the summary, and chips to take things off (members only, never shared)
+  // what the sloth understood, as chips to take off (members only, never shared), or one tap to add it
   const chips = (draft.understood?.chips || []).filter((c) => hasChip(draft.taste, c));
-  const summary = draft.understood?.summary ? tasteSummary(draft.taste, onMap.map((a) => a.label)) : null;
   const removeChip = (c) => set({ taste: dropChip(draft.taste, c) });
 
   function setEvery(every) {
@@ -343,7 +354,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
       <header class="pv-top">
         <button class="icon-btn" onClick={onBack} aria-label="Back to the sentence"><Icon name="back" /></button>
         <p class="pv-kicker">
-          {draft.ai === false ? 'The sloth is busy right now, so fill these in yourself.' : anyUnsure ? 'The marked bits are guesses. Tap one to fix it.' : 'Your crew, as friends will see it. Tap anything to change it.'}
+          {draft.ai === false ? 'The sloth is busy, so fill these in yourself.' : anyUnsure ? 'Marked bits are guesses. Tap to fix.' : 'Tap anything to change it.'}
         </p>
       </header>
 
@@ -364,19 +375,6 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
         <ul class="draft-notes" aria-label="Notes">
           {notes.map((t) => <li key={t}>{t}</li>)}
         </ul>
-      )}
-
-      {(summary || chips.length > 0) && (
-        <div class="taste-got">
-          {summary && <p class="taste-summary">{summary}</p>}
-          {chips.some((c) => c.field !== 'needs') && <TasteChips chips={chips.filter((c) => c.field !== 'needs')} onRemove={removeChip} />}
-          {chips.some((c) => c.field === 'needs') && (
-            <>
-              <p class="taste-needs-title">What makes a place feel right</p>
-              <TasteChips chips={chips.filter((c) => c.field === 'needs')} onRemove={removeChip} />
-            </>
-          )}
-        </div>
       )}
 
       <div class="pv-card surface">
@@ -402,9 +400,21 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
           {r && <p class="hint">On a {DAYS[r.day]} with nothing planned, the sloth picks a spot.</p>}
         </Row>
 
+
         <Row label="The vibe" value={draft.vibe || 'Not set'} unsure={low('vibe')} open={open === 'vibe'} onToggle={() => toggle('vibe')} note="A guess. Check it.">
           <input class="input" value={draft.vibe || ''} maxLength={80} onInput={(e) => set({ vibe: e.currentTarget.value })} aria-label="The vibe" />
           <p class="hint">The sloth uses this when it picks a spot.</p>
+        </Row>
+
+        <Row label="What you're into" value={chips.length ? nameList(chips.map((c) => c.label), 4) : 'Nothing yet'} open={open === 'into'} onToggle={() => toggle('into')} edit={chips.length ? 'Change' : 'Add'}>
+          {chips.some((c) => c.field !== 'needs') && <TasteChips chips={chips.filter((c) => c.field !== 'needs')} onRemove={removeChip} />}
+          {chips.some((c) => c.field === 'needs') && (
+            <>
+              <p class="mini-label">What makes a place feel right</p>
+              <TasteChips chips={chips.filter((c) => c.field === 'needs')} onRemove={removeChip} />
+            </>
+          )}
+          <IntoAdd onInto={onInto} />
         </Row>
 
         <Row label="Where the crew lives" value={draft.areas.length ? nameList(draft.areas.map((a) => a.label), 4) : 'Add an area'} unsure={low('areas') || !onMap.length || offMap.length > 0} open={open === 'areas'} onToggle={() => toggle('areas')}
@@ -428,7 +438,6 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
       <label class="field pv-you">
         <span class="label">Your name</span>
         <input class="input" value={me} onInput={(e) => setMe(e.currentTarget.value)} autocomplete="given-name" autocapitalize="words" maxLength={40} placeholder="What the crew calls you" enterkeyhint="done" />
-        <span class="hint">So the crew sees who started it.</span>
       </label>
 
       {error && !nameError && <p class="error-text" role="alert">{error}</p>}
@@ -501,13 +510,12 @@ function Invite({ created }) {
     <div class="column screen-enter invite">
       <div class="invite-sloth"><Sloth size={88} mood="awake" /></div>
       <h1 class="display display-xl painted paint-in">{crew.name} is ready</h1>
-      <p class="lede">Send it to the group chat. Friends see the plans before they're asked for anything.</p>
+      <p class="lede">Friends don't need an app or an account.</p>
 
       {picking && (
         <div class="first-pick ritual planning" role="status">
           <p class="ritual-kicker">{rhythmText(crew.rhythm)}</p>
           <p class="display ritual-title">The sloth is picking {day}<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
-          <p class="ritual-when">A green spot in the middle of the crew, with the weather checked.</p>
         </div>
       )}
       {plan && (
@@ -519,14 +527,14 @@ function Invite({ created }) {
         </a>
       )}
       {pick?.skipped && <p class="muted small rain-skip">{pick.skipped.rainPlan?.note}</p>}
-      {unplaced && crew.rhythm && <p class="muted small">No area is on the map yet, so the sloth isn't picking {day}'s spot. Plans the crew adds still work.</p>}
+      {unplaced && crew.rhythm && <p class="muted small">No area is on the map yet, so the sloth won't pick {day}'s spot.</p>}
 
       <div class="stack" style={{ '--stack': 'var(--s-3)' }}>
         <a class="btn whatsapp block big" href={whatsappUrl(message)} target="_blank" rel="noopener" data-external onClick={() => picking && setSharedEarly(true)}>
           <WhatsAppIcon /> {shareLabel}
         </a>
-        {picking && <p class="hint share-wait">Or wait a few seconds, and the message will carry {day}'s spot.</p>}
-        {plan && sharedEarly && <p class="hint share-wait">The sloth picked {plan.place?.name || dayWord(plan.start)}. Send it so the crew can tap I'm in.</p>}
+        {picking && <p class="hint share-wait">Or wait, and the message carries {day}'s spot.</p>}
+        {plan && sharedEarly && <p class="hint share-wait">Send it again so the crew can tap I'm in.</p>}
         <button class="btn secondary block" onClick={copy}><Icon name="copy" size={20} /> Copy link</button>
       </div>
 

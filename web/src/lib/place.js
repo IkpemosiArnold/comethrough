@@ -50,12 +50,12 @@ export function areaContext() {
 // Example crew sentences: Lagos's, and one for each city we test in. A visitor in one of
 // those zones sees theirs; anyone else sees one that changes by the day.
 const EXAMPLES = {
-  'Africa/Lagos': 'The uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki',
-  'Europe/London': 'The Peckham lot, every other Sunday, somewhere green and cheap, around Peckham and Brixton',
-  'Europe/Berlin': 'The Kreuzberg lot, every other Sunday, somewhere green, cheap, around Kreuzberg and Neukölln',
-  'Africa/Nairobi': 'Campus crew, every Saturday afternoon, somewhere outside, around Kilimani and Westlands',
-  'Asia/Kolkata': 'Office gang, every other Saturday, somewhere green, around Indiranagar and Koramangala',
-  'America/New_York': 'The Brooklyn crew, every other Sunday, a park, cheap, around Park Slope and Williamsburg',
+  'Africa/Lagos': 'Uni guys, every other Saturday, outside and cheap, around Yaba and Lekki',
+  'Europe/London': 'The Peckham lot, every other Sunday, green and cheap, around Brixton',
+  'Europe/Berlin': 'The Kreuzberg lot, every other Sunday, green and cheap, around Neukölln',
+  'Africa/Nairobi': 'Campus crew, every Saturday afternoon, outside, around Kilimani and Westlands',
+  'Asia/Kolkata': 'Office gang, every other Saturday, somewhere green, around Indiranagar',
+  'America/New_York': 'The Brooklyn crew, every other Sunday, a park, around Park Slope',
 };
 
 /** The example sentence for the start screen. */
