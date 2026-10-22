@@ -33,12 +33,14 @@ export async function launch({ headless = true } = {}) {
   let id = 0;
   /** @type {Map<number, (m: any) => void>} */
   const waiting = new Map();
+  /** @type {Set<(m: any) => void>} */
+  const listeners = new Set();
   ws.onmessage = (e) => {
     const m = JSON.parse(String(e.data));
     if (m.id && waiting.has(m.id)) {
       waiting.get(m.id)?.(m);
       waiting.delete(m.id);
-    }
+    } else if (m.method) listeners.forEach((fn) => fn(m));
   };
   /** @returns {Promise<any>} */
   const send = (/** @type {string} */ method, params = {}, /** @type {string|undefined} */ sessionId = undefined) =>
@@ -70,6 +72,12 @@ export async function launch({ headless = true } = {}) {
     const api = {
       send: s,
       run,
+      /** listen to a CDP event on this page (for example Page.screencastFrame); returns an off() */
+      on(/** @type {string} */ method, /** @type {(params: any) => void} */ fn) {
+        const l = (/** @type {any} */ m) => m.sessionId === sessionId && m.method === method && fn(m.params);
+        listeners.add(l);
+        return () => listeners.delete(l);
+      },
       async go(/** @type {string} */ url, wait = 1800) {
         await s("Page.navigate", { url });
         await sleep(wait);

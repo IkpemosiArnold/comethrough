@@ -1,0 +1,225 @@
+{
+  "base": "http://localhost:3700",
+  "viewport": "390 x 844 at 2x, Android Chrome user agent",
+  "throttle": "4x CPU for the timing runs",
+  "moments": {
+    "swing": {
+      "shots": {
+        "swing": "docs/screens/whimsy/swing.png",
+        "danfo": "docs/screens/whimsy/danfo.png"
+      },
+      "tapToFirstFrameMs": 2,
+      "tapToFirstFrameMs4x": 498,
+      "timing4x": {
+        "frames": 104,
+        "ms": 3633,
+        "medianMs": 16.7,
+        "p95Ms": 133.3,
+        "worstMs": 300,
+        "dropped": 115,
+        "droppedPct": 52.5,
+        "longAnimationFrames": 12
+      }
+    },
+    "reading": {
+      "shots": {
+        "reading": "docs/screens/whimsy/reading.png"
+      },
+      "cpu1x": {
+        "frames": 129,
+        "ms": 2133,
+        "medianMs": 16.7,
+        "p95Ms": 16.8,
+        "worstMs": 16.8,
+        "dropped": 0,
+        "droppedPct": 0,
+        "longAnimationFrames": 0
+      },
+      "cpu4x": {
+        "frames": 77,
+        "ms": 2517,
+        "medianMs": 16.7,
+        "p95Ms": 133.3,
+        "worstMs": 250,
+        "dropped": 75,
+        "droppedPct": 49.3,
+        "longAnimationFrames": 9
+      }
+    },
+    "poke": {
+      "shots": {
+        "poke": "docs/screens/whimsy/poke.png",
+        "doze": "docs/screens/whimsy/doze.png",
+        "wake": "docs/screens/whimsy/wake.png"
+      },
+      "asleepAfterFive": false,
+      "awakeAfterNext": true,
+      "cpu1x": {
+        "frames": 257,
+        "ms": 4283,
+        "medianMs": 16.7,
+        "p95Ms": 16.7,
+        "worstMs": 33.3,
+        "dropped": 1,
+        "droppedPct": 0.4,
+        "longAnimationFrames": 0,
+        "tapToFirstFrameMs": [
+          29,
+          21,
+          22,
+          25,
+          25
+        ]
+      },
+      "cpu4x": {
+        "frames": 159,
+        "ms": 4783,
+        "medianMs": 16.7,
+        "p95Ms": 116.7,
+        "worstMs": 250,
+        "dropped": 129,
+        "droppedPct": 44.8,
+        "longAnimationFrames": 16,
+        "tapToFirstFrameMs": [
+          20,
+          20,
+          15,
+          24,
+          22
+        ]
+      }
+    },
+    "rain": {
+      "shots": {
+        "rain": "docs/screens/whimsy/rain.png"
+      }
+    },
+    "status": {
+      "shots": {
+        "status": "docs/screens/whimsy/status-card.png"
+      },
+      "cpu1x": {
+        "frames": 92,
+        "ms": 2350,
+        "medianMs": 16.7,
+        "p95Ms": 100,
+        "worstMs": 283.3,
+        "dropped": 50,
+        "droppedPct": 35.2,
+        "longAnimationFrames": 6
+      },
+      "cpu4x": {
+        "frames": 27,
+        "ms": 1950,
+        "medianMs": 16.7,
+        "p95Ms": 116.7,
+        "worstMs": 1183.3,
+        "dropped": 91,
+        "droppedPct": 77.1,
+        "longAnimationFrames": 5
+      }
+    },
+    "ambient": {
+      "shots": {
+        "blink": "docs/screens/whimsy/blink.png",
+        "asleep": "docs/screens/whimsy/asleep.png"
+      },
+      "crewHomeIdle": {
+        "cpu1x": {
+          "frames": 306,
+          "ms": 5083,
+          "medianMs": 16.7,
+          "p95Ms": 16.8,
+          "worstMs": 16.8,
+          "dropped": 0,
+          "droppedPct": 0,
+          "longAnimationFrames": 0
+        },
+        "cpu4x": {
+          "frames": 140,
+          "ms": 4950,
+          "medianMs": 16.7,
+          "p95Ms": 166.7,
+          "worstMs": 316.7,
+          "dropped": 158,
+          "droppedPct": 53,
+          "longAnimationFrames": 17
+        }
+      },
+      "howIdle": {
+        "cpu1x": {
+          "frames": 301,
+          "ms": 5016,
+          "medianMs": 16.7,
+          "p95Ms": 16.7,
+          "worstMs": 33.3,
+          "dropped": 1,
+          "droppedPct": 0.3,
+          "longAnimationFrames": 0
+        },
+        "cpu4x": {
+          "frames": 128,
+          "ms": 5100,
+          "medianMs": 16.7,
+          "p95Ms": 233.3,
+          "worstMs": 316.6,
+          "dropped": 179,
+          "droppedPct": 58.3,
+          "longAnimationFrames": 2
+        }
+      }
+    },
+    "reducedMotion": {
+      "swing": [
+        {
+          "on": "btn secondary going-pill",
+          "props": [
+            "backgroundColor"
+          ],
+          "name": ""
+        },
+        {
+          "on": "nudge-inline",
+          "props": [
+            "opacity"
+          ],
+          "name": "fade-in"
+        },
+        {
+          "on": "btn secondary going-pill",
+          "props": [
+            "opacity"
+          ],
+          "name": "fade-in"
+        },
+        {
+          "on": "btn whatsapp big grow cal-btn",
+          "props": [
+            "opacity"
+          ],
+          "name": "fade-in"
+        }
+      ],
+      "swingOnBranch": true,
+      "danfoParked": true,
+      "poke": [],
+      "pokeAsleep": true,
+      "rain": [
+        {
+          "on": "column plan-page screen-enter has-bar kind-found",
+          "props": [
+            "opacity"
+          ],
+          "name": "fade-in"
+        }
+      ],
+      "how": [],
+      "nonOpacityAnimations": 1
+    },
+    "hiddenTab": {
+      "runningBefore": 1,
+      "runningWhileHidden": 0,
+      "runningAfter": 1
+    }
+  }
+}
