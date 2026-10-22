@@ -15,7 +15,7 @@ import { Sloth } from '../ui/Sloth.jsx';
 import { installPrompt } from '../lib/install.js';
 import { prepareFlyer, formatBytes } from '../lib/image.js';
 import { AiNote, markAiNoted } from '../ui/AiNote.jsx';
-import { dayLabel, timeRange } from '../lib/format.js';
+import { dayLabel, timeRange, clock } from '../lib/format.js';
 import { fromLocalParts, toLocalParts } from '../lib/format.js';
 import { packUi } from '../lib/place.js';
 
@@ -159,7 +159,9 @@ export function AddPlan({ params, query }) {
   async function post() {
     setStep('posting');
     try {
-      const { notes, confidence, low, ai, ...clean } = draft;
+      // the confidence goes with the plan (it was dropped here until 22 Oct 2026); the day
+      // hint and the screen's own flags do not
+      const { notes, low, ai, guess, day, ...clean } = draft;
       const plan = await api.createPlan(slug, clean);
       navigate(`/c/${slug}/p/${plan.id}?posted=1`, { replace: true });
     } catch (e) {
@@ -288,6 +290,38 @@ function ShareTip() {
   );
 }
 
+// "What time?": a plan with no time is asked, never filled in (on 22 Oct 2026 a games night
+// with no time became noon). Tap a day (when the sentence had none) and a time.
+const ASK_TIMES = ['12:00', '15:00', '17:00', '19:00', '20:00'];
+const addDays = (date, n) => new Date(Date.parse(`${date}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+
+function WhenAsk({ day, time, onDay, onTime, onOther }) {
+  const today = toParts(new Date().toISOString()).date;
+  const days = [0, 1, 2, 3, 4, 5, 6].map((n) => addDays(today, n));
+  // today, tomorrow, then the weekend days of this week
+  const shown = days.filter((d, i) => i < 2 || [5, 6, 0].includes(new Date(`${d}T12:00:00Z`).getUTCDay())).slice(0, 5);
+  const dayWord = (d) => { const w = dayLabel(fromParts(d, '12:00')); return w === 'Tonight' ? 'Today' : w; };
+  return (
+    <div class="surface stack when-ask" style={{ '--stack': 'var(--s-3)' }}>
+      <fieldset class="field">
+        <legend class="label">{day ? `${dayWord(day)}. What time?` : 'Which day?'}</legend>
+        {!day && (
+          <div class="row wrap seg">
+            {shown.map((d) => <button type="button" key={d} class="chip" aria-pressed={day === d} onClick={() => onDay(d)}>{dayWord(d)}</button>)}
+          </div>
+        )}
+        {day && (
+          <div class="row wrap seg">
+            {ASK_TIMES.map((t) => <button type="button" key={t} class="chip" aria-pressed={time === t} onClick={() => onTime(t)}>{clock(t)}</button>)}
+            <button type="button" class="chip" onClick={onOther}>Other</button>
+            <button type="button" class="link-btn" onClick={() => onDay(null)}>Another day</button>
+          </div>
+        )}
+      </fieldset>
+    </div>
+  );
+}
+
 function Unsure({ conf, low, children, order = 0 }) {
   const unsure = low || (conf != null && conf < UNSURE);
   return (
@@ -300,11 +334,18 @@ function Unsure({ conf, low, children, order = 0 }) {
 
 function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry, meId }) {
   const c = draft.confidence || {};
-  const isLow = (...f) => f.some((x) => (draft.low || []).includes(x) || (c[x] != null && c[x] < UNSURE));
-  const notes = Array.isArray(draft.notes) ? draft.notes : [];
+  // a field that is simply absent (confidence 0) is empty, not a guess: the screen asks for it
+  const isLow = (...f) => f.some((x) => (draft.low || []).includes(x) || (c[x] != null && c[x] > 0 && c[x] < UNSURE));
+  // the day and time questions are asked with chips below, not as notes
+  const notes = (Array.isArray(draft.notes) ? draft.notes : []).filter((t) => !(!draft.start && /^(Which day is it\?|What time does it start\?)$/.test(t)) && !(draft.guess && /^The sloth was busy/.test(t)));
   const set = (patch) => setDraft({ ...draft, ...patch });
-  const setPlace = (patch) => set({ place: { ...draft.place, ...patch } });
+  // a field a person sets is no longer a guess
+  const setSure = (field, patch) => set({ ...patch, confidence: { ...c, [field]: 1 } });
+  const setPlace = (patch) => setSure('place', { place: { ...draft.place, ...patch } });
   const s = toParts(draft.start), e = toParts(draft.end);
+  const day = s.date || draft.day || '';
+  // no time yet: the day waits in draft.day until a time is picked, and nothing is filled in
+  const setStart = (d, t) => (d && t ? setSure('start', { start: fromParts(d, t), day: undefined }) : set({ start: null, day: d || undefined }));
   const [newItem, setNewItem] = useState('');
   const animate = useRef(!prefersReducedMotion());
   useEffect(() => { animate.current = false; }, []);
@@ -316,7 +357,7 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
     setNewItem('');
   }
   const ok = draft.title?.trim() && draft.start;
-  const unsure = draft.ai === false || ['title', 'start', 'end', 'place', 'price'].some((f) => isLow(f));
+  const unsure = draft.ai === false || ['title', 'start', 'end', 'place', 'price'].filter((f) => (f !== 'start' || draft.start) && (f !== 'end' || draft.end)).some((f) => isLow(f));
   const from = preview || draft.source?.image ? 'the flyer' : draft.source?.url ? 'the link' : 'your sentence';
   const [details, setDetails] = useState(unsure);
 
@@ -326,7 +367,13 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
       <div class="draft-head">
         {preview && <img class="poster draft-poster" src={preview} alt="Your flyer" />}
         <div>
-          {draft.ai === false ? (
+          {draft.ai === false && draft.guess ? (
+            <>
+              <h1 class="display display-lg">A best guess</h1>
+              <p class="muted">The sloth was busy. Check it, or try again.</p>
+              <button type="button" class="btn secondary retry-btn" onClick={onRetry}>Try again</button>
+            </>
+          ) : draft.ai === false ? (
             <>
               <h1 class="display display-lg">The sloth is busy right now</h1>
               <p class="muted">Fill in the details yourself, or try again in a minute.</p>
@@ -352,15 +399,21 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
         </ul>
       )}
 
-      {draft.ai !== false && (
+      {(draft.ai !== false || draft.guess) && (
         <div class={`draft-preview plan-row kind-${draft.kind}`}>
           <div class="plan-main">
             <div class="row plan-tags"><KindSticker kind={draft.kind} /></div>
             <p class="plan-title">{draft.title || 'No title yet'}</p>
-            <p class="plan-meta">{draft.start ? `${dayLabel(draft.start)}, ${timeRange(draft.start, draft.end)}` : 'No date yet'}{draft.place?.name ? ` at ${draft.place.name}` : ''}</p>
+            <p class="plan-meta">{[draft.start ? `${dayLabel(draft.start)}, ${timeRange(draft.start, draft.end)}` : day ? dayLabel(fromParts(day, '12:00')).replace('Tonight', 'Today') : null, draft.place?.name].filter(Boolean).join(' at ')}</p>
             {draft.price?.text && <p class="plan-meta">{draft.price.text}</p>}
+            {draft.bring?.length > 0 && <p class="plan-meta">Bring {draft.bring.join(', ')}</p>}
+            {draft.note && <p class="plan-meta">{draft.note}</p>}
           </div>
         </div>
+      )}
+
+      {!draft.start && (
+        <WhenAsk day={day} time={null} onDay={(d) => setStart(d, null)} onTime={(t) => setStart(day, t)} onOther={() => setDetails(true)} />
       )}
 
       <button type="button" class="details-toggle" aria-expanded={details} onClick={() => setDetails(!details)}>
@@ -382,25 +435,25 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
         <Unsure low={isLow('title')} order={1}>
           <label class="field">
             <span class="label">Title</span>
-            <input class="input" value={draft.title || ''} maxLength={80} onInput={(ev) => set({ title: ev.currentTarget.value })} />
+            <input class="input" value={draft.title || ''} maxLength={80} onInput={(ev) => setSure('title', { title: ev.currentTarget.value })} />
           </label>
         </Unsure>
 
-        <Unsure low={isLow('start')} order={2}>
+        <Unsure low={!!draft.start && isLow('start')} order={2}>
           <div class="field">
             <span class="label" id="when-label">When</span>
             <div class="when-grid" role="group" aria-labelledby="when-label">
               <label class="mini when-date">
                 <span>Day</span>
-                <input class="input" type="date" value={s.date} onInput={(ev) => set({ start: fromParts(ev.currentTarget.value, s.time), end: draft.end ? fromParts(ev.currentTarget.value, e.time) : null })} />
+                <input class="input" type="date" value={day} onInput={(ev) => { const d = ev.currentTarget.value; if (s.time) setSure('start', { start: fromParts(d, s.time), end: draft.end ? fromParts(d, e.time) : null }); else setStart(d, null); }} />
               </label>
-              <label class={`mini${isLow('start') ? ' guess' : ''}`}>
+              <label class={`mini${draft.start && isLow('start') ? ' guess' : ''}`}>
                 <span>Starts</span>
-                <input class="input" type="time" value={s.time} onInput={(ev) => set({ start: fromParts(s.date, ev.currentTarget.value) })} />
+                <input class="input" type="time" value={s.time} onInput={(ev) => setStart(day, ev.currentTarget.value)} />
               </label>
-              <label class={`mini${isLow('end') ? ' guess' : ''}`}>
+              <label class={`mini${draft.end && isLow('end') ? ' guess' : ''}`}>
                 <span>Ends</span>
-                <input class="input" type="time" value={e.time} onInput={(ev) => set({ end: ev.currentTarget.value ? fromParts(s.date, ev.currentTarget.value) : null })} />
+                <input class="input" type="time" value={e.time} disabled={!draft.start} onInput={(ev) => set({ end: ev.currentTarget.value ? fromParts(day, ev.currentTarget.value) : null })} />
               </label>
             </div>
           </div>
@@ -438,6 +491,15 @@ function Draft({ draft, setDraft, preview, busy, error, onBack, onPost, onRetry,
             <label class="field">
               <span class="label">Price</span>
               <input class="input" value={draft.price?.text || ''} placeholder={packUi().pricePlaceholder} onInput={(ev) => { const t = ev.currentTarget.value; set({ price: t ? { text: t, free: /^free/i.test(t.trim()) } : null }); }} />
+            </label>
+          </Unsure>
+        )}
+
+        {(draft.kind === 'hosted' || draft.note) && (
+          <Unsure order={6}>
+            <label class="field">
+              <span class="label">A note for the crew</span>
+              <input class="input" value={draft.note || ''} maxLength={160} placeholder="Wear white" onInput={(ev) => set({ note: ev.currentTarget.value || null })} />
             </label>
           </Unsure>
         )}

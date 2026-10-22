@@ -8,7 +8,7 @@ import { api } from '../lib/api.js';
 import { getCrew, myCrews } from '../lib/store.js';
 import { dayLabel, timeRange, firstName } from '../lib/format.js';
 import { haptic } from '../lib/spring.js';
-import { whatsappUrl, planMessage, planLinks } from '../lib/share.js';
+import { whatsappUrl, planMessage, planLinks, planAsks } from '../lib/share.js';
 import { Branch } from '../ui/Branch.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
@@ -128,7 +128,7 @@ export function OneTap({ params, query, answer }) {
           <p class="muted">{going.length === 1 ? "You're the first on the branch." : `${going.length} going.`} <button class="link-btn" onClick={undo}>Change my answer</button></p>
           <div class="ot-actions">
             <a class="btn secondary block" href={links.url}>The plan, rides and the map</a>
-            <a class="btn ghost block" href={whatsappUrl(planMessage({ title: plan.title, when, place: plan.place?.name, kind: plan.kind, links, mine: answer === 'going' ? 'going' : null }))} target="_blank" rel="noopener" data-external>
+            <a class="btn ghost block" href={whatsappUrl(planMessage({ title: plan.title, when, place: plan.place?.name, kind: plan.kind, links, asks: planAsks(plan), mine: answer === 'going' ? 'going' : null }))} target="_blank" rel="noopener" data-external>
               <WhatsAppIcon size={20} /> Tell the chat
             </a>
             {answer === 'going' && api.eventIcsUrl(slug, plan) && (

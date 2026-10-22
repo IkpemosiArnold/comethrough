@@ -8,7 +8,7 @@ import { packUi } from '../lib/place.js';
 import { navigate } from '../lib/router.js';
 import { dayLabel, timeRange, time, firstName, nameList, weekday, dayParts } from '../lib/format.js';
 import { copyText, isAndroid, isIOS, isStandalone, canPush, notifyState, enablePush } from '../lib/platform.js';
-import { whatsappUrl, planMessage, planLinks } from '../lib/share.js';
+import { whatsappUrl, planMessage, planLinks, planAsks } from '../lib/share.js';
 import { haptic, prefersReducedMotion, springAnimate } from '../lib/spring.js';
 import { Avatar, Faces } from '../ui/Avatar.jsx';
 import { Branch } from '../ui/Branch.jsx';
@@ -83,7 +83,7 @@ export function PlanPage({ params, query }) {
   const links = planLinks(location.origin, slug, id, invite);
   const planUrl = links.url;
   const when = `${dayLabel(plan.start)}, ${timeRange(plan.start, plan.end)}`;
-  const msg = { title: plan.title, when, place: plan.place?.name, kind: plan.kind, links };
+  const msg = { title: plan.title, when, place: plan.place?.name, kind: plan.kind, links, asks: planAsks(plan) };
   const shareText = planMessage(msg);
   const goingText = planMessage({ ...msg, mine: 'going' });
 
@@ -172,7 +172,7 @@ export function PlanPage({ params, query }) {
         </div>
         <h1 class="display display-lg plan-h1">{plan.title}</h1>
         <p class="plan-when"><Icon name="calendar" size={20} /> <span>{when}</span></p>
-        {plan.invite && <p class="plan-invite">{plan.invite}</p>}
+        {plan.invite && plan.kind === 'ritual' && <p class="plan-invite">{plan.invite}</p>}
       </header>
 
       {plan.rainPlan && (plan.status !== 'cancelled' || plan.rainPlan.kind === 'skip') && (
@@ -299,12 +299,15 @@ export function PlanPage({ params, query }) {
         </details>
       )}
 
-      {plan.bring?.length > 0 && (
+      {(plan.bring?.length > 0 || plan.note) && (
         <section class="bring" aria-labelledby="bring-title">
-          <h2 id="bring-title" class="section-label">Bring</h2>
-          <ul class="row wrap bring-list">
-            {plan.bring.map((b) => <li key={b} class="chip"><Icon name="bag" size={16} /> {b}</li>)}
-          </ul>
+          <h2 id="bring-title" class="section-label">{plan.bring?.length ? 'Bring' : 'Note'}</h2>
+          {plan.bring?.length > 0 && (
+            <ul class="row wrap bring-list">
+              {plan.bring.map((b) => <li key={b} class="chip"><Icon name="bag" size={16} /> {b}</li>)}
+            </ul>
+          )}
+          {plan.note && <p class="plan-note" style={{ marginTop: plan.bring?.length ? 'var(--s-3)' : 0 }}>{plan.note}</p>}
         </section>
       )}
 

@@ -116,7 +116,7 @@ export function Start({ query }) {
     setStep('creating');
     setError(null);
     try {
-      const { confidence, low, notes, ai, pack, needsLocation, understood, ...clean } = draft;
+      const { confidence, low, notes, ai, guess, pack, needsLocation, understood, ...clean } = draft;
       const res = await api.createCrew(clean, { name });
       saveCrew(res.crew.slug, { name: res.crew.name, invite: res.crew.inviteToken, inviteUrl: res.inviteUrl, organiser: true });
       if (res.member && res.memberToken) {
@@ -328,7 +328,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate, onInto }) {
   const set = (patch) => setDraft({ ...draft, ...patch });
   const r = draft.rhythm;
   const [open, setOpen] = useState(null);
-  const [editName, setEditName] = useState(draft.ai === false || !draft.name);
+  const [editName, setEditName] = useState(!draft.name);
   const [me, setMe] = useState(knownName);
   const toggle = (k) => setOpen(open === k ? null : k);
   const offMap = draft.areas.filter((a) => !pinned(a));
@@ -360,7 +360,7 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate, onInto }) {
       <header class="pv-top">
         <button class="icon-btn" onClick={onBack} aria-label="Back to the sentence"><Icon name="back" /></button>
         <p class="pv-kicker">
-          {draft.ai === false ? 'The sloth is busy, so fill these in yourself.' : anyUnsure ? 'Marked bits are guesses. Tap to fix.' : 'Tap anything to change it.'}
+          {draft.ai === false && !draft.guess ? 'The sloth is busy, so fill these in yourself.' : anyUnsure ? 'Marked bits are guesses. Tap to fix.' : 'Tap anything to change it.'}
         </p>
       </header>
 
@@ -467,7 +467,8 @@ const PICK_TIMEOUT_MS = 90000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function useFirstPick(crew, located) {
-  const on = !!crew.rhythm && located;
+  // every crew on the map gets a first pick: its regular day, or this weekend
+  const on = located && !!crew.firstPick;
   const [pick, setPick] = useState(on ? 'picking' : null);
   useEffect(() => {
     if (!on) return;
@@ -510,7 +511,7 @@ function Invite({ created }) {
     const ok = await copyText(inviteUrl);
     toast(ok ? 'Link copied' : "Couldn't copy. Press and hold the link instead.");
   }
-  const day = crew.rhythm ? DAYS[crew.rhythm.day] : '';
+  const day = crew.rhythm ? DAYS[crew.rhythm.day] : 'the weekend';
   const shareLabel = picking ? 'Share now' : plan && sharedEarly ? 'Share with the plan' : 'Send to the group chat';
   return (
     <div class="column screen-enter invite">
@@ -520,7 +521,7 @@ function Invite({ created }) {
 
       {picking && (
         <div class="first-pick ritual planning" role="status">
-          <p class="ritual-kicker">{rhythmText(crew.rhythm)}</p>
+          <p class="ritual-kicker">{crew.rhythm ? rhythmText(crew.rhythm) : 'This weekend'}</p>
           <p class="display ritual-title">The sloth is picking {day}<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
         </div>
       )}
@@ -539,7 +540,7 @@ function Invite({ created }) {
         <a class="btn whatsapp block big" href={whatsappUrl(message)} target="_blank" rel="noopener" data-external onClick={() => picking && setSharedEarly(true)}>
           <WhatsAppIcon /> {shareLabel}
         </a>
-        {picking && <p class="hint share-wait">Or wait, and the message carries {day}'s spot.</p>}
+        {picking && <p class="hint share-wait">Or wait, and the message carries {crew.rhythm ? `${day}'s` : 'the'} spot.</p>}
         {plan && sharedEarly && <p class="hint share-wait">Send it again so the crew can tap I'm in.</p>}
         <button class="btn secondary block" onClick={copy}><Icon name="copy" size={20} /> Copy link</button>
       </div>

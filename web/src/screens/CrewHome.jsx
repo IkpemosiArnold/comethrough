@@ -8,7 +8,7 @@ import { setPlace } from '../lib/place.js';
 import { navigate } from '../lib/router.js';
 import { dayParts, dayLabel, timeRange, time, isPast, firstName, weekday, nameList, rhythmText, DAYS } from '../lib/format.js';
 import { copyText, isIOS, isAndroid } from '../lib/platform.js';
-import { whatsappUrl, inviteMessage, planLinks } from '../lib/share.js';
+import { whatsappUrl, inviteMessage, planLinks, planAsks } from '../lib/share.js';
 import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
@@ -24,7 +24,7 @@ export function crewInvite(crew, plans, invite) {
   const key = invite ? `?t=${encodeURIComponent(invite)}` : '';
   const url = `${location.origin}/c/${crew.slug}${key}`;
   const next = (plans || []).find((p) => !isPast(p) && p.status !== 'cancelled');
-  const plan = next ? { title: next.title, kind: next.kind, place: next.place?.name, when: `${dayLabel(next.start)}, ${timeRange(next.start, next.end)}`, links: planLinks(location.origin, crew.slug, next.id, invite) } : null;
+  const plan = next ? { title: next.title, kind: next.kind, place: next.place?.name, when: `${dayLabel(next.start)}, ${timeRange(next.start, next.end)}`, links: planLinks(location.origin, crew.slug, next.id, invite), asks: planAsks(next) } : null;
   // the invite travels: a discreet crew, or a name that says who the crew is, stays out of it
   return inviteMessage({ crewName: crew.shareName ?? 'our crew', url, plan });
 }
@@ -60,6 +60,15 @@ export function CrewHome({ params, query, askName = false }) {
   const guest = !meId;
   const invite = crew?.inviteToken || mine?.invite;
   const inviteText = crew ? crewInvite(crew, [ritual, ...rest].filter((p) => p && p.status !== 'cancelled'), invite) : '';
+
+  // the sloth's first pick is still being made: wait for it once, then show it
+  const pickPending = crew?.firstPick?.status === 'pending' && !ritual;
+  useEffect(() => {
+    if (!pickPending) return;
+    let alive = true;
+    api.firstPick(slug, 20).then((r) => { if (alive && r.status !== 'pending') load(); }).catch(() => {});
+    return () => { alive = false; };
+  }, [pickPending]);
 
   function joined(res, first) {
     setMeId(res.member.id);
@@ -299,7 +308,18 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
     );
   }
   // no area on the map: the sloth picks nothing, so it promises nothing (docs/SPEC.md, needsLocation)
-  if (!crew.rhythm || (crew.region && !crew.region.center)) return null;
+  if (crew.region && !crew.region.center) return null;
+  // no regular day: the sloth's one pick for this weekend, while it is being made
+  if (!crew.rhythm) {
+    if (crew.firstPick?.status !== 'pending') return null;
+    return (
+      <div class="ritual planning">
+        <div class="ritual-sloth" aria-hidden="true"><Sloth size={78} mood="sleepy" /></div>
+        <p class="ritual-kicker">This weekend</p>
+        <h2 class="display ritual-title">The sloth is picking a spot<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></h2>
+      </div>
+    );
+  }
   const dayName = DAYS[crew.rhythm.day];
   const postBy = DAYS[(crew.rhythm.day + 5) % 7];
   return (

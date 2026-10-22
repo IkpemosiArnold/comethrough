@@ -30,11 +30,21 @@ const answers = (links) => `I'm in: ${links.in}\nMaybe: ${links.maybe}`;
 
 /**
  * The message for a plan: what it is, then "I'm in" and "Maybe".
- * @param {{ title: string, when: string, place?: string|null, kind?: string, links: { url: string, in: string, maybe: string }, mine?: 'going'|'maybe'|null }} p
+ * @param {{ title: string, when: string, place?: string|null, kind?: string, links: { url: string, in: string, maybe: string }, mine?: 'going'|'maybe'|null, asks?: string|null }} p
  */
-export function planMessage({ title, when, place, kind, links, mine = null }) {
-  if (mine === 'going') return `I'm going to ${line({ title, when, place, kind })}. Come through?\n${answers(links)}`;
-  return `${line({ title, when, place, kind })}. Come through?\n${answers(links)}`;
+export function planMessage({ title, when, place, kind, links, mine = null, asks = null }) {
+  // what a member's plan asks of people ("Bring wine. Come freshly waxed.") travels with it
+  const ask = kind !== 'ritual' && asks ? ` ${asks}` : '';
+  if (mine === 'going') return `I'm going to ${line({ title, when, place, kind })}.${ask} Come through?\n${answers(links)}`;
+  return `${line({ title, when, place, kind })}.${ask} Come through?\n${answers(links)}`;
+}
+
+/** What a plan asks of people, as one line: "Bring wine and ice. Come freshly waxed." (src/core/plans.mjs, planAsks). */
+export function planAsks(plan) {
+  const bring = (plan?.bring || []).filter(Boolean);
+  const list = bring.length <= 1 ? bring.join('') : `${bring.slice(0, -1).join(', ')} and ${bring[bring.length - 1]}`;
+  const note = plan?.note ? (/[.!?]$/.test(plan.note) ? plan.note : `${plan.note}.`) : '';
+  return [list ? `Bring ${list}.` : '', note].filter(Boolean).join(' ') || null;
 }
 
 /**

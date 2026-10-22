@@ -111,7 +111,7 @@ export const api = {
     const h = { ...(hint() || {}), ...(city ? { city } : {}) };
     const r = await req('POST', '/api/crews', { body: { sentence, ...(into ? { into } : {}), hint: Object.keys(h).length ? h : null } });
     return {
-      ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false,
+      ...r.draft, pack: r.pack || null, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false, guess: !!r.guess,
       needsLocation: r.needsLocation || null, understood: r.taste || null,
     };
   },
@@ -243,7 +243,7 @@ export const api = {
       opts = { slug, body: { text: text || undefined, url: url || undefined } };
     }
     const r = await req('POST', `/api/crews/${enc(slug)}/plans/parse`, opts);
-    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false };
+    return { ...r.draft, confidence: r.confidence || {}, low: r.low || [], notes: plainNotes(r.notes), ai: r.ai !== false, guess: !!r.guess };
   },
   async createPlan(slug, draft) {
     const r = await req('POST', `/api/crews/${enc(slug)}/plans`, { slug, body: { plan: draft } });
