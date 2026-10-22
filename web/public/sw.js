@@ -81,7 +81,8 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Push: the server sends { title, body, url }.
+// Push: the server sends { title, body, url, tag }. Delivery is at least once (docs/SPEC.md,
+// Delivery): the same tag replaces the notification already shown, so a repeat shows once.
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }

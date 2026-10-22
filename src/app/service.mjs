@@ -60,6 +60,13 @@ const SPOT_RADIUS_KM = 15;
  * the map and the forecast get budgets there too; what they had not answered by then still
  * fills the caches for the next time.
  */
+/**
+ * Push deliveries (notify): at least once. A lease stops two workers sending the same push;
+ * a crash between the send and the mark can still repeat one, and the phone folds the two
+ * into one notification by its tag (web/public/sw.js). Backoff after the 1st, 2nd, ... failure.
+ */
+export const DELIVERY = Object.freeze({ leaseMs: 60_000, maxAttempts: 6, backoffMs: [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 3 * 3600_000], ttlMs: 12 * 3600_000, keepMs: 14 * 24 * 3600_000 });
+const iso = (/** @type {number} */ ms) => new Date(ms).toISOString();
 export const BUDGETS = { pinMs: 8000, weatherMs: 6000, gemmaMs: 35_000, pickPlacesMs: 8000, pickWeatherMs: 8000, pickWaitMs: 25_000 };
 const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
 
@@ -1072,25 +1079,82 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   /**
-   * Send a push message to members, once per dedupe key (a retried heartbeat or a repeated
-   * edit does not buzz anyone twice). Subscriptions the browser dropped are deleted.
-   * @returns {Promise<number>} messages sent
+   * Push news to members, once per dedupe key (a retried request or a repeated edit does
+   * not buzz anyone twice). Each subscription gets a delivery record (DELIVERY above): it is
+   * inserted only when new, claimed with a lease, sent, and marked a success only once the
+   * push service said 2xx. A failure for a moment is tried again by the heartbeat; a
+   * subscription the browser dropped (404, 410) is deleted.
+   * @returns {Promise<number>} messages accepted by the push service now
    */
   async function notify(memberIds, msg, dedupeKey) {
     if (!push.enabled || !memberIds.length) return 0;
     let sent = 0;
+    const t = now();
     for (const memberId of [...new Set(memberIds)]) {
       const key = `${dedupeKey}:${memberId}`;
+      // a marker from before delivery records (kept 14 days): that news went out already
       if (await store.get("sent", key)) continue;
-      const subs = await store.find("push", { memberId });
-      if (!subs.length) continue;
-      await store.put("sent", { id: key, expiresAt: new Date(now() + 14 * DAY).toISOString() });
-      for (const s of subs) {
-        const r = await push.send({ endpoint: s.endpoint, keys: s.keys }, msg);
-        if (r.ok) sent++;
-        if (r.gone) await store.delete("push", s.id);
+      for (const s of await store.find("push", { memberId })) {
+        const id = `${key}:${s.id}`;
+        const fresh = await store.insert("deliveries", {
+          id, key, memberId, subId: s.id, msg: { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag },
+          state: "pending", attempts: 0, nextAt: iso(t), leaseUntil: null, sendBy: iso(t + DELIVERY.ttlMs),
+          createdAt: iso(t), expiresAt: iso(t + DELIVERY.keepMs),
+        });
+        // already recorded: it was sent, or the heartbeat owns its retries
+        if (fresh && (await deliver(id))) sent++;
       }
     }
+    return sent;
+  }
+
+  /**
+   * One attempt at a delivery, if it can be claimed: due and not leased, or leased by a
+   * worker whose lease ran out (it crashed, or the instance went to sleep). True when the
+   * push service accepted it.
+   */
+  async function deliver(/** @type {string} */ id) {
+    const t = now();
+    const due = { state: { $in: ["pending", "retryable-failed"] }, nextAt: { $lte: iso(t) } };
+    const stale = { state: "leased", leaseUntil: { $lt: iso(t) } };
+    const d = await store.update("deliveries", id, { set: { state: "leased", leaseUntil: iso(t + DELIVERY.leaseMs) }, inc: { attempts: 1 } }, { ifMatch: { $or: [due, stale] } });
+    if (!d) return false;
+    const finish = (/** @type {string} */ state, /** @type {Record<string, any>} */ more = {}) => store.update("deliveries", id, { set: { state, leaseUntil: null, updatedAt: iso(now()), ...more } });
+    if (Date.parse(d.sendBy) <= t) {
+      await finish("expired");
+      return false;
+    }
+    const s = await store.get("push", d.subId);
+    if (!s) {
+      await finish("permanent-failed", { error: "unsubscribed" });
+      return false;
+    }
+    /** @type {{ ok: boolean, gone: boolean, permanent?: boolean, status?: number }} */
+    let r;
+    try {
+      r = await push.send({ endpoint: s.endpoint, keys: s.keys }, d.msg);
+    } catch (e) {
+      r = { ok: false, gone: false, status: 0 };
+    }
+    if (r.ok) {
+      await finish("succeeded", { sentAt: iso(now()) });
+      return true;
+    }
+    if (r.gone) await store.delete("push", s.id);
+    const last = d.attempts >= DELIVERY.maxAttempts;
+    if (r.gone || r.permanent || last) await finish("permanent-failed", { error: r.gone ? "gone" : last ? "gave_up" : `status_${r.status ?? 0}` });
+    else await finish("retryable-failed", { error: `status_${r.status ?? 0}`, nextAt: iso(now() + DELIVERY.backoffMs[Math.min(d.attempts - 1, DELIVERY.backoffMs.length - 1)]) });
+    log("push_failed", { status: r.status ?? 0, attempts: d.attempts, gone: r.gone });
+    return false;
+  }
+
+  /** The heartbeat's part: deliveries due again, and leases left behind. Returns how many went out. */
+  async function retryDeliveries() {
+    if (!push.enabled) return 0;
+    const t = iso(now());
+    const due = await store.find("deliveries", { $or: [{ state: { $in: ["pending", "retryable-failed"] }, nextAt: { $lte: t } }, { state: "leased", leaseUntil: { $lt: t } }] }, { limit: 200 });
+    let sent = 0;
+    for (const d of due) if (await deliver(d.id)) sent++;
     return sent;
   }
 
@@ -1378,9 +1442,15 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         log("tick_error", { crew: crew.id, message: String(/** @type {any} */ (e).message).slice(0, 200) });
       }
     }
-    // MongoDB's TTL index removes expired flyers by itself; the file store needs a sweep
+    try {
+      out.pushes += await retryDeliveries();
+    } catch (e) {
+      out.errors++;
+      log("tick_error", { message: `deliveries: ${String(/** @type {any} */ (e).message).slice(0, 200)}` });
+    }
+    // MongoDB's TTL index removes expired flyers and deliveries by itself; the file store needs a sweep
     if (store.kind !== "mongo") {
-      for (const f of await store.find("flyers")) if (Date.parse(f.expiresAt) <= t) await store.delete("flyers", f.id);
+      for (const c of ["flyers", "deliveries"]) for (const f of await store.find(c)) if (Date.parse(f.expiresAt) <= t) await store.delete(c, f.id);
     }
     log("tick", out);
     return out;
@@ -1396,7 +1466,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // renaming, name ideas, photos, one-time cards and link previews (src/app/growth.mjs)
     growth,
     // exposed for tests
-    _internal: { makeRitual, candidatesNear, notify, firstPickJob, picking },
+    _internal: { makeRitual, candidatesNear, notify, retryDeliveries, firstPickJob, picking },
   };
 
   function when(/** @type {Plan} */ plan) {

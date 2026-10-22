@@ -84,6 +84,12 @@ for (const s of STORES) {
       assert.equal((await store.find("plans", { id: { $in: ["p_old", "p_new"] } })).length, 2);
       assert.equal((await store.find("plans", { version: { $lte: 1 } })).length, 1);
       assert.equal((await store.find("plans", { version: { $exists: false } })).length, 1);
+      // a lease claim, as push deliveries make it: due, or leased with the lease run out
+      await store.put("deliveries", { id: "d1", state: "leased", leaseUntil: "2026-10-21T09:00:30.000Z", nextAt: "2026-10-21T09:00:00.000Z" });
+      const claim = (/** @type {string} */ at) => store.update("deliveries", "d1", { set: { state: "leased", leaseUntil: "2026-10-21T09:05:00.000Z" }, inc: { attempts: 1 } }, { ifMatch: { $or: [{ state: { $in: ["pending", "retryable-failed"] }, nextAt: { $lte: at } }, { state: "leased", leaseUntil: { $lt: at } }] } });
+      assert.equal(await claim("2026-10-21T09:00:10.000Z"), null, "the lease still holds");
+      const [x, y] = await Promise.all([claim("2026-10-21T09:01:00.000Z"), claim("2026-10-21T09:01:00.000Z")]);
+      assert.equal([x, y].filter(Boolean).length, 1, "one claim wins");
     } finally {
       await done();
     }

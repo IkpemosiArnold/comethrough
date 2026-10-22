@@ -91,6 +91,8 @@ Plan   { id, crewId, kind: "found"|"hosted"|"ritual"|"quick", title, start, end,
          ritualFor?: "YYYY-MM-DD", rainPlan?: { kind: "moved"|"next_day"|"covered"|"skip", note, wanted: { date, from, to, rainProb } } }
          // place.near?: { label, lat, lon }: an unpinned place's neighbourhood (from its address, or the host's area), for ride times and weather only
 Push   { id, memberId, crewId, endpoint, keys: { p256dh, auth }, createdAt }
+Delivery { id, key, memberId, subId, msg: { title, body, url, tag }, state: "pending"|"leased"|"succeeded"|"retryable-failed"|"expired"|"permanent-failed",
+         attempts, nextAt, leaseUntil, sendBy, error?, sentAt?, createdAt, expiresAt }   // 14 days, then the TTL index removes it
 Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, crossesLagoon, bridge, destinationText, shareText,
          estimate: { band, source: "road"|"straight", roadKm, speedKmh, lagoonMin, bridge, pickupMin, bufferMin, judgedAt, approxTo, text } | null }
          // roadKm and bridge come from an OSRM road route when there is one (source "road"); bridge is the lagoon
@@ -264,11 +266,12 @@ without the crew's name.
 - **Web Push** is the nudge for people who turn it on. It works on Android Chrome with no install, and on iPhone only once the app is added to the Home Screen. Keys come from the env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
 - **One-tap "add to my calendar":** after "I'm going", the UI offers `eventIcsUrl` (a single-event .ics). It works on Android and iPhone.
 - **The subscribed feed** (`webcal://.../cal/<calToken>.ics`) stays for iPhone and desktop. The Google Calendar app on Android cannot subscribe (only calendar.google.com on a computer can), and Google refreshes feeds every 6 to 24 hours, so the feed is never the place for last-minute news.
+- **Push deliveries are at least once (25 Oct).** Each push to each subscription is a record in `deliveries` (`{ id: "<dedupe key>:<member>:<subscription>", state, attempts, nextAt, leaseUntil, sendBy, msg }`), inserted only when new, so the same news is never queued twice. A worker claims a record with an atomic lease (60 s), sends it, and marks it `succeeded` only after the push service answers 2xx. A 429, a 5xx or no answer makes it `retryable-failed` with a backoff (1, 5 and 15 minutes, 1 hour, 3 hours; six attempts at most), and the heartbeat (`/api/tick`) sends what is due again, along with any lease a crashed worker left behind. 404 and 410 mean the browser unsubscribed: the subscription is deleted and the record is `permanent-failed`, as are 400, 403 and 413. A push not out within 12 hours is `expired` (stale news). The trade-off: a crash between the send and the mark can send one push twice; the payload's `tag` (the plan's id) makes the phone replace the first notification with the second instead of showing both, and the push service's `Topic` header does the same for one still waiting on its side.
 - **The calendar** is an extra: "Add to my calendar" sits under the plan after "I'm going", not in the bar.
 
 ## Scheduler
 
-Render cron jobs are not free, and the free web service sleeps after 15 minutes. A GitHub Actions schedule (`.github/workflows/tick.yml`, every 3 hours) POSTs `/api/tick` with `TICK_SECRET` (a repository secret), a 120 s timeout and two retries, which also wakes the service. Runs can be late or dropped, so the tick is idempotent: a ritual is keyed by its crew and date, weather alerts fire only on a change, and each push is sent once.
+Render cron jobs are not free, and the free web service sleeps after 15 minutes. A GitHub Actions schedule (`.github/workflows/tick.yml`, every 3 hours) POSTs `/api/tick` with `TICK_SECRET` (a repository secret), a 120 s timeout and two retries, which also wakes the service. Runs can be late or dropped, so the tick is idempotent: a ritual is keyed by its crew and date, weather alerts fire only on a change, and each push is queued once and retried until the push service takes it (at least once; see Delivery).
 
 ## Hosting and data
 
