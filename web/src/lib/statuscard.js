@@ -136,7 +136,8 @@ export async function makeStatusCard({ photos = [], crewName = null, linkups = 1
   ctx.fillText(sub, 80, subY);
   ctx.font = '700 38px system-ui, -apple-system, Roboto, sans-serif';
   ctx.fillStyle = '#eef4e1';
-  ctx.fillText('comethrough.tech', 80, H - 46);
+  const host = /^(localhost|127\.)/.test(location.hostname) ? 'comethrough.ikpemosi.work' : location.hostname.replace(/^www\./, '');
+  ctx.fillText(host, 80, H - 46);
 
   const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.9));
   return new File([blob], 'came-through.jpg', { type: 'image/jpeg' });

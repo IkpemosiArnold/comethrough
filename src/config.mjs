@@ -46,6 +46,16 @@ const origins = (/** @type {string|undefined} */ v) =>
  * The resolved configuration.
  * @param {NodeJS.ProcessEnv} [env]
  */
+/** The host of a public URL, or "" for local and test addresses (so local runs never mint UIDs on localhost). */
+function publicHost(url) {
+  try {
+    const host = new URL(String(url)).hostname.replace(/^www\./, "");
+    return /^(localhost|127\.|\[|.*\.test$)/.test(host) ? "" : host;
+  } catch {
+    return "";
+  }
+}
+
 export function config(env = process.env) {
   const port = num(env.PORT, 3000);
   const publicUrl = (env.PUBLIC_URL || `http://localhost:${port}`).replace(/\/+$/, "");
@@ -102,10 +112,10 @@ export function config(env = process.env) {
     /** proxies in front that append to X-Forwarded-For: 3 on Render behind Cloudflare (measured for Selects), 0 locally */
     trustProxyHops: num(env.TRUST_PROXY_HOPS, env.RENDER ? 3 : 0),
     imageMaxBytes: num(env.IMAGE_MAX_BYTES, 5 * 1024 * 1024),
-    uidDomain: env.UID_DOMAIN || "comethrough.tech",
+    uidDomain: env.UID_DOMAIN || publicHost(env.PUBLIC_URL) || "comethrough.ikpemosi.work",
     /** the built web app, served by this server when the folder exists (one origin, no CORS needed) */
     staticDir: path.resolve(env.STATIC_DIR || "web/dist"),
-    vapid: { publicKey: env.VAPID_PUBLIC_KEY || "", privateKey: env.VAPID_PRIVATE_KEY || "", subject: env.VAPID_SUBJECT || "mailto:hello@comethrough.tech" },
+    vapid: { publicKey: env.VAPID_PUBLIC_KEY || "", privateKey: env.VAPID_PRIVATE_KEY || "", subject: env.VAPID_SUBJECT || "https://comethrough.ikpemosi.work" },
     /** TIMING=1: one `timing` log line per slow flow (crew draft and create, first pick, plan parse and add, ideas), with its stages */
     timing: env.TIMING === "1" || env.TIMING === "true",
     /** OFFLINE=1: fake geocoding, places, weather, links and a regex stand-in for Gemma (UI work with no keys or network) */

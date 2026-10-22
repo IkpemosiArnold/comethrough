@@ -105,12 +105,13 @@ Both print a JSON report and exit 0 when everything passed.
 
 The `ci` workflow runs the tests, the type check and the web build on every push.
 
-## 5. Your own domain (optional)
+## 5. Your own domain
 
-1. Register the domain (comethrough.tech was free on 21 Oct 2026).
-2. Render, the service, **Settings, Custom Domains**: add `comethrough.tech` and
-   `www.comethrough.tech`, and create the DNS records Render shows at your registrar.
-3. When Render shows the certificate as issued, set `PUBLIC_URL=https://comethrough.tech`
+The live address is **comethrough.ikpemosi.work** (a subdomain of the owner's domain; no new domain is registered).
+
+1. Render, the service, **Settings, Custom Domains**: add `comethrough.ikpemosi.work`.
+2. At the DNS host for ikpemosi.work (Namecheap, Advanced DNS): a **CNAME**, host `comethrough`, value `<service>.onrender.com` (the address Render shows). Touch no other record.
+3. When Render shows the certificate as issued, set `PUBLIC_URL=https://comethrough.ikpemosi.work` (and `WEB_URL` if set)
    on Render and `COMETHROUGH_URL` in GitHub, then deploy again.
 4. Run the checks in step 3 against the new address.
 
@@ -142,7 +143,7 @@ Safari, each with WhatsApp, Instagram and Snapchat installed:
 
 - **Link previews**: paste a plan link (the "I'm in" one too) and a crew invite into a
   WhatsApp chat, Facebook Messenger, X, iMessage and Slack. Each shows the plan's title,
-  day, time and place and the sloths going (never a photo), with "comethrough.tech". A
+  day, time and place and the sloths going (never a photo), with the site's address. A
   discreet crew's link shows "A plan with your crew" and nothing else. Nobody is marked
   going by the preview. WhatsApp caches a link's preview: test with a fresh plan.
 - **Status card, Share**: on the crew page the day after a plan with 2 or more going, "Make

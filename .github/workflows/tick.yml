@@ -6,7 +6,7 @@
 # idempotent, so that is harmless.
 #
 # Repository settings: secret TICK_SECRET (the same value as on Render) and variable
-# COMETHROUGH_URL (for example https://comethrough.tech). Schedules run only on the
+# COMETHROUGH_URL (for example https://comethrough.ikpemosi.work). Schedules run only on the
 # default branch and pause after 60 days without repository activity.
 name: tick
 on:

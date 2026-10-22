@@ -344,7 +344,7 @@ What the app does because of this:
   has, and WhatsApp, Instagram and Snapchat each decide what they show there.
 - **The file goes alone**, a JPEG named `came-through.jpg`, made before the tap so the tap
   itself calls `share()` with nothing awaited first. No text goes with it (WebKit bug
-  251500); the card carries "comethrough.tech" in the picture.
+  251500); the card carries the site's address in the picture.
 - **Save the card** is the fallback where `canShare({ files })` is false (Firefox), and is
   always offered under Share.
 - **The photos never upload**: the card is drawn in a canvas on the phone

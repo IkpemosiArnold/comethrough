@@ -17,7 +17,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # the public origin, for example https://comethrough.tech (calendar, invite and push links)
+      # the public origin, https://comethrough.ikpemosi.work (calendar, invite and push links)
       - key: PUBLIC_URL
         sync: false
       # Gemma through the Gemini API (aistudio.google.com/apikey)

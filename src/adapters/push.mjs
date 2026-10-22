@@ -31,7 +31,7 @@ export function isSubscription(s) {
 export async function createWebPush({ publicKey, privateKey, subject }) {
   if (!publicKey || !privateKey) return { enabled: false, publicKey: null, send: async () => ({ ok: false, gone: false, permanent: true, status: 0 }) };
   const webpush = (await import("web-push")).default;
-  webpush.setVapidDetails(subject || "mailto:hello@comethrough.tech", publicKey, privateKey);
+  webpush.setVapidDetails(subject || "https://comethrough.ikpemosi.work", publicKey, privateKey);
   return {
     enabled: true,
     publicKey,

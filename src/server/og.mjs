@@ -2,7 +2,7 @@
 // Link previews (Open Graph) for WhatsApp, Facebook, X, iMessage and Slack. Every crew
 // link and plan link gets its own og:title, og:description and a 1200x630 og:image drawn
 // on the server: the sloth on the branch, the plan's title, day, time and place, and the
-// people going as their sloth avatars (never a photo), with a small "comethrough.tech".
+// people going as their sloth avatars (never a photo), with the site's address, small.
 //
 // Why satori and resvg-js, not @napi-rs/canvas: the card is a layout (a title that wraps to
 // two lines, a row of faces, a footer), and satori lays it out with flexbox and measures the
@@ -88,9 +88,9 @@ export function createOg({ growth, publicUrl, log = () => {}, cacheSize = 120 })
   const domain = (() => {
     try {
       const host = new URL(publicUrl).hostname;
-      return /^(localhost|127\.|\[|.*\.test$)/.test(host) ? "comethrough.tech" : host.replace(/^www\./, "");
+      return /^(localhost|127\.|\[|.*\.test$)/.test(host) ? "comethrough.ikpemosi.work" : host.replace(/^www\./, "");
     } catch {
-      return "comethrough.tech";
+      return "comethrough.ikpemosi.work";
     }
   })();
   /** @type {Promise<{ satori: any, Resvg: any, fonts: any[] }>|null} */

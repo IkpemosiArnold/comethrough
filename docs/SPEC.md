@@ -269,7 +269,7 @@ without the crew's name.
   gets `og:title`, `og:description`, `og:image` (absolute, with its size) and the Twitter
   tags when the link's `?t=` is the crew's invite key or a member's; anything else gets the
   generic card. The card shows the sloth on the branch, the plan's title, day and time and
-  place (a home is "At Tolu's"), up to 7 sloths going and the count, and "comethrough.tech".
+  place (a home is "At Tolu's"), up to 7 sloths going and the count, and the site's address.
   Drawn with satori and resvg-js, cached by a hash of what it shows; a change is a new `v`.
 - **We came through.** `GET /api/crews/:slug` adds, for members, `growth: { linkups, recap:
   { planId, title, going, date } | null, cameThrough, discreet, seen }`. `recap` is the newest
@@ -364,7 +364,7 @@ Status (backend, 21 Oct): all done. The app is served with those cache rules; `r
 
 ## Partner categories (genuine uses only)
 
-Gemma (the AI core), Render (hosting the app and the heartbeat), MongoDB Atlas (data layer), a .tech domain (comethrough.tech is available as of 21 Oct), and optionally SerpApi (finding public events near the crew).
+Gemma (the AI core), Render (hosting the app and the heartbeat), MongoDB Atlas (data layer), and optionally SerpApi (finding public events near the crew).
 
 ## Credits
 
