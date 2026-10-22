@@ -17,3 +17,9 @@
 - **OSRM** (Project OSRM, BSD-2-Clause) on OpenStreetMap data (ODbL): road routes for travel times, from the public demo server under its usage policy.
 - **Wikidata** (CC0): coordinates for Lagos spots that OpenStreetMap does not have by name.
 - **Gemma** (Google DeepMind), an open model, served through the Gemini API.
+
+## Fonts and libraries for the link previews
+
+- **Shrikhand** by Jonny Pinhorn (SIL Open Font License 1.1), `assets/fonts/Shrikhand-Regular.ttf`, licence in `assets/fonts/Shrikhand-OFL.txt`. The web app uses the same face (a Latin subset).
+- **Noto Sans Bold** by the Noto Project Authors (SIL Open Font License 1.1), `assets/fonts/NotoSans-Bold.ttf`, licence in `assets/fonts/NotoSans-OFL.txt`.
+- **satori** (Vercel, MPL-2.0) lays out the WhatsApp preview cards, and **resvg-js** (MPL-2.0) draws them as PNG (`src/server/og.mjs`).

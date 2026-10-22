@@ -26,7 +26,7 @@ import path from "node:path";
  * @property {() => Promise<void>} close
  */
 
-export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "flyers"];
+export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "flyers", "faces"];
 
 const matches = (/** @type {any} */ doc, /** @type {Record<string, any>} */ filter) => Object.entries(filter).every(([k, v]) => doc[k] === v);
 const clone = (/** @type {any} */ x) => (x == null ? x : structuredClone(x));
@@ -157,6 +157,8 @@ export const MONGO_INDEXES = {
   cache: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   sent: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   flyers: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
+  // a member's photo, by member id (about 27 KB as base64; Mongo's limit is 16 MB)
+  faces: [[{ crewId: 1 }, {}]],
 };
 
 /**

@@ -20,7 +20,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "mongodb": "^7.7.0",
+    "satori": "^0.63.2",
     "web-push": "^3.6.7"
   }
 }

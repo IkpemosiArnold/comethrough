@@ -35,6 +35,7 @@ import { inBackground, within } from "../adapters/lanes.mjs";
 import { beginPick, finishPick, pendingPick, pickView, shouldRun } from "../core/firstpick.mjs";
 import { lockedMessage, lockedSite } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
+import { createGrowth } from "./growth.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
 
@@ -162,6 +163,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     flyer: (/** @type {string} */ flyerId) => `${cfg.publicUrl}/api/flyers/${flyerId}`,
   };
 
+  const growth = createGrowth({ store, ai, now, log });
+
   // ------------------------------------------------------------ access
 
   /** The crew and who is asking: a member (member token) or a guest (invite token). */
@@ -237,7 +240,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { region, pack } = placeOf(c);
     return { region: { center: region.center, countryCode: region.countryCode, city: region.city, timezone: region.timezone }, pack: packView(pack, region) };
   }
-  const memberView = (/** @type {Member} */ m) => ({ id: m.id, name: m.name, area: { label: m.area?.label ?? null } });
+  // faceV: the member's own photo's version, when they added one (shown to the crew only, src/app/growth.mjs)
+  const memberView = (/** @type {Member} */ m) => ({ id: m.id, name: m.name, area: { label: m.area?.label ?? null }, ...(/** @type {any} */ (m).faceV ? { faceV: /** @type {any} */ (m).faceV } : {}) });
 
   function planView(/** @type {Plan} */ plan, /** @type {Crew} */ crew, /** @type {Member[]} */ members, /** @type {"member"|"guest"} */ role, /** @type {Member|null} */ me) {
     const view = viewPlan(plan, {
@@ -553,12 +557,16 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function getCrew({ slug, token }) {
     const { crew, role, member } = await viewerOf(slug, token);
     const members = await membersOf(crew.id);
-    const plans = upcoming(await plansOf(crew.id), now());
+    const all = await plansOf(crew.id);
+    const plans = upcoming(all, now());
+    // members only: linkups so far, the day-after card, "Got another crew?" (src/core/growth.mjs)
+    const extras = member ? await growth.crewExtras({ crew, member, plans: all, tz: regionOf(crew).timezone }) : null;
     return {
       crew: crewView(crew, role),
       members: members.map(memberView),
       plans: plans.map((p) => planView(p, crew, members, role, member)),
       you: member ? { id: member.id, name: member.name, area: { label: member.area?.label ?? null } } : null,
+      ...(extras ? { growth: extras } : {}),
     };
   }
 
@@ -1328,6 +1336,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   return {
     draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, firstPick, kickFirstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
+    // renaming, name ideas, photos, one-time cards and link previews (src/app/growth.mjs)
+    growth,
     // exposed for tests
     _internal: { makeRitual, candidatesNear, notify, firstPickJob, picking },
   };

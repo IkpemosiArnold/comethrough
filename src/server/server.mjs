@@ -33,6 +33,8 @@ import { createWikidata } from "../adapters/wikidata.mjs";
 import { LAGOS, LAGOS_REGION } from "../packs/index.mjs";
 import { BASE_HEADERS, HttpFail, clientIp, makeLimiter, parseMultipart, readBody, readJson, sendJson, sniffImage, tokenOf } from "./http.mjs";
 import { staticHandler } from "./static.mjs";
+import { growthRoutes } from "./growth-routes.mjs";
+import { createOg } from "./og.mjs";
 import { APP_ROUTE, PAGE_ROUTE, basicHandler, wantsBasic } from "./basic.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -59,7 +61,9 @@ export const RATE = {
  */
 export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas = null }) {
   const limiter = makeLimiter(now);
-  const serveStatic = staticHandler(cfg.staticDir);
+  // link previews: every plan and crew link gets its own card (src/server/og.mjs)
+  const og = service.growth ? createOg({ growth: service.growth, publicUrl: cfg.publicUrl, log }) : null;
+  const serveStatic = staticHandler(cfg.staticDir, og ? { headFor: og.headFor } : {});
   const serveBasic = basicHandler({ service, webUrl: cfg.webUrl });
   const ownOrigin = new URL(cfg.publicUrl).origin;
   const allowedOrigins = new Set(cfg.webOrigins.map((o) => new URL(o).origin).filter((o) => o !== ownOrigin));
@@ -161,6 +165,9 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
     }],
   ];
 
+  // renaming a crew, the sloth's name ideas, photos, one-time cards, preview images
+  if (service.growth) routes.push(...growthRoutes({ growth: service.growth, og, limit, aiLimits }));
+
   function aiLimits(ip) {
     limit("ai", ip);
     limit("aiDay", ip);
@@ -193,7 +200,7 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
     res.setHeader("access-control-allow-origin", origin);
     res.setHeader("vary", "Origin");
     res.setHeader("access-control-allow-headers", "authorization, content-type");
-    res.setHeader("access-control-allow-methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    res.setHeader("access-control-allow-methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.setHeader("access-control-max-age", "600");
     return true;
   }

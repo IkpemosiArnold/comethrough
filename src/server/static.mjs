@@ -8,6 +8,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { BASE_HEADERS, compress, pickEncoding } from "./http.mjs";
+import { withHead } from "./og.mjs";
 
 /** Text files worth compressing; images and fonts are compressed already. */
 const COMPRESSIBLE = [".html", ".js", ".mjs", ".css", ".json", ".webmanifest", ".svg", ".txt", ".ics", ".map"];
@@ -21,10 +22,12 @@ const TYPES = {
 
 /**
  * @param {string} dir
+ * @param {{ headFor?: (pathname: string, search: string) => Promise<string|null> }} [opts]
+ *   headFor: the page's own title and preview tags (src/server/og.mjs), put into index.html
  * @returns {null | ((req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, pathname: string, search?: string) => Promise<boolean>)}
  *   null when the folder does not exist; the handler resolves false when it did not answer
  */
-export function staticHandler(dir) {
+export function staticHandler(dir, { headFor } = {}) {
   if (!fs.existsSync(path.join(dir, "index.html"))) return null;
   const root = path.resolve(dir);
   /** compressed copies, made once per file version: the app's first load on mobile data is about a third of its raw size */
@@ -58,11 +61,14 @@ export function staticHandler(dir) {
     const immutable = /[.-][A-Za-z0-9_-]{8,}\.(js|css|woff2|png|svg|jpg|webp)$/.test(name) && file.includes(`${path.sep}assets${path.sep}`);
     let enc = COMPRESSIBLE.includes(ext) && st.size > 512 ? pickEncoding(req.headers["accept-encoding"]) : null;
     let body = null;
-    if (name === "index.html" && search) {
+    const head = name === "index.html" && headFor && req.method === "GET" ? await headFor(pathname, search).catch(() => null) : null;
+    if (name === "index.html" && (search || head)) {
       // the <noscript> link keeps this page's own address (with its ?t= key) and adds basic=1
       const q = new URLSearchParams(search);
       q.set("basic", "1");
-      const html = (await fsp.readFile(file, "utf8")).replace('href="?basic=1"', `href="${`${pathname}?${q}`.replace(/&/g, "&amp;").replace(/"/g, "%22")}"`);
+      let html = (await fsp.readFile(file, "utf8")).replace('href="?basic=1"', `href="${`${pathname}?${q}`.replace(/&/g, "&amp;").replace(/"/g, "%22")}"`);
+      // a link's own preview: WhatsApp, Facebook, X, iMessage and Slack read these tags
+      if (head) html = withHead(html, head);
       enc = pickEncoding(req.headers["accept-encoding"]);
       body = enc ? compress(Buffer.from(html), enc, { fast: true }) : Buffer.from(html);
     } else if (enc) {
