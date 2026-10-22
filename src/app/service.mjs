@@ -704,6 +704,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { label, ...centre, ...(named.country ? { country: named.country } : {}), ...(named.city ? { city: named.city } : {}) };
   }
 
+  /**
+   * "Use my rough location" while a crew is being set up (there is no crew or member yet):
+   * the neighbourhood at a point the phone already rounded, looked up in the visitor's
+   * country (their zone, as for the type-ahead). Only the neighbourhood is answered.
+   * @param {{ at: any, tz?: string|null }} input
+   */
+  async function roughArea({ at, tz = null }) {
+    const start = hintRegion(tz ? { tz } : null);
+    return { area: await areaNear(at, placeOf({ region: start }).geo) };
+  }
+
   /** Set your own area: a typed or picked area, or `near` (a rounded point) for the rough location. */
   async function setMyArea({ memberId, token, body }) {
     const { member, crew } = await memberOf(token);
@@ -1592,7 +1603,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   return {
-    draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, firstPick, kickFirstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
+    draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, roughArea, firstPick, kickFirstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
     // renaming, name ideas, photos, one-time cards and link previews (src/app/growth.mjs)
     growth,

@@ -88,6 +88,12 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       const near = Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
       return service.searchAreas({ q: url.searchParams.get("q"), near, country: url.searchParams.get("cc"), tz: url.searchParams.get("tz") });
     }],
+    // "Use my rough location" on the setup screen: at=lat,lon (rounded on the phone), tz= the visitor's zone
+    ["GET", /^\/api\/areas\/near$/, ({ url, ip }) => {
+      limit("areas", ip);
+      const [lat, lon] = String(url.searchParams.get("at") || "").split(",").map(Number);
+      return service.roughArea({ at: { lat, lon }, tz: url.searchParams.get("tz") });
+    }],
     ["POST", /^\/api\/crews$/, async ({ req, ip }) => {
       const body = await readJson(req);
       if (body.confirm) {

@@ -120,6 +120,14 @@ test("join with the invite link, using a picked area", async () => {
   assert.equal((await call("POST", `/api/crews/${S.slug}/members`, { token: S.invite, body: { name: "  " } })).status, 400);
 });
 
+test("rough location while setting up a crew: the neighbourhood at a rounded point, nothing finer", async () => {
+  const r = await call("GET", "/api/areas/near?at=6.51,3.37&tz=Africa/Lagos");
+  assert.equal(r.status, 200);
+  assert.equal(r.json.area.label, "Yaba");
+  assert.ok(Number.isFinite(r.json.area.lat) && Number.isFinite(r.json.area.lon));
+  assert.equal((await call("GET", "/api/areas/near?at=nowhere")).status, 400);
+});
+
 test("auth: no token, a wrong token, another crew's token", async () => {
   assert.equal((await call("GET", `/api/crews/${S.slug}`)).status, 401);
   const wrong = await call("GET", `/api/crews/${S.slug}`, { token: "nope" });
