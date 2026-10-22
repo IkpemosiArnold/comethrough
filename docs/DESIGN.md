@@ -25,15 +25,15 @@ The branch ties the three together. The sloth hangs from it, and so does the cre
 | `--lagoon` | `#1B6782` | Lagos lagoon | Event plans, links, focus rings |
 | `--fur` | `#7A5B3E` | Sloth fur | The sloth, the branch and the hanging arms |
 
-Secondary text is `--ink-2` (`#3D574E`) and tertiary text is `--ink-3` (`#4F655B`). The WhatsApp button uses `#0E7A3F`, which is darker than WhatsApp's brand green so that white text passes AA.
+Secondary text is `--ink-2` (`#2E463E`) and tertiary text is `--ink-3` (`#3D574E`), which is kept for genuinely secondary bits like field labels and placeholders. Links are `--lagoon` (`#124F66`) and errors and rain are `--zobo` (`#8C1C44`). The WhatsApp button uses `#0B6332`, which is darker than WhatsApp's brand green so that white text on it is 7.4:1.
 
-Contrast (WCAG 2.x ratio, measured): ink on wall is 11.5, `--ink-2` on wall is 6.4, `--ink-3` on wall is 5.1, ink on danfo is 8.7, text on canopy is 8.9, zobo on paper is 6.9, lagoon on paper is 6.0, and white on the WhatsApp green is 5.4. Every avatar fill is paired with a text colour above 4.5. Dark mode redefines the same tokens (`#0F2620` wall, `#E8F0DA` ink) and keeps danfo yellow as the action colour, and every dark pair checked is above 4.5.
+Contrast (WCAG 2.x ratio, measured): body text aims for 7:1 and never goes under 4.5:1, in both themes. Ink on wall is 11.5, `--ink-2` on wall is 8.3 (9.7 on paper), `--ink-3` on wall is 6.4 (7.5 on paper), lagoon on wall is 7.3, zobo on wall is 7.2, ink on danfo is 8.7, `--on-canopy` on canopy is 8.9 and `--on-canopy-2` is 7.5, and white on the WhatsApp green is 7.4. Every avatar fill is paired with a text colour above 4.5. Dark mode redefines the same tokens (`#0F2620` wall, `#E8F0DA` ink, `#C6D6C8` ink-2 at 10.5, `#A9BFAE` ink-3 at 8.2) and keeps danfo yellow as the action colour. The only text under 7:1 on any screen is a disabled button.
 
 ## Type
 
 - **Display: Shrikhand** (one weight, Latin subset, 16 KB, self-hosted). Shrikhand is a fat, leaning display face, and it reads like the lettering on a Lagos shop sign. It is used for screen titles, crew names, plan titles on the plan page, the date numbers on the crew home, leave-by times and the tile titles. Large display text gets the "painted" treatment, which is a hard yellow offset shadow (`0.05em 0.06em 0 var(--danfo)`) like a sign-writer's drop shadow.
 - **Body: the system font** (Roboto on Android, SF on iPhone). It costs nothing to load, it is tuned for each phone, and it keeps the custom face for the moments that carry personality.
-- **Scale** (rem, 16 px root): 13, 14, 16, 19, 24, 32, 44, and a fluid `clamp(2.5rem, 11vw, 3.5rem)` for the biggest titles. Display tracking is -0.01em to -0.02em, and body tracking is 0. Display leading is 1.04, and body leading is 1.5.
+- **Scale** (rem): 0.8125, 0.875, 1, 1.1875, 1.5, 2, 2.75, and a fluid `clamp(2.5rem, 11vw, 3.5rem)` for the biggest titles. The root is 17 px (`106.25%` of the browser's own size), so body text is 17 px, fine print is 14 px and the smallest label is 14 px. On an iPhone the root is `-apple-system-body`, which is 17 px at the default setting and follows the Text Size setting (Dynamic Type), so every size grows with it. Display tracking is -0.01em to -0.02em, and body tracking is 0. Display leading is 1.04, and body leading is 1.45 (`--lh-body`).
 - **Inputs are 16 px** or larger, so iPhone Safari never zooms into a field.
 
 ## Shape and depth
@@ -81,7 +81,7 @@ Who's going                         5 going
   (You) (Ada) (Seyi) (Zainab) (Dayo)        hanging by their arms
 Can't make it? No need to say anything.
 Rides: your pod, leave Yaba by 3:05pm, Copy address, Bolt, inDrive
-Why this place (canopy panel, the sloth peeks over)
+Why this spot? (a folded canopy panel, the sloth peeks over)
 Bring: chips
 [ Going ] [ Tell the crew (WhatsApp) ]      bottom bar after you tap
 ```
@@ -133,7 +133,7 @@ The flyer path is the other moment people should enjoy:
 
 ## The sloth
 
-The sloth is a character, and it appears sparingly. It appears on the start screen, in the ritual panel, on "Why this place", while Gemma reads, on the invite and joined screens, and on empty or error pages. It never appears inside lists or on buttons. It has three moods: asleep (the default), awake (good news), and one eye open (reading). In copy, "the sloth" does the reading, guessing, picking and writing, always in the third person ("The sloth is reading the flyer", "The sloth picked Saturday"). Gemma is named once: in the line shown the first time a phone sends something to be read, and on How the sloth works (`/how`).
+The sloth is a character, and it appears sparingly. It appears on the start screen, in the ritual panel, on "Why this spot?", while Gemma reads, on the invite and joined screens, and on empty or error pages. It never appears inside lists or on buttons. It has three moods: asleep (the default), awake (good news), and one eye open (reading). In copy, "the sloth" does the reading, guessing, picking and writing, always in the third person ("The sloth is reading the flyer", "The sloth picked Saturday"). Gemma is named once: in the line shown the first time a phone sends something to be read, and on How the sloth works (`/how`).
 
 ### Sloth avatars
 
@@ -144,6 +144,48 @@ use the big sloth's own fur and face colours, flat fills and round strokes, and 
 branch, sit in ride pods and stack on plan rows. A member can add their own photo, which
 only the crew sees. WhatsApp preview cards and Status cards only ever draw the sloths.
 
+## Density
+
+On a phone, every screen keeps only what is needed to act. Arnold opened the start screen on an iPhone on 22 Oct and found it "too much text, hard on the eyes": 196 words (215 counting the placeholders), three helper paragraphs, a second field, a three-step How it works and a dark-green paragraph about sloths, mostly in grey-green on pale green. The rules since then:
+
+- The start screen is the title, one line, one field, one button, one line about Gemma and one line of attributions. It stays under 40 words above the fold and under 70 in all.
+- An explanation sits behind a small "Why?" or "How?" tap, next to the thing it explains: Where's your crew, each idea, Why this spot, and the AI line, whose "How?" opens How the sloth works.
+- A safety or privacy line is never removed. It gets shorter and moves to where it matters: "You don't need to say who you are." shows the moment a sentence has a word that says who people are, and the location note sits under "Use my rough location".
+- Body text is ink (or `--ink-2` for secondary text), never grey on a coloured panel, and is 7:1 or more in both themes. `--ink-3` is only for labels and placeholders.
+
+`node scripts/screens-density.mjs <before|after>` measures every screen on the demo data at 390 x 844 with an iPhone user agent, and saves light and dark screenshots to `docs/screens/density/`. Words are what a person sees on the whole screen, including placeholders; "above the fold" is the first 844 px. The ideas card and the Status sheet count only their own card.
+
+Before and after the pass on 22 Oct (light theme words; contrast is the lowest ratio of any text on the screen, a disabled button included):
+
+| Screen | Words before | Words after | Above the fold before | After | Lowest text contrast before (light / dark) | After |
+|---|---|---|---|---|---|---|
+| Landing | 215 | 38 | 107 | 38 | 5.1 / 5.5 | 7.3 / 8.7 |
+| Crew preview | 71 | 51 | 71 | 51 | 4.6 / 5.5 | 7.5 / 7 |
+| Invite | 46 | 39 | 46 | 39 | 5.4 / 5.4 | 7.4 / 7.2 |
+| Where's your crew | 94 | 51 | 94 | 51 | 5.1 / 6.5 | 7.3 / 10 |
+| Crew home | 143 | 143 | 72 | 69 | 5.1 / 5.7 | 7.5 / 7.1 |
+| Plan page | 145 | 140 | 59 | 59 | 5.1 / 5.4 | 7.4 / 7.4 |
+| Add a plan | 80 | 43 | 80 | 43 | 4.6 / 5.9 | 7.3 / 8.7 |
+| One-tap I'm in (asks a name) | 32 | 32 | 32 | 32 | 5.1 / 6.5 | 8.3 / 8.1 |
+| One-tap I'm in (answered) | 118 | 94 | 76 | 78 | 5.1 / 5.5 | 7.3 / 8.1 |
+| Ideas card | 113 | 84 | 27 | 18 | 6 / 7.5 | 8.5 / 8.6 |
+| Status sheet | 34 | 25 | 28 | 17 | 7.5 / 7.7 | 8.7 / 8.7 |
+| How the sloth works | 230 | 183 | 136 | 104 | 5.2 / 8.8 | 7.3 / 10 |
+
+The main text styles, as contrast on the page wall (and on paper), before and after:
+
+| Text style | Light before | Light after | Dark before | Dark after |
+|---|---|---|---|---|
+| Body (`--ink`) | 11.5 | 11.5 | 13.6 | 13.6 |
+| Secondary (`--ink-2`) on wall / paper | 6.4 / 7.5 | 8.3 / 9.7 | 9.0 / 7.7 | 10.5 / 9.0 |
+| Labels and placeholders (`--ink-3`) on wall / paper | 5.1 / 6.0 | 6.4 / 7.5 | 6.5 / 5.5 | 8.2 / 7.0 |
+| Fine print (`.fine`, was `--ink-3`, now `--ink-2`) | 5.1 | 8.3 | 6.5 | 10.5 |
+| Links (`--lagoon`) | 5.2 | 7.3 | 8.8 | 10.0 |
+| Second line on the canopy panel | 6.2 | 7.5 | 5.7 | 7.2 |
+| White on the WhatsApp button | 5.4 | 7.4 | 5.4 | 7.4 |
+
+The crew home and the plan page barely changed in words because nearly all their words are the crew's own plans, names and times. What changed there is contrast and the folded Why this spot?.
+
 ## Voice
 
 The app speaks plainly, in the second person, like a friend in the group chat. There is no "we" and no "I". The sloth is the crew's lazy assistant, talked about in the third person. Laziness is the feature: the copy says what you no longer have to do. The full reasoning is in docs/UX-REVIEW-2.md.
@@ -153,7 +195,7 @@ The app speaks plainly, in the second person, like a friend in the group chat. T
 - Saying no is never required: "Can't make it? No need to say anything."
 - Buttons name the action, and the next screen confirms it with the same verb: "Set up my crew", "Make the crew", "I'm in", "Post it", "Tell the crew".
 - One question at the moment its answer is used: a name at the first "I'm in", the area when a ride needs it, the nudge after the first "I'm going".
-- What goes to Google is said once, the first time something is sent to be read: "The sloth uses Gemma, Google's open model, to read and write. What you send here goes to Google." The detail lives on How the sloth works. Cards never carry AI or data-flow lines.
+- What goes to Google is said once, the first time something is sent to be read, under the button: "What you send goes to Google's Gemma. How?" The "How?" opens How the sloth works, where the detail lives. Cards never carry AI or data-flow lines.
 - Errors say what failed and what to do. Empty states point to the next action.
 - No em dashes, no colons joining clauses, no staged closers ("That's the whole job."), and times as "3pm", never "15:00".
 

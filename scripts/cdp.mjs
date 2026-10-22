@@ -103,6 +103,11 @@ export async function launch({ headless = true } = {}) {
         await run(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (el) el.scrollIntoView({ block: ${JSON.stringify(block)} }); else window.scrollTo(0, 0); })()`);
         await sleep(400);
       },
+      /** close this page and its browser context */
+      async close() {
+        await send("Target.closeTarget", { targetId }).catch(() => {});
+        await send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
+      },
       async shot(/** @type {string} */ file) {
         const { data } = await s("Page.captureScreenshot", { format: "png" });
         fs.mkdirSync(path.dirname(file), { recursive: true });

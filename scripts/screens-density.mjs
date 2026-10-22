@@ -98,6 +98,7 @@ const MEASURE = `(${function measure(/** @type {string} */ scopeSel) {
     minBodyRatio: bodyWords.length ? Math.min(...bodyWords.map((p) => p.ratio)) : null,
     share7: Math.round(share7 * 100),
     under45: pieces.filter((p) => p.ratio < 4.5).map((p) => `${p.text} (${p.ratio})`),
+    under7: pieces.filter((p) => p.ratio < 7).map((p) => `${p.text} (${p.ratio})`),
     bodySize: parseFloat(getComputedStyle(document.body).fontSize),
   };
 }})`;
@@ -200,6 +201,7 @@ try {
       } catch (e) {
         console.error(`${s.name}: ${/** @type {Error} */ (e).message}`);
       }
+      await p.close();
     }
   }
 } finally {

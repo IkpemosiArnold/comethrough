@@ -682,8 +682,11 @@ as sensitive (`SENSITIVE` in `src/core/taste.mjs`):
   travels: calendar, push, the plain page) is written without the needs-shaped explanation,
   and an invite that says "discreet", "low-key", "private" or "safe" is replaced by the
   code's plain one. Guests with only the invite link do not see the crew's taste; members do.
-- **The setup screen says it plainly:** "Tell the sloth what you're into and what makes a
-  place feel right. You don't need to say who you are." (docs/SPEC.md, "UI requests: taste").
+- **The setup screen says it plainly, when it applies:** as soon as the sentence has a word
+  that says who people are (the server's own list, src/core/sensitive.mjs, checked in the
+  browser as you type), a line appears under it: "You don't need to say who you are. Say
+  what makes a place feel right, like quiet or safe." (docs/SPEC.md, "UI requests: taste").
+  It was always on screen until 22 Oct; on a phone it was one more paragraph nobody read.
 - **What still leaves the server:** the setup sentence goes to Gemma (Google's Gemini API,
   free tier) to be read, as the setup screen already says. Anyone who would rather not send
   it can describe what they are into instead of who they are, or run Gemma on their own
