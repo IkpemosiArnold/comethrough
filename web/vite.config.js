@@ -9,6 +9,8 @@ export default defineConfig({
   plugins: [preact()],
   server: {
     host: true,
+    // the sloth avatars and the painted pieces are shared with the server (src/core)
+    fs: { allow: ['..'] },
     proxy: { '/api': api, '/cal': api, '/healthz': api },
   },
   build: {

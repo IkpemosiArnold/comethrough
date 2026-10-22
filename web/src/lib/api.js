@@ -124,7 +124,48 @@ export const api = {
       const token = mine?.memberToken || invite || mine?.invite;
       if (token) saveCrew(slug, { name: d.crew?.name, memberId: d.you.id, memberName: d.you.name, memberToken: token });
     } else if (d.crew?.name && mine?.name !== d.crew.name) saveCrew(slug, { name: d.crew.name });
-    return { ...d, plans: (d.plans || []).map((p) => withRsvps(p, d.members, d.you)) };
+    // a member's own photo, for the crew only: fetched with this phone's key (src/app/growth.mjs)
+    const key = bearer(slug, invite);
+    const members = (d.members || []).map((m) => (m.faceV && key && !MOCK ? { ...m, faceUrl: `/api/members/${enc(m.id)}/face?v=${enc(m.faceV)}&t=${enc(key)}` } : m));
+    return { ...d, members, plans: (d.plans || []).map((p) => withRsvps(p, d.members, d.you)) };
+  },
+  // Rename the crew (members): { name, previous }. New messages use the new name.
+  async renameCrew(slug, name) {
+    if (MOCK) return { name, previous: getCrew(slug)?.name || '' };
+    const r = await req('PATCH', `/api/crews/${enc(slug)}`, { slug, body: { name } });
+    saveCrew(slug, { name: r.name });
+    return r;
+  },
+  // "Let the sloth name you": three names from the crew's areas and taste.
+  async crewNames(slug) {
+    if (MOCK) return ['The Yaba Lot', 'Saturday Sloths', 'Lekki Linkup'];
+    return (await req('POST', `/api/crews/${enc(slug)}/names`, { slug }))?.names || [];
+  },
+  // Your photo: a small square made on this phone (lib/face.js). Returns { faceV }.
+  async setFace(slug, blob) {
+    const c = getCrew(slug);
+    if (MOCK) return { faceV: 'mock' };
+    const t = c?.memberToken;
+    let res;
+    try {
+      res = await fetch(`/api/members/${enc(c?.memberId || '')}/face`, { method: 'PUT', headers: { Authorization: `Bearer ${t}`, 'Content-Type': blob.type || 'image/webp' }, body: blob });
+    } catch {
+      throw new ApiError("Couldn't reach Come Through. Check your data and try again.", 0, 'offline');
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError(data?.error?.message || "Couldn't save your photo. Try again.", res.status, data?.error?.code);
+    return data;
+  },
+  async removeFace(slug) {
+    const c = getCrew(slug);
+    if (MOCK) return null;
+    return req('DELETE', `/api/members/${enc(c?.memberId || '')}/face`, { slug });
+  },
+  // A one-time card, done with: "another-crew", "status:<plan id>". Remembered for you on every phone.
+  async markSeen(slug, key) {
+    const c = getCrew(slug);
+    if (MOCK || !c?.memberId) return null;
+    return req('POST', `/api/members/${enc(c.memberId)}/seen`, { slug, body: { key } }).catch(() => null);
   },
   // Join with just a name: the first "I'm going", or "Join the crew". The area comes later,
   // on the first plan with rides. This phone becomes the member.

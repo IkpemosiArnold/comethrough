@@ -2,6 +2,7 @@ import { render } from 'preact';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/screens.css';
+import './styles/growth.css';
 import { App } from './app.jsx';
 import { installLinkInterceptor } from './lib/router.js';
 import { MOCK } from './lib/api.js';

@@ -24,6 +24,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { BRANCH, SLOTH } from "../core/art.mjs";
 import { avatarInner } from "../core/avatar.mjs";
 import { discreetCard } from "../core/growth.mjs";
 
@@ -43,12 +44,6 @@ const LINK = /^\/c\/([a-z0-9-]{1,64})(?:\/p\/([A-Za-z0-9_-]{1,64})(?:\/(?:in|may
 
 const esc = (/** @type {string} */ s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const svgUrl = (/** @type {string} */ svg) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-
-/** The branch across the top, with leaves, sagging a little. */
-const BRANCH = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="170" viewBox="0 0 1200 170"><path d="M-20 70 C 300 40, 620 120, 1220 58" stroke="#5a4129" stroke-width="18" fill="none" stroke-linecap="round"/><path d="M180 58 c 18 -34 58 -44 84 -28 c -22 22 -52 34 -84 28z" fill="#3f8a5c"/><path d="M470 86 c 10 30 44 46 72 34 c -14 -24 -42 -38 -72 -34z" fill="#4f9b69"/><path d="M1050 62 c 22 -30 62 -34 84 -14 c -26 18 -56 24 -84 14z" fill="#3f8a5c"/><path d="M60 64 c -10 -30 -44 -42 -70 -30 c 16 24 42 34 70 30z" fill="#4f9b69"/></svg>`;
-
-/** The app's sloth (web/src/ui/Sloth.jsx), awake, hanging without its own branch. */
-const SLOTH = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="280" viewBox="0 0 120 140"><g><path d="M40 74 C 34 52, 36 34, 42 22" stroke="#7a5b3e" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M80 74 C 86 52, 84 34, 78 21" stroke="#7a5b3e" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M38 22 q4 -6 9 -1 M76 21 q4 -6 9 -1" stroke="#3a2a1e" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="60" cy="100" rx="30" ry="32" fill="#7a5b3e"/><ellipse cx="60" cy="106" rx="18" ry="20" fill="#8e6c4b"/><circle cx="60" cy="72" r="25" fill="#8e6c4b"/><ellipse cx="60" cy="75" rx="20" ry="15.5" fill="#ead6b4"/><ellipse cx="50" cy="74" rx="7.5" ry="4.6" fill="#4a3626" transform="rotate(16 50 74)"/><ellipse cx="70" cy="74" rx="7.5" ry="4.6" fill="#4a3626" transform="rotate(-16 70 74)"/><circle cx="50" cy="73" r="2.6" fill="#f3e6cf"/><path d="M66.4 72.5 q3.6 3 7.2 0" stroke="#f3e6cf" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse cx="60" cy="81" rx="3.6" ry="2.6" fill="#3a2a1e"/><path d="M55 85.5 q5 3.6 10 0" stroke="#3a2a1e" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M46 126 q-2 8 2 10 M74 126 q2 8 -2 10" stroke="#6b4f36" stroke-width="9" fill="none" stroke-linecap="round"/></g></svg>`;
 
 const avatarUrl = (/** @type {string} */ id) => svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 48 48"><clipPath id="c"><circle cx="24" cy="24" r="24"/></clipPath><g clip-path="url(#c)">${avatarInner(id)}</g></svg>`);
 

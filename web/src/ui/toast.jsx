@@ -1,8 +1,8 @@
-// One toast at a time. Call toast("Copied") from anywhere.
+// One toast at a time. Call toast("Copied") from anywhere, or toast("Renamed", 5000, { label: "Undo", onClick }).
 import { useEffect, useState } from 'preact/hooks';
 
 let push = () => {};
-export function toast(message, ms = 2400) { push({ message, ms, id: Date.now() }); }
+export function toast(message, ms = 2400, action = null) { push({ message, ms, action, id: Date.now() }); }
 
 export function Toaster() {
   const [t, setT] = useState(null);
@@ -17,7 +17,12 @@ export function Toaster() {
   }, [t]);
   return (
     <div aria-live="polite" role="status">
-      {t && <div class="toast" key={t.id}>{t.message}</div>}
+      {t && (
+        <div class={`toast${t.action ? ' has-action' : ''}`} key={t.id}>
+          {t.message}
+          {t.action && <button class="toast-action" onClick={() => { setT(null); t.action.onClick(); }}>{t.action.label}</button>}
+        </div>
+      )}
     </div>
   );
 }

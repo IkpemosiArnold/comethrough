@@ -1,0 +1,102 @@
+/* Growth: the crew name you can tap, sloth avatars, the one-time cards, "You in this crew",
+   the Status card sheet, and toasts with an action. See docs/DESIGN.md. */
+
+/* Sloth avatars: the painted sloth fills the circle; a photo does the same */
+.avatar.sloth-av { overflow: hidden; background: var(--wall-2); }
+.avatar.sloth-av svg, .avatar.sloth-av img { width: 100%; height: 100%; display: block; border-radius: 50%; object-fit: cover; }
+
+/* The crew name: a member taps it to rename the crew in place */
+.crew-name-btn {
+  all: unset;
+  cursor: text;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+/* a small pen says the name can change; it carries no painted shadow */
+.crew-name-pen { display: inline-block; margin-left: 0.18em; vertical-align: 0.35em; color: var(--ink-3); filter: none; opacity: 0.7; }
+.crew-name-btn .crew-name-pen { text-shadow: none; }
+.crew-name-btn:focus-visible { outline: 3px solid var(--lagoon); outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .crew-name-btn:hover .crew-name-pen { opacity: 1; }
+}
+.crew-name-edit { margin-top: var(--s-1); }
+.crew-name-input {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 2px 8px 6px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px var(--danfo);
+  color: var(--ink);
+  font-size: clamp(2rem, 10vw, 2.75rem);
+  line-height: 1.15;
+}
+.crew-name-input:focus { outline: none; box-shadow: inset 0 0 0 3px var(--danfo), 0 0 0 3px var(--lagoon); }
+.crew-name-help { margin-top: var(--s-2); color: var(--ink-3); }
+.crew-name-help.is-error { color: var(--zobo); font-weight: 650; }
+.name-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+.sloth-chip { background: var(--canopy); color: var(--on-canopy); }
+.sloth-chip.is-busy { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.name-idea { background: var(--danfo); color: var(--on-danfo); font-weight: 700; }
+
+/* One gentle card at a time, dismissible, never repeated */
+.once-card {
+  position: relative;
+  margin: 0 0 var(--s-6);
+  padding: var(--s-5) var(--s-5) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--lift), inset 0 0 0 2px var(--danfo);
+}
+.once-title { font-weight: 800; font-size: var(--t-lg); padding-right: 40px; }
+.once-body { margin: var(--s-1) 0 var(--s-4); color: var(--ink-2); }
+.once-x {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+/* You in this crew */
+.you-here summary .avatar { --size: 28px; }
+.you-face { gap: var(--s-3); align-items: center; }
+.you-face p { flex: 1; }
+.you-actions { gap: var(--s-2); flex-wrap: wrap; }
+.optin { gap: var(--s-3); align-items: flex-start; }
+.optin input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--canopy); flex: none; }
+
+/* The Status card sheet */
+.status-sheet { max-height: 92dvh; overflow-y: auto; }
+.status-sheet .btn + .btn, .status-sheet .btn + a.btn, .status-sheet a.btn + p { margin-top: var(--s-2); }
+.status-preview {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: min(46dvh, 420px);
+  margin: var(--s-2) auto var(--s-4);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--ink);
+  transform: rotate(-1.5deg);
+}
+
+/* A toast with one action ("Undo") */
+.toast.has-action { display: flex; align-items: center; gap: var(--s-3); padding-right: 6px; }
+.toast-action {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--danfo);
+  color: var(--on-danfo);
+  font-weight: 800;
+  font-size: var(--t-sm);
+}

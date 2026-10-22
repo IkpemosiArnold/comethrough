@@ -145,6 +145,8 @@ export function nameVocab(crew, { city = null, flavour = [] } = {}) {
   return words;
 }
 
+const title = (/** @type {string} */ s) => s.replace(/(^|\s)(\p{L})/gu, (_, sp, c) => sp + c.toUpperCase());
+
 /**
  * The model's name ideas, kept only when grounded: every word is in the crew's vocabulary,
  * no word says who anyone is, at most 40 characters, not the current name, no repeats.
@@ -163,12 +165,12 @@ export function groundedNames(raw, vocab, current = "") {
     const ws = wordsOf(name);
     if (!ws.length || !ws.every((w) => vocab.has(w) || /^\d+$/.test(w))) continue;
     if (name.toLowerCase() === String(current).toLowerCase() || out.some((o) => o.toLowerCase() === name.toLowerCase())) continue;
-    out.push(name);
+    // "suya linkup" reads as a name once it has its capitals
+    out.push(/\p{Lu}/u.test(name) ? name : title(name));
   }
   return out.slice(0, 3);
 }
 
-const title = (/** @type {string} */ s) => s.replace(/(^|\s)(\p{L})/gu, (_, sp, c) => sp + c.toUpperCase());
 
 /**
  * Name ideas from code alone (Gemma away, or too few grounded ones): the crew's first area,

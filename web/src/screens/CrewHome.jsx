@@ -16,6 +16,8 @@ import { WeatherChip, weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { KindSticker, ErrorNote, Dots } from '../ui/misc.jsx';
 import { NameSheet } from '../ui/NameSheet.jsx';
 import { toast } from '../ui/toast.jsx';
+import { CrewName } from '../ui/CrewName.jsx';
+import { AnotherCrew, StatusPrompt, YouHere, pickGrowthCard } from '../ui/Growth.jsx';
 
 /** The invite for the group chat: the next plan in the first line when there is one. */
 export function crewInvite(crew, plans, invite) {
@@ -35,6 +37,7 @@ export function CrewHome({ params, query, askName = false }) {
   // a cached crew shows at once, in its own time zone
   const [data, setData] = useState(() => { const c = readCache(slug); if (c?.crew) setPlace(c.crew); return c; });
   const [error, setError] = useState(null);
+  const [onceDone, setOnceDone] = useState(false);
 
   function load() {
     setError(null);
@@ -73,7 +76,7 @@ export function CrewHome({ params, query, askName = false }) {
         </div>
         {guest && crew && <p class="kicker">You've been asked to come through</p>}
         {crew ? (
-          <h1 class="display display-xl painted crew-name">{crew.name}</h1>
+          <CrewName crew={crew} slug={slug} canEdit={!guest} onRenamed={(name) => setData((d) => { const next = { ...d, crew: { ...d.crew, name } }; writeCache(slug, next); return next; })} />
         ) : (
           <div class="skeleton" style={{ height: '52px', width: '72%', marginTop: '8px' }} />
         )}
@@ -96,6 +99,13 @@ export function CrewHome({ params, query, askName = false }) {
       {error && data && <p class="offline-note">Showing what this phone saw last. <button class="link-btn" onClick={load}>Refresh</button></p>}
 
       {crew && <RitualPanel crew={crew} ritual={ritual} byId={byId} slug={slug} meId={meId} />}
+
+      {crew && !guest && !onceDone && (() => {
+        const card = pickGrowthCard({ growth: data?.growth, slug, meId });
+        if (card === 'status') return <StatusPrompt slug={slug} crewName={crew.name} growth={data.growth} onDone={() => setOnceDone(true)} />;
+        if (card === 'another') return <AnotherCrew slug={slug} meId={meId} onDone={() => setOnceDone(true)} />;
+        return null;
+      })()}
 
       {data && (
         <section class="coming" aria-labelledby="coming-title">
@@ -129,6 +139,7 @@ export function CrewHome({ params, query, askName = false }) {
       {!data && !error && <ListSkeleton />}
 
       {!guest && data && <CalendarMore mine={getCrew(slug)} />}
+      {!guest && data && <YouHere slug={slug} me={members.find((m) => m.id === meId)} discreet={!!data.growth?.discreet} onChanged={load} />}
 
       <div class="bottom-bar">
         <div>

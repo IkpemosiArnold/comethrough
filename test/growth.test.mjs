@@ -39,6 +39,7 @@ test("the sloth's name ideas are grounded: only the crew's own words and plain o
   const kept = groundedNames({ names: ["Yaba Saturday Sloths", "Ikeja Ballers", "The Discreet Lot", "Lekki Live Music Club", "Yaba Saturday Sloths", "the uni guys", "Queer Yaba Club", "Jollof Park Society"] }, vocab, crew.name);
   assert.deepEqual(kept, ["Yaba Saturday Sloths", "Lekki Live Music Club", "Jollof Park Society"]);
   assert.deepEqual(groundedNames(null, vocab), []);
+  assert.deepEqual(groundedNames({ names: ["suya linkup"] }, nameVocab({ taste: { likes: ["suya"] } })), ["Suya Linkup"]);
   const plain = fallbackNames(crew);
   assert.equal(plain.length, 3);
   assert.deepEqual(plain, ["The Yaba Lot", "Saturday Sloths", "Live Music Club"]);
