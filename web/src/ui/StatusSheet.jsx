@@ -60,7 +60,10 @@ export function StatusSheet({ crewName, linkups, onClose }) {
           </>
         ) : (
           <>
-            <img class="status-preview" src={url} alt="Your Status card" width="1080" height="1920" />
+            <div class="status-drop">
+              <img class="status-preview" src={url} alt="Your Status card" width="1080" height="1920" />
+              <span class="status-tape" aria-hidden="true" />
+            </div>
             {canShare && <button class="btn primary block big" onClick={share}>Share</button>}
             <a class={`btn ${canShare ? 'ghost' : 'primary big'} block`} href={url} download="came-through.jpg" onClick={() => !canShare && setTimeout(() => onClose(true), 300)}>Save the card</a>
             <p class="small muted">{canShare ? 'Pick WhatsApp, then My status.' : 'Save it, then post it to your Status.'}</p>
