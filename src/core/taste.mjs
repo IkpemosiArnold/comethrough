@@ -66,10 +66,11 @@ export const PLACE_KINDS = Object.freeze({
   gallery: { tags: [["tourism", "gallery"]], label: "an art gallery", indoor: true, lowKey: true },
   museum: { tags: [["tourism", "museum"]], label: "a museum", indoor: true, lowKey: true },
   "arts centre": { tags: [["amenity", "arts_centre"]], label: "an art space", indoor: true, lowKey: true },
-  cafe: { tags: [["amenity", "cafe"]], label: "a café", lowKey: true },
-  restaurant: { tags: [["amenity", "restaurant"]], label: "a restaurant" },
-  "street food": { tags: [["amenity", "fast_food"]], label: "a food spot" },
-  "ice cream": { tags: [["amenity", "ice_cream"]], label: "an ice cream spot", kids: true },
+  cafe: { tags: [["amenity", "cafe"]], label: "a café", indoor: true, lowKey: true },
+  restaurant: { tags: [["amenity", "restaurant"]], label: "a restaurant", indoor: true },
+  "street food": { tags: [["amenity", "fast_food"]], label: "a food spot", indoor: true },
+  "ice cream": { tags: [["amenity", "ice_cream"]], label: "an ice cream spot", indoor: true, kids: true },
+  mall: { tags: [["shop", "mall"]], label: "a mall", indoor: true, kids: true },
   bar: { tags: [["amenity", "bar"]], label: "a bar", alcohol: true, nightlife: true },
   pub: { tags: [["amenity", "pub"], ["amenity", "biergarten"]], label: "a pub", alcohol: true },
   nightclub: { tags: [["amenity", "nightclub"]], label: "a club", alcohol: true, nightlife: true },
@@ -211,6 +212,21 @@ function words(/** @type {any} */ xs, max = 6, len = 30, /** @type {string|null}
 /** Words that name a kind of group, enough for Gemma's cultural reading of what it likes. */
 const GROUP_WORDS = /\b(students?|uni|university|campus|undergrads?|parents|mums|moms|dads|famil(?:y|ies)|kids|colleagues|work friends|workmates|office|corporate|bankers|lawyers|techies|tech bros|creatives|artists|musicians|gym|runners|footballers?|ballers|gamers|youth|choir|fellowship|alumni|old (?:boys|girls)|class of)\b/i;
 
+/**
+ * Indoor kinds to add for a wet day: kid-friendly crews get a cinema and a mall (indoor
+ * play); a crew with no indoor kind at all gets a café and a restaurant (a quiet crew, a
+ * café and a museum). Kinds a need rules out are never added.
+ * @param {string[]} kinds
+ * @param {string[]} needs
+ */
+export function rainKinds(kinds, needs) {
+  /** @type {string[]} */
+  const out = [];
+  if (needs.includes("kid-friendly")) out.push("cinema", "mall");
+  if (!kinds.some((k) => PLACE_KINDS[k]?.indoor)) out.push(...(needs.includes("discreet") || needs.includes("safe") ? ["cafe", "museum"] : ["cafe", "restaurant"]));
+  return out.filter((k) => !kinds.includes(k));
+}
+
 /** Kinds of place a need points to, used only when Gemma named none. */
 export const NEED_KINDS = Object.freeze({
   discreet: ["garden", "cafe", "gallery", "bookshop", "museum"],
@@ -273,6 +289,9 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     needs = [...new Set([...needs, ...impliedNeeds(src)])];
     // needs imply kinds of place when Gemma named none: a discreet crew still gets somewhere to go
     if (!placeKinds.length) placeKinds = [...new Set(needs.flatMap((n) => NEED_KINDS[n] || []))].slice(0, 6);
+    // and somewhere under a roof for a wet day, so rain does not send every crew to the same
+    // covered spot (the 22 Oct eval: Nike Art Gallery for alte, parents and corporate alike)
+    if (placeKinds.length) placeKinds = [...new Set([...placeKinds, ...rainKinds(placeKinds, needs)])].slice(0, 8);
   }
   // a need that rules out drink rules out the kinds that sell it
   if (needs.includes("no alcohol") || needs.includes("kid-friendly")) placeKinds = placeKinds.filter((k) => !PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife);
@@ -349,7 +368,12 @@ export function tasteFit(tags = {}, taste, { green = false } = {}) {
   const needs = new Set(t.needs);
   /** @type {string|null} */
   let blocked = null;
+  const dry = needs.has("no alcohol") || needs.has("kid-friendly");
   if (k?.alcohol && needs.has("no alcohol")) blocked = "serves alcohol";
+  // a club, bar or lounge by name or by tag (a members' social club's draw is its bar): out
+  // for a crew that needs no alcohol or brings kids (the 22 Oct eval offered the church youth
+  // group the Syrian Club)
+  else if (dry && (DRINK_NAME.test(tags.name || "") || tags.amenity === "social_club" || tags.club != null || tags.leisure === "adult_gaming_centre")) blocked = "a club or bar";
   else if ((k?.alcohol || k?.nightlife) && needs.has("kid-friendly")) blocked = "not for kids";
   else if (k?.nightlife && needs.has("daytime")) blocked = "a night-time place";
   else if (needs.has("step-free") && tags.wheelchair === "no") blocked = "not step-free";
@@ -387,8 +411,11 @@ function avoidHits(/** @type {string} */ a, /** @type {string} */ kind) {
   return !!map[kind]?.test(w);
 }
 
+/** Place names that say drink: a club, a bar, a lounge. */
+const DRINK_NAME = /\b(club|clubhouse|bar|pub|lounge|nightclub|tavern|brewery|beer|wine|cocktails?|spirits|shisha|hookah)\b/i;
+
 /** Words in an event that mean drink or a late night: out for crews that need no alcohol, or bring kids. */
-const DRINKY = /\b(wine|beer|cocktails?|bar crawl|bottomless|open bar|drinks?|rave|club night|nightclub|turn ?up|party|after ?party|18\+|21\+|hookah|shisha|tequila|brewery|whisky|whiskey|gin)\b/i;
+const DRINKY = /\b(wine|beer|cocktails?|bar|bars|bar crawl|bottomless|open bar|drinks?|rave|club|club night|nightclub|lounge|turn ?up|party|after ?party|18\+|21\+|hookah|shisha|tequila|brewery|whisky|whiskey|gin)\b/i;
 
 /**
  * How an event from a curated guide fits the crew: keyword hits on its title, category and

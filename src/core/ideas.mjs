@@ -211,7 +211,7 @@ export function eventCandidates(events, { slot, center, points, hours, model, ta
     const time = { from: /** @type {string} */ (e.start), to: end };
     const weather = e.outdoor === true && hours ? weatherAt(hours, day.date, time) : null;
     if (weather && !weather.ok) continue;
-    const pre = 0.5 + (travel ? 0.3 * (1 - travel.maxMin / MAX_TRIP_MIN) : 0.1) + (e.price?.free ? 0.1 : 0) + 0.1 * e.confidence.time + 0.4 * fit.score - (hasTaste(taste) && !fit.matched.length ? 0.1 : 0);
+    const pre = 0.5 + (travel ? 0.3 * (1 - travel.maxMin / MAX_TRIP_MIN) : 0.1) + (e.price?.free ? 0.1 : 0) + 0.1 * e.confidence.time + 0.4 * fit.score - (hasTaste(taste) && !fit.matched.length ? 0.3 : 0);
     out.push({
       id: "",
       kind: "event",

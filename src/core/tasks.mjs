@@ -611,8 +611,8 @@ export function explainFallback(explanation) {
   const e = explanation;
   const fit = e.taste?.matched?.[0];
   if (fit) {
-    const quiet = e.taste.lowKey ? ", quiet and easy to keep low-key" : "";
-    return `${e.pick.name} is ${fit}${quiet}, and it keeps everyone within about ${e.maxMinutes} minutes.`;
+    const quiet = e.taste.lowKey ? ", quiet enough to hear each other" : "";
+    return `${e.pick.name} is ${fit}${quiet}, about ${e.maxMinutes} minutes for whoever is furthest.`;
   }
   const bits = [`${e.pick.name} keeps everyone within about ${e.maxMinutes} minutes`];
   const extras = [];
@@ -639,7 +639,25 @@ export function readExplain(data, explanation) {
  * @returns {Message[]}
  */
 export function inviteMessages(prompt, facts) {
-  return [{ role: "system", content: fill(prompt.system, { vibe: facts.vibe || "easygoing friends" }) }, { role: "user", content: fill(prompt.user, { facts: JSON.stringify(facts, null, 1) }) }];
+  const withClosing = { ...facts, closing: closingFor(facts) };
+  return [{ role: "system", content: fill(prompt.system, { vibe: facts.vibe || "easygoing friends" }) }, { role: "user", content: fill(prompt.user, { facts: JSON.stringify(withClosing, null, 1) }) }];
+}
+
+/** Ways to say "come if you can, no reply needed", so a week of invites does not repeat itself. */
+export const INVITE_CLOSINGS = Object.freeze([
+  "Come through if you're free. No need to reply.",
+  "Pull up when you can, nobody is taking attendance.",
+  "Drop in any time in that window, no reply needed.",
+  "Show up if you can, skip it if you can't. No RSVP.",
+  "Come when you can and leave when you like. No need to answer this.",
+]);
+
+/** The closing for an invite: picked from its own facts, so the same plan always gets the same line. */
+export function closingFor(/** @type {any} */ facts) {
+  const s = `${facts.title}|${facts.date}|${facts.place}|${facts.vibe ?? ""}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return INVITE_CLOSINGS[h % INVITE_CLOSINGS.length];
 }
 
 /** @returns {{ invite: string, by: "gemma"|"code" }} */

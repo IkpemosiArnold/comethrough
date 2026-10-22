@@ -66,7 +66,7 @@ test("elsewhere the prompts name the crew's city, and Pidgin hints only for Nige
   for (const n of PROMPT_NAMES) assert.ok(!/\{\{(inCity|inCityCountry|areaNoun|areaNounOne|areaExamples|areaExample|priceExample|localNotes|crewNotes)\}\}/.test(JSON.stringify(localisePrompt(p[n], {}))), `${n}: every place slot filled`);
   assert.match(localisePrompt(p["parse-plan"], DEFAULT.local(ABUJA)).system, /Nigerian Pidgin/);
   assert.match(localisePrompt(p["parse-plan"], DEFAULT.local({ ...BERLIN, countryCode: "GH", city: "Accra" })).system, /Ghanaian Pidgin/);
-  assert.match(localisePrompt(p["explain-pick"], DEFAULT.local(NYC)).system, /a group of friends in New York why/);
+  assert.match(localisePrompt(p["explain-pick"], DEFAULT.local(NYC)).system, /a friend in a group chat in New York,/);
 });
 
 test("generic travel: OSRM's own driving time, no traffic bands, no water crossing, and it says so", () => {
@@ -226,7 +226,7 @@ test("a Berlin crew end to end: region, Berlin times, Wikidata's park, direction
   assert.ok((r.plan?.end || "") <= "2026-11-01T19:00:00+01:00", "inside the generic social hours");
   assert.equal(wikidata.calls.length, 1);
   const explain = ai.calls.find((c) => c.task === "explain-pick");
-  assert.match(explain?.messages[0].content || "", /a group of friends in Berlin why/);
+  assert.match(explain?.messages[0].content || "", /a friend in a group chat in Berlin,/);
   const ics = await svc.feed({ calToken: (await store.get("members", /** @type {any} */ (made).member.id)).calToken });
   assert.match(ics, /\r\nDTSTART:20261025T140000Z\r\n/, "Berlin has daylight saving, so UTC: 3 pm CET is 14:00Z");
   assert.ok(!/VTIMEZONE/.test(ics));

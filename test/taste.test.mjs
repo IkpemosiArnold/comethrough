@@ -230,3 +230,25 @@ test("tell the sloth what you're into, later: read (nothing saved), then save th
   assert.deepEqual((/** @type {any} */ (await store.findOne("crews", { slug: made.crew.slug }))).taste.likes, ["thrift"]);
   await assert.rejects(svc.crewTaste({ slug: made.crew.slug, token: made.inviteToken, body: { sentence: "x y z" } }), (e) => /** @type {any} */ (e).code === "members_only");
 });
+
+test("from the 22 Oct eval: no clubs for a dry or kid crew, a roof for rain by taste, and invites that do not all end the same", async () => {
+  const { closingFor, INVITE_CLOSINGS } = await import("../src/core/tasks.mjs");
+  const { rainKinds } = await import("../src/core/taste.mjs");
+  const church = cleanTaste({ needs: ["no alcohol"] });
+  assert.equal(tasteFit({ name: "Syrian Club", amenity: "community_centre" }, church).blocked, "a club or bar");
+  assert.equal(tasteFit({ name: "Skyline Lounge", amenity: "restaurant" }, cleanTaste({ needs: ["kid-friendly"] })).blocked, "a club or bar");
+  assert.equal(tasteFit({ name: "Syrian Club", amenity: "community_centre" }, cleanTaste({ likes: ["art"] })).blocked, null, "other crews may go");
+  assert.equal(eventFit({ title: "Sunset Lounge Sessions" }, church).blocked, "drinks or a party");
+  assert.deepEqual(rainKinds(["playground", "park", "zoo"], ["kid-friendly"]), ["cinema", "mall", "cafe", "restaurant"]);
+  assert.deepEqual(rainKinds(["gallery"], []), []);
+  const parents = readCrewSetup({ taste: { basis: ["kids"], placeKinds: ["playground", "park"], needs: [] } }, { sentence: "parents with young kids" }, LAGOS_LOCAL).draft.taste;
+  assert.ok(parents.placeKinds.includes("cinema") && parents.placeKinds.includes("mall"));
+  const closings = new Set(["Nike Art Gallery", "Love Garden", "National Museum", "Silverbird Cinemas", "Mango Cafe", "Freedom Park"].map((place) => closingFor({ title: `Saturday at ${place}`, date: "2026-10-24", place, vibe: null })));
+  assert.ok(closings.size >= 3, "the closing varies with the plan");
+  assert.ok([...closings].every((c) => INVITE_CLOSINGS.includes(c)));
+  // 80 minutes loses to a reasonable closer option, whatever the taste says
+  const members = [{ id: "a", name: "A", area: AREAS.yaba }, { id: "b", name: "B", area: AREAS.lekki }];
+  const far = { name: "Far Gallery", lat: 6.62, lon: 3.25, osm: { type: /** @type {"node"} */ ("node"), id: 3001, tags: { name: "Far Gallery", tourism: "gallery" } } };
+  const near = { name: "Near Cafe", lat: 6.48, lon: 3.42, osm: { type: /** @type {"node"} */ ("node"), id: 3002, tags: { name: "Near Cafe", amenity: "cafe" } } };
+  assert.equal(scorePlaces({ members, candidates: [far, near], taste: cleanTaste({ placeKinds: ["gallery"] }) }).pick?.candidate.name, "Near Cafe");
+});

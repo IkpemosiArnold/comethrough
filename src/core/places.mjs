@@ -50,7 +50,12 @@ export const WEIGHTS = { fairness: 0.55, green: 0.1, vibe: 0.2, budget: 0.15 };
  * The weight of the crew's taste (src/core/taste.mjs) when it has one: what it is into and
  * what it needs. A crew with no taste is scored exactly as before.
  */
-export const TASTE_WEIGHT = 0.35;
+export const TASTE_WEIGHT = 0.5;
+/**
+ * A place whose longest trip is this much over the best one's goes to the bottom, when a closer one
+ * exists: a wet day once sent a crew 80 minutes to the one covered spot (minutes).
+ */
+export const FAR_SLACK_MIN = 25;
 /** A place used yesterday loses this much; the penalty fades to nothing over VARIETY_DAYS. */
 export const VARIETY_PENALTY = 0.3;
 export const VARIETY_DAYS = 56;
@@ -208,6 +213,9 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
   const allowed = scored.filter((s) => !s.taste.blocked);
   if (!allowed.length) return { ranked: [], pick: null, explanation: null };
 
+  // never an hour and more when somewhere fits within much less
+  const bestMax = Math.min(...allowed.map((s) => s.maxMin));
+  const farOff = (/** @type {any} */ s) => s.maxMin > Math.max(45, bestMax + FAR_SLACK_MIN);
   const bestCost = Math.min(...allowed.map((s) => s.cost));
   const leansOutdoor = !tasted || !taste?.placeKinds.length || taste.placeKinds.some((k) => PLACE_KINDS[k]?.outdoor);
   const wGreen = outdoor && leansOutdoor ? WEIGHTS.green * 2 : WEIGHTS.green;
@@ -223,7 +231,7 @@ export function scorePlaces({ members, candidates, at, tz = DEFAULT_TZ, vibeTags
         taste: s.taste.score,
         variety: -s.variety.penalty,
       };
-      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget + wTaste * parts.taste) / total - s.variety.penalty;
+      const score = (WEIGHTS.fairness * parts.fairness + wGreen * parts.green + WEIGHTS.vibe * parts.vibe + WEIGHTS.budget * parts.budget + wTaste * parts.taste) / total - s.variety.penalty - (farOff(s) ? 1 : 0);
       return { ...s, parts, score: Math.round(score * 1000) / 1000 };
     })
     // ties go to the fairer place, then to the name, so the order never depends on input order
