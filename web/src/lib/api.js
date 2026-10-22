@@ -140,10 +140,12 @@ export const api = {
     if (MOCK) return (await mock()).setArea(c?.memberId, body);
     return req('PATCH', `/api/members/${enc(c?.memberId || '')}`, { slug, body });
   },
-  // The sloth's first pick for a new crew with a regular day: { plan, reason }.
-  async firstPick(slug) {
-    const r = await req('POST', `/api/crews/${enc(slug)}/first-pick`, { slug });
-    return { plan: r?.plan ? withRsvps(r.plan, [], null) : null, reason: r?.reason || null };
+  // The sloth's first pick for a new crew with a regular day: { status, plan, reason }.
+  // It runs on the server after the crew is made; `wait` (seconds, at most 25) holds the
+  // answer while it is still "pending", so asking again at once is cheap.
+  async firstPick(slug, wait = 0) {
+    const r = await req('GET', `/api/crews/${enc(slug)}/first-pick${wait ? `?wait=${wait}` : ''}`, { slug });
+    return { status: r?.status || 'ready', plan: r?.plan ? withRsvps(r.plan, [], null) : null, reason: r?.reason || null };
   },
   // Three ideas for a crew with nothing on: [{ id, title, reason, when, place, source, draft }].
   // A server without the endpoint yet answers 404, and the card simply does not show.

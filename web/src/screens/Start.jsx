@@ -315,36 +315,66 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate }) {
   );
 }
 
-// The invite. A crew with a regular day gets the sloth's first pick straight away, and the
-// WhatsApp text leads with it, so friends have something to come through to.
-function Invite({ created }) {
-  const { crew, inviteUrl } = created;
+// The invite. A crew with a regular day gets the sloth's first pick a few seconds after it
+// is made (the server picks it in the background), and the WhatsApp text leads with it, so
+// friends have something to come through to. Nobody has to wait for it: "Share now" sends
+// the plain invite, and "Share with the plan" appears once the pick lands.
+const PICK_TIMEOUT_MS = 90000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function useFirstPick(crew) {
   const [pick, setPick] = useState(crew.rhythm ? 'picking' : null);
   useEffect(() => {
     if (!crew.rhythm) return;
     let alive = true;
-    api.firstPick(crew.slug)
-      .then((r) => alive && setPick(r.plan && r.plan.status !== 'cancelled' ? r.plan : r.plan ? { skipped: r.plan } : null))
-      .catch(() => alive && setPick(null));
+    (async () => {
+      const until = Date.now() + PICK_TIMEOUT_MS;
+      let misses = 0;
+      while (alive && Date.now() < until) {
+        const t0 = Date.now();
+        try {
+          const r = await api.firstPick(crew.slug, 20);
+          if (!alive) return;
+          if (r.status !== 'pending') {
+            setPick(r.plan && r.plan.status !== 'cancelled' ? r.plan : r.plan ? { skipped: r.plan } : null);
+            return;
+          }
+        } catch {
+          if (++misses >= 3) break;
+        }
+        // the server answers at once when the pick is not running there: ask again calmly
+        if (Date.now() - t0 < 2000) await sleep(3000);
+      }
+      if (alive) setPick(null);
+    })();
     return () => { alive = false; };
   }, []);
-  const plan = pick && pick !== 'picking' && !pick.skipped ? pick : null;
+  return pick;
+}
+
+function Invite({ created }) {
+  const { crew, inviteUrl } = created;
+  const pick = useFirstPick(crew);
+  const [sharedEarly, setSharedEarly] = useState(false);
+  const picking = pick === 'picking';
+  const plan = pick && !picking && !pick.skipped ? pick : null;
   const message = crewInvite(crew, plan ? [plan] : [], crew.inviteToken);
   async function copy() {
     const ok = await copyText(inviteUrl);
     toast(ok ? 'Link copied' : "Couldn't copy. Press and hold the link instead.");
   }
   const day = crew.rhythm ? DAYS[crew.rhythm.day] : '';
+  const shareLabel = picking ? 'Share now' : plan && sharedEarly ? 'Share with the plan' : 'Send to the group chat';
   return (
     <div class="column screen-enter invite">
       <div class="invite-sloth"><Sloth size={88} mood="awake" /></div>
       <h1 class="display display-xl painted paint-in">{crew.name} is ready</h1>
       <p class="lede">Send it to the group chat. Friends see the plans before they're asked for anything.</p>
 
-      {pick === 'picking' && (
+      {picking && (
         <div class="first-pick ritual planning" role="status">
           <p class="ritual-kicker">{rhythmText(crew.rhythm)}</p>
-          <p class="display ritual-title">The sloth is picking {day}'s spot<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+          <p class="display ritual-title">The sloth is picking {day}<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
           <p class="ritual-when">A green spot in the middle of the crew, with the weather checked.</p>
         </div>
       )}
@@ -359,9 +389,11 @@ function Invite({ created }) {
       {pick?.skipped && <p class="muted small rain-skip">{pick.skipped.rainPlan?.note}</p>}
 
       <div class="stack" style={{ '--stack': 'var(--s-3)' }}>
-        <a class="btn whatsapp block big" href={whatsappUrl(message)} target="_blank" rel="noopener" data-external>
-          <WhatsAppIcon /> Send to the group chat
+        <a class="btn whatsapp block big" href={whatsappUrl(message)} target="_blank" rel="noopener" data-external onClick={() => picking && setSharedEarly(true)}>
+          <WhatsAppIcon /> {shareLabel}
         </a>
+        {picking && <p class="hint share-wait">Or wait a few seconds, and the message will carry {day}'s spot.</p>}
+        {plan && sharedEarly && <p class="hint share-wait">The sloth picked {plan.place?.name || dayWord(plan.start)}. Send it so the crew can tap I'm in.</p>}
         <button class="btn secondary block" onClick={copy}><Icon name="copy" size={20} /> Copy link</button>
       </div>
 

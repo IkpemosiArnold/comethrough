@@ -397,7 +397,7 @@ export async function handle(method, path, { body, form, token }) {
     save(db);
     return { plan: view(db, plan, viewer) };
   }
-  if (method === 'POST' && p.endsWith('/first-pick')) {
+  if ((method === 'POST' || method === 'GET') && /\/first-pick(\?|$)/.test(p)) {
     await wait(2200);
     let r = db.plans.find((x) => x.kind === 'ritual');
     if (!r && db.crew.rhythm) {
@@ -412,7 +412,7 @@ export async function handle(method, path, { body, form, token }) {
       db.plans.push(r);
       save(db);
     }
-    return { plan: r ? view(db, r, viewer) : null, reason: r ? 'made' : 'no_rhythm' };
+    return { status: 'ready', plan: r ? view(db, r, viewer) : null, reason: r ? 'made' : 'no_rhythm' };
   }
   if (method === 'PATCH' && (m = p.match(/^\/api\/plans\/([^/]+)$/))) {
     await wait(250);

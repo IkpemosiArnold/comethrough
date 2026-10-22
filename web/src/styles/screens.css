@@ -842,6 +842,7 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .first-pick.landed { animation: pick-in 300ms var(--ease-out) both; }
 @keyframes pick-in { from { opacity: 0; transform: translateY(8px); } }
 .rain-skip { margin-top: var(--s-2); }
+.share-wait { text-align: center; }
 
 /* The ideas card: one calm card, three ideas, one tap each */
 .ideas { position: relative; padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); box-shadow: var(--lift); }
