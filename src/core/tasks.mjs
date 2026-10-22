@@ -598,6 +598,12 @@ export function explainFacts(explanation) {
 }
 
 /** A reason or invite that names who people are, or says a venue is "friendly" or "safe" for someone without a source. */
+/**
+ * A fact's own name or a reason code read back as words ("TCA Gallery fitsTaste as an art
+ * gallery", "fair and fresh": the 22 Oct eval). Such a sentence is replaced by the code's.
+ */
+export const LEAKED_FIELDS = /\b(fitsTaste|fitsCrewTaste|lowKey|longestMinutes|longestTripMinutes|lastVisitedDaysAgo|crewHistory|tripsFrom)\b|\bfair and fresh\b/i;
+
 export const unsafeText = (/** @type {string} */ s, /** @type {(string|null|undefined)[]} */ names = []) => {
   // a place's own name ("Church Street Garden") is a fact, not a claim about anyone
   const t = names.filter(Boolean).reduce((acc, n) => acc.split(/** @type {string} */ (n)).join(" "), s);
@@ -632,7 +638,7 @@ export function explainFallback(explanation) {
  */
 export function readExplain(data, explanation) {
   const why = text(data?.why, 300);
-  if (why && !unsafeText(why, [explanation.pick.name, ...(explanation.notChosen || []).map((/** @type {any} */ n) => n.name)]) && numbersGrounded(why, explainFacts(explanation)) && why.includes(explanation.pick.name.split(" ")[0])) return { why: noDashes(why), by: "gemma" };
+  if (why && !LEAKED_FIELDS.test(why) && !unsafeText(why, [explanation.pick.name, ...(explanation.notChosen || []).map((/** @type {any} */ n) => n.name)]) && numbersGrounded(why, explainFacts(explanation)) && why.includes(explanation.pick.name.split(" ")[0])) return { why: noDashes(why), by: "gemma" };
   return { why: explainFallback(explanation), by: "code" };
 }
 

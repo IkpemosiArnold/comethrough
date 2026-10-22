@@ -24,7 +24,7 @@ import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { placeKey, placeKind, scorePlaces } from "./places.mjs";
 import { DAY_NAMES, addDays, daysBetween, localParts, minutesOfDay, hhmm, parseInstant, toIsoLocal, zonedToMs } from "./time.mjs";
 import { GENERIC_SOCIAL_HOURS, RAIN_OK, bestWindow, clockWords, isWeekend, socialWindow } from "./weather.mjs";
-import { fill, noDashes, numbersGrounded, unsafeText } from "./tasks.mjs";
+import { LEAKED_FIELDS, fill, noDashes, numbersGrounded, unsafeText } from "./tasks.mjs";
 import { PLACE_KINDS, eventFit, hasTaste, kindOfTags, overBudget } from "./taste.mjs";
 import { upcomingDates } from "./feeds.mjs";
 
@@ -519,6 +519,7 @@ export function groundedWhy(why, c, crewFacts = {}) {
   if (!numbersGrounded(s, { ...c.facts, crew: crewFacts })) return null;
   // never who the crew is, and never "X-friendly" or "a safe space" about a venue nobody sourced
   if (unsafeText(s, [c.title, c.place.name])) return null;
+  if (LEAKED_FIELDS.test(s)) return null;
   const low = s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
   const words = nameWords(c);
   if (words.length && !words.some((w) => low.includes(w))) return null;
