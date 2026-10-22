@@ -242,7 +242,8 @@ await check("the ritual plan, with weather", async () => {
   const rituals = r.data.plans.filter((/** @type {any} */ p) => p.kind === "ritual");
   must(rituals.length === 1, `rituals: ${rituals.length}`);
   const p = rituals[0];
-  must(p.weather, "no weather on the ritual");
+  // outdoor picks carry the forecast in `weather`; a covered pick made because of rain carries it in `rainPlan`
+  must(p.weather || p.rainPlan?.wanted?.rainProb != null, "no weather on the ritual (neither weather nor rainPlan)");
   return { ...short(p), why: p.why, invite: p.invite, rainPlan: p.rainPlan ?? null, aiNote: p.aiNote ?? null };
 });
 
