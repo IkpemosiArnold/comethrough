@@ -222,22 +222,20 @@ export function AddPlan({ params, query }) {
     <button type="button" class="tile" onClick={paste}>
       <Icon name="link" size={26} />
       <span class="tile-title">Paste a link</span>
-      <span class="tile-sub">From WhatsApp or a ticket site</span>
     </button>
   );
   const flyerTile = (
     <button type="button" class="tile tile-flyer" onClick={() => fileRef.current && fileRef.current.click()}>
       <Icon name="camera" size={26} />
       <span class="tile-title">Add a flyer</span>
-      <span class="tile-sub">Snap it or pick a screenshot</span>
+      <span class="tile-sub">Or a screenshot</span>
     </button>
   );
 
   return (
     <div class="column add-plan screen-enter">
       <TopBar backTo={`/c/${slug}`} title="Add a plan" />
-      <h1 class="display display-lg">What's the plan?</h1>
-      <p class="muted add-lede">A flyer, a link or one sentence. The sloth fills in the details.</p>
+      <h1 class="display display-lg add-title">What's the plan?</h1>
 
       <div class="tiles">
         {pasteFirst ? <>{pasteTile}{flyerTile}</> : <>{flyerTile}{pasteTile}</>}
@@ -245,7 +243,7 @@ export function AddPlan({ params, query }) {
       <input ref={fileRef} type="file" accept="image/*" class="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => takeImage(e.currentTarget.files && e.currentTarget.files[0])} />
 
       <form class="say-it" onSubmit={(e) => { e.preventDefault(); read(); }}>
-        <label class="field" for="plan-text"><span class="label">Or type it like you'd text it</span></label>
+        <label class="field" for="plan-text"><span class="label">Or type it like a text</span></label>
         <div class="composer">
           <textarea
             id="plan-text"
@@ -283,7 +281,7 @@ function ShareTip() {
       <Icon name="share" size={22} />
       <div class="grow">
         <p class="strong">Share flyers straight here</p>
-        <p class="small muted">Install Come Through and it appears when you tap Share in WhatsApp or your gallery.</p>
+        <p class="small muted">Install the app, and it shows up when you tap Share.</p>
       </div>
       {prompt && <button class="btn secondary" onClick={() => installPrompt.fire()}>Install</button>}
     </aside>

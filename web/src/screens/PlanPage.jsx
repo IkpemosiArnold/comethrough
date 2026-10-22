@@ -267,11 +267,11 @@ export function PlanPage({ params, query }) {
           )}
           {!needsArea && my === 'going' && pods && !myPod && (
             <div class="pod pod-solo">
-              <p>You're the first from your side. When someone near you says yes, you'll share a ride.</p>
+              <p>You're the first from your side. Anyone near you who says yes rides with you.</p>
             </div>
           )}
           {my !== 'going' && (
-            <p class="muted rides-hint">Tap I'm going to get a time to leave and people to ride with.</p>
+            <p class="muted rides-hint">Tap I'm going to get a time to leave.</p>
           )}
           {otherPods.length > 0 && (
             <ul class="pod-others">
@@ -289,11 +289,14 @@ export function PlanPage({ params, query }) {
       {my === 'going' && <NudgeAsk slug={slug} />}
 
       {plan.why && (
-        <section class="why" aria-labelledby="why-title">
-          <div class="why-sloth" aria-hidden="true"><Sloth size={58} branch={false} mood="awake" /></div>
-          <h2 id="why-title" class="why-title">Why this spot</h2>
+        <details class="why">
+          <summary>
+            <span class="why-sloth" aria-hidden="true"><Sloth size={58} branch={false} mood="awake" /></span>
+            <span class="why-title">Why this spot?</span>
+            <Icon name="back" size={18} class="chev" />
+          </summary>
           <p>{plan.why}</p>
-        </section>
+        </details>
       )}
 
       {plan.bring?.length > 0 && (
@@ -309,7 +312,7 @@ export function PlanPage({ params, query }) {
         <section class="source">
           {plan.source.imageUrl && <img class="source-flyer" src={plan.source.imageUrl} alt={`Flyer for ${plan.title}`} width="150" height="194" loading="lazy" />}
           <div>
-            <p class="small muted">{plan.source.image ? 'Read from a flyer' : 'Read from a link'}, so check the details with the organiser.</p>
+            <p class="small muted">{plan.source.image ? 'Read from a flyer' : 'Read from a link'}. Check the details with the organiser.</p>
             {plan.source.url && <a class="small" href={plan.source.url} target="_blank" rel="noopener">See the original</a>}
           </div>
         </section>
@@ -381,9 +384,9 @@ export function NudgeAsk({ slug }) {
       <Icon name="bell" size={22} />
       <div class="grow">
         {state === 'ios' ? (
-          <p><b>Want a nudge if this changes?</b> On iPhone, add Come Through to your Home Screen first. Tap Share, then Add to Home Screen.</p>
+          <p><b>Want a nudge if this changes?</b> First tap Share, then Add to Home Screen.</p>
         ) : (
-          <p><b>Want a nudge if this changes?</b> One alert if the time or the weather changes, and one when your ride group forms.</p>
+          <p><b>Want a nudge if this changes?</b> Only for the time, the weather or your ride.</p>
         )}
         <div class="row nudge-actions">
           {state !== 'ios' && <button class="btn primary" onClick={yes} disabled={state === 'asking'}>Yes, nudge me</button>}
@@ -437,7 +440,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
               ))}
             </div>
             <p class="fine ride-fine">
-              Ride apps don't take a drop-off from a link yet, so paste the address in.
+              Paste the address into the app.
               {rides.length > 2 && <> Also: {rides.slice(2).map((r, i) => <span key={r.id}>{i ? ', ' : ''}<a href={rideHref(r)} target="_blank" rel="noopener" data-external>{r.name}</a></span>)}.</>}
             </p>
           </>
@@ -448,7 +451,7 @@ function PodCard({ pod, byId, meId, fresh, onCopy, rides, directions = null, hos
                 <a class="btn ghost grow" href={directionsHref(directions)} target="_blank" rel="noopener" data-external><Icon name="car" size={20} /> Get directions</a>
               </div>
             )}
-            <p class="fine ride-fine">Opens your maps app. For a ride, paste the address into whichever app you use.</p>
+            <p class="fine ride-fine">For a ride, paste the address into your ride app.</p>
           </>
         )}
       </div>

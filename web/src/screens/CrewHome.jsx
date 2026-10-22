@@ -114,12 +114,12 @@ export function CrewHome({ params, query, askName = false }) {
           {rest.length === 0 ? (
             guest ? (
               <div class="empty">
-                <p class="muted">Nothing else on yet. When someone adds a plan, it shows up here.</p>
+                <p class="muted">Nothing else on yet.</p>
               </div>
             ) : members.length <= 1 ? (
               <div class="empty">
                 <p class="display display-md">Bring the crew in</p>
-                <p class="muted">They see the plans before they're asked for anything.</p>
+                <p class="muted">No app or account needed.</p>
                 <a class="btn whatsapp" href={whatsappUrl(inviteText)} target="_blank" rel="noopener" data-external>
                   <WhatsAppIcon /> Send the invite
                 </a>
@@ -183,36 +183,45 @@ function IdeasCard({ slug }) {
     return (
       <div class="empty">
         <p class="display display-md">Nothing else on yet</p>
-        <p class="muted">Seen a flyer or got an idea? Add it and the crew taps once.</p>
+        <p class="muted">Seen a flyer? Add it.</p>
       </div>
     );
   }
   return (
     <section class="ideas" aria-labelledby="ideas-title" aria-busy={!ideas}>
       <div class="ideas-sloth" aria-hidden="true"><Sloth size={52} branch={false} mood="awake" /></div>
-      <h3 id="ideas-title" class="ideas-title">Too lazy to think? The sloth has three ideas.</h3>
+      <h3 id="ideas-title" class="ideas-title">Too lazy to think? Try one.</h3>
       {!ideas ? (
         <p class="muted small">Looking around <Dots /></p>
       ) : (
         <ol class="ideas-list">
-          {ideas.map((idea) => (
-            <li key={idea.id} class="idea">
-              <p class="idea-title">{idea.title}</p>
-              {idea.when && <p class="idea-when">{idea.when}{idea.place?.name && !idea.title.includes(idea.place.name) ? ` at ${idea.place.name}` : ''}</p>}
-              {idea.reason && <p class="idea-why">{idea.reason}</p>}
-              {idea.source?.credit && (
-                <p class="idea-src">{idea.source.url ? <a href={idea.source.url} target="_blank" rel="noopener">{idea.source.credit}</a> : idea.source.credit}</p>
-              )}
-              {idea.draft && (
-                <button class="btn secondary idea-btn" onClick={() => make(idea)} disabled={!!busy}>
-                  {busy === idea.id ? <>Making it <Dots /></> : 'Make it a plan'}
-                </button>
-              )}
-            </li>
-          ))}
+          {ideas.map((idea) => <Idea key={idea.id} idea={idea} busy={busy} onMake={make} />)}
         </ol>
       )}
     </section>
+  );
+}
+
+// One idea: what, when, where it came from and one tap; the reason is one "Why?" away.
+function Idea({ idea, busy, onMake }) {
+  const [why, setWhy] = useState(false);
+  return (
+    <li class="idea">
+      <p class="idea-title">{idea.title}</p>
+      {idea.when && <p class="idea-when">{idea.when}{idea.place?.name && !idea.title.includes(idea.place.name) ? ` at ${idea.place.name}` : ''}</p>}
+      {idea.source?.credit && (
+        <p class="idea-src">{idea.source.url ? <a href={idea.source.url} target="_blank" rel="noopener">{idea.source.credit}</a> : idea.source.credit}</p>
+      )}
+      {why && idea.reason && <p class="why-text idea-why">{idea.reason}</p>}
+      <div class="row idea-actions">
+        {idea.draft && (
+          <button class="btn secondary idea-btn" onClick={() => onMake(idea)} disabled={!!busy}>
+            {busy === idea.id ? <>Making it <Dots /></> : 'Make it a plan'}
+          </button>
+        )}
+        {idea.reason && <button type="button" class="link-btn why-link" aria-expanded={why} onClick={() => setWhy(!why)}>{why ? 'Hide' : 'Why?'}</button>}
+      </div>
+    </li>
   );
 }
 
@@ -298,7 +307,7 @@ function RitualPanel({ crew, ritual, byId, slug, meId }) {
       <div class="ritual-sloth" aria-hidden="true"><Sloth size={78} mood="sleepy" /></div>
       <p class="ritual-kicker">{rhythmText(crew.rhythm)}</p>
       <h2 class="display ritual-title">The sloth is planning {dayName}<span class="ellipsis" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></h2>
-      <p class="ritual-when">Sloths come down from their tree about once a week, and so does your crew. It posts {dayName}'s spot here by {postBy}.</p>
+      <p class="ritual-when">The spot shows up here by {postBy}.</p>
     </div>
   );
 }

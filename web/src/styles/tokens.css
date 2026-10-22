@@ -33,6 +33,7 @@
   --bark: #5a4129;        /* the branch */
   --whatsapp: #0b6332;    /* darker than the brand green so white text on it is 7.4:1 */
   --whatsapp-icon: var(--whatsapp);
+  --whatsapp-shadow: #06401f;
   --highlight: rgb(255 194 26 / 0.55);
   --scrim: rgb(14 30 25 / 0.45);
 

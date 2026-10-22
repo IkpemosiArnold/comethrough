@@ -53,7 +53,7 @@ export function StatusSheet({ crewName, linkups, onClose }) {
         <h2 id="status-sheet-title" class="display display-md">A card for your Status</h2>
         {!file ? (
           <>
-            <p class="muted">Add up to 3 photos from the day, or make it with the sloth alone. Your photos stay on this phone.</p>
+            <p class="muted">Up to 3 photos from the day. They stay on this phone.</p>
             <input ref={pick} type="file" accept="image/*" multiple hidden onChange={chosen} />
             <button class="btn primary block big" disabled={busy} onClick={() => pick.current?.click()}>{busy ? <>Painting it <Dots /></> : 'Pick photos'}</button>
             <button class="btn ghost block" disabled={busy} onClick={() => make([])}>Make it without photos</button>
@@ -63,7 +63,7 @@ export function StatusSheet({ crewName, linkups, onClose }) {
             <img class="status-preview" src={url} alt="Your Status card" width="1080" height="1920" />
             {canShare && <button class="btn primary block big" onClick={share}>Share</button>}
             <a class={`btn ${canShare ? 'ghost' : 'primary big'} block`} href={url} download="came-through.jpg" onClick={() => !canShare && setTimeout(() => onClose(true), 300)}>Save the card</a>
-            <p class="small muted">{canShare ? 'Pick WhatsApp, then My status. Instagram and Snapchat are in the same list when they are on this phone.' : 'Save it, then post it from WhatsApp, Instagram or Snapchat.'}</p>
+            <p class="small muted">{canShare ? 'Pick WhatsApp, then My status.' : 'Save it, then post it to your Status.'}</p>
           </>
         )}
         <button class="btn ghost block" onClick={() => onClose(false)}>Not now</button>

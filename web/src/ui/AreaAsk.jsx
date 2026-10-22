@@ -53,7 +53,7 @@ export function AreaAsk({ slug, onSet }) {
   return (
     <div class="area-ask" role="group" aria-labelledby="area-ask-title">
       <h3 id="area-ask-title" class="area-ask-title">Where are you coming from?</h3>
-      <p class="small muted">Just the area, so you get a time to leave and people to ride with.</p>
+      <p class="small muted">For a time to leave and people to ride with.</p>
       <button type="button" class="btn secondary block" onClick={locate} disabled={!!busy}>
         <Icon name="pin" size={20} /> {busy === 'locating' ? <>Finding your area <Dots /></> : 'Use my rough location'}
       </button>
@@ -66,7 +66,7 @@ export function AreaAsk({ slug, onSet }) {
         </button>
       </div>
       {error && <p class="error-text" role="alert">{error}</p>}
-      <p class="fine">Your phone rounds the location to about a kilometre first, and only the area's name is kept.</p>
+      <p class="fine">Your phone rounds the location to about 1 km. Only the area's name is kept.</p>
     </div>
   );
 }

@@ -7,8 +7,8 @@
   margin: 0 0 var(--s-3);
 }
 .kicker { font-weight: 650; color: var(--ink-2); font-size: var(--t-sm); margin-bottom: var(--s-1); }
-.lede { font-size: var(--t-lg); line-height: 1.45; color: var(--ink-2); }
-.fine { font-size: var(--t-xs); color: var(--ink-3); line-height: 1.45; }
+.lede { font-size: var(--t-lg); line-height: 1.4; color: var(--ink); max-width: 34ch; }
+.fine { font-size: var(--t-xs); color: var(--ink-2); line-height: 1.45; }
 .link-btn { appearance: none; border: 0; background: none; color: var(--lagoon); font-weight: 650; text-decoration: underline; padding: 6px 2px; cursor: pointer; }
 .crumb { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); font-weight: 650; text-decoration: none; font-size: var(--t-sm); }
 .center-load { display: grid; place-items: center; min-height: 40vh; color: var(--ink-3); }
@@ -58,11 +58,11 @@
 
 /* ---------- Start ---------- */
 
-.start { padding-top: 0; }
+.start { padding-top: 0; display: flex; flex-direction: column; min-height: 100svh; }
 .start-hero {
   position: relative;
   padding-top: calc(var(--safe-t) + 104px);
-  margin: 0 calc(var(--gutter) * -1) var(--s-5);
+  margin: 0 calc(var(--gutter) * -1) var(--s-6);
   padding-left: var(--gutter);
   padding-right: var(--gutter);
 }
@@ -89,17 +89,14 @@
 @keyframes hang { 0%, 100% { transform: rotate(-2.2deg); } 50% { transform: rotate(2.2deg); } }
 .sloth-reading { animation-duration: 3s !important; }
 .start-title { font-size: clamp(2.5rem, 11.5vw, 3.25rem); letter-spacing: -0.02em; line-height: 1; }
-.start-tag {
-  margin-top: var(--s-3);
-  font-size: var(--t-lg);
-  line-height: 1.4;
-  max-width: 26ch;
-  color: var(--ink-2);
-}
 .start-label { font-weight: 700; font-size: var(--t-lg); line-height: 1.3; }
-.start-form { display: grid; gap: var(--s-3); }
-.start-form .label { font-size: var(--t-lg); margin-bottom: 0; }
-.start-form .btn { margin-top: var(--s-2); }
+.start-form { display: grid; gap: var(--s-4); }
+.start-form .btn { margin-top: var(--s-1); }
+.start-form .ai-note { margin-top: calc(var(--s-1) * -1); }
+.just-in-time { margin-top: calc(var(--s-1) * -1); animation: fade-in 180ms var(--ease-out) both; }
+/* the attributions sit at the foot of the first screen, one quiet line */
+.credits.start-credits { margin-top: auto; padding-top: var(--s-10); }
+.credits a { white-space: nowrap; }
 .my-crews { margin-bottom: var(--s-6); }
 .my-crews ul, .pick-crew { display: grid; gap: var(--s-2); }
 .pick-crew { margin-top: var(--s-5); }
@@ -122,38 +119,6 @@
 }
 .crew-link:active { transform: scale(0.98); }
 .crew-link-name { font-family: var(--font-display); font-size: var(--t-lg); }
-
-.how { margin-top: var(--s-10); }
-.how-steps { counter-reset: step; display: grid; gap: var(--s-4); }
-.how-steps li {
-  counter-increment: step;
-  position: relative;
-  padding-left: 44px;
-  color: var(--ink-2);
-}
-.how-steps li b { color: var(--ink); font-weight: 650; }
-.how-steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: -2px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 15px;
-  background: var(--danfo);
-  color: var(--on-danfo);
-}
-.how-note {
-  margin-top: var(--s-6);
-  padding: var(--s-4) var(--s-5);
-  border-radius: var(--r-md);
-  background: var(--canopy);
-  color: var(--on-canopy);
-}
 
 /* ---------- Confirm (crew draft) ---------- */
 
@@ -366,7 +331,7 @@ a.ritual:active { transform: scale(0.98); }
   line-height: 1.45;
   color: var(--ink);
 }
-.wa-btn { color: var(--whatsapp); }
+.wa-btn { color: var(--whatsapp-icon); }
 
 .rain-warn {
   display: flex;
@@ -493,7 +458,7 @@ a.ritual:active { transform: scale(0.98); }
 .branch-empty p { margin-top: var(--s-2); }
 .maybes { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); font-size: var(--t-sm); color: var(--ink-2); }
 .maybes .avatar { --size: 26px; font-size: 11px; opacity: 0.85; }
-.quiet-no { margin-top: var(--s-3); font-size: var(--t-sm); color: var(--ink-3); }
+.quiet-no { margin-top: var(--s-3); font-size: var(--t-sm); color: var(--ink-2); }
 
 /* Rides */
 .rides { margin-bottom: var(--s-8); }
@@ -515,18 +480,21 @@ a.ritual:active { transform: scale(0.98); }
 .pod-others li { display: flex; align-items: center; gap: var(--s-3); font-size: var(--t-sm); color: var(--ink-2); }
 .pod-others .avatar { --size: 28px; font-size: 11px; }
 
+/* "Why this spot?": the canopy panel, folded; the sloth peeks over its edge */
 .why {
   position: relative;
   margin-bottom: var(--s-8);
-  padding: var(--s-5);
-  padding-top: var(--s-6);
   border-radius: var(--r-lg);
   background: var(--canopy);
   color: var(--on-canopy);
 }
+.why summary { list-style: none; display: flex; align-items: center; gap: var(--s-3); min-height: 64px; padding: var(--s-4) var(--s-5); padding-right: 84px; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.why summary::-webkit-details-marker { display: none; }
+.why summary .chev { color: var(--on-canopy-2); transform: rotate(-90deg); transition: transform var(--d-fast) var(--ease-out); }
+.why[open] summary .chev { transform: rotate(90deg); }
 .why-sloth { position: absolute; right: 12px; top: -26px; }
-.why-title { font-family: var(--font-display); font-weight: 400; font-size: var(--t-lg); margin-bottom: var(--s-2); color: var(--on-canopy); }
-.why p { color: var(--on-canopy); line-height: 1.55; }
+.why-title { font-family: var(--font-display); font-weight: 400; font-size: var(--t-lg); color: var(--on-canopy); }
+.why p { color: var(--on-canopy); line-height: var(--lh-body); padding: 0 var(--s-5) var(--s-5); }
 
 .bring { margin-bottom: var(--s-8); }
 .bring-list { gap: var(--s-2); }
@@ -577,7 +545,7 @@ a.ritual:active { transform: scale(0.98); }
 
 /* ---------- Add a plan ---------- */
 
-.add-lede { margin: var(--s-2) 0 var(--s-5); }
+.add-title { margin-bottom: var(--s-5); }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
 .tile {
   appearance: none;
@@ -585,7 +553,7 @@ a.ritual:active { transform: scale(0.98); }
   display: grid;
   align-content: start;
   gap: 4px;
-  min-height: 132px;
+  min-height: 112px;
   padding: var(--s-4);
   border-radius: var(--r-lg);
   background: var(--paper);
@@ -601,7 +569,7 @@ a.ritual:active { transform: scale(0.98); }
 .tile-title { font-family: var(--font-display); font-size: var(--t-lg); line-height: 1.1; }
 .tile-sub { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.35; }
 .tile-flyer { background: var(--danfo); color: var(--on-danfo); box-shadow: var(--sign); }
-.tile-flyer .tile-sub { color: #3d4a2a; }
+.tile-flyer .tile-sub { color: var(--on-danfo); }
 .tile-flyer:active { transform: translateY(2px); box-shadow: var(--sign-press); }
 .say-it { display: grid; gap: var(--s-3); margin-top: var(--s-8); }
 .say-it .label { margin-bottom: 0; }
@@ -818,7 +786,7 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 /* How the sloth works */
 .how-page { display: grid; gap: var(--s-5); padding-bottom: var(--s-14); }
 .how-page section { display: grid; gap: var(--s-3); }
-.how-page p, .how-list { line-height: 1.55; color: var(--ink-2); }
+.how-page p, .how-list { line-height: var(--lh-body); color: var(--ink); max-width: 60ch; }
 .how-list { display: grid; gap: var(--s-2); padding-left: 1.2em; list-style: disc; }
 .how-sloth { margin: var(--s-2) 0 calc(var(--s-4) * -1); }
 
@@ -853,9 +821,11 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .idea + .idea { border-top: 1px solid var(--line); }
 .idea-title { font-weight: 700; }
 .idea-when { font-size: var(--t-sm); font-weight: 650; color: var(--ink); }
-.idea-why { color: var(--ink-2); font-size: var(--t-sm); line-height: 1.45; }
-.idea-src { color: var(--ink-3); font-size: var(--t-xs); }
-.idea-btn { justify-self: start; margin-top: var(--s-2); min-height: 44px; }
+.idea-why { margin-top: var(--s-2); background: var(--wall); }
+.idea-src { color: var(--ink-2); font-size: var(--t-xs); }
+.idea-actions { gap: var(--s-3); margin-top: var(--s-2); }
+.idea-btn { min-height: 44px; }
+.why-link { min-height: 44px; font-size: var(--t-sm); }
 
 /* Where are you coming from? */
 .area-ask { display: grid; gap: var(--s-3); padding: var(--s-5); border-radius: var(--r-lg); background: var(--paper); box-shadow: inset 0 0 0 2px var(--danfo), var(--lift); }
@@ -867,7 +837,9 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .where-sloth { margin: var(--s-2) 0 calc(var(--s-3) * -1); }
 .where-title { line-height: 1.08; overflow-wrap: anywhere; }
 .where .lede { overflow-wrap: anywhere; }
-.where-why { font-size: var(--t-md); line-height: 1.5; }
+/* "Why?" and "How?": an explanation one tap away, never in the way */
+.why-btn { font-size: var(--t-sm); padding: 12px 6px; margin: -12px -2px; vertical-align: baseline; }
+.why-text { font-size: var(--t-sm); line-height: var(--lh-body); color: var(--ink); padding: var(--s-3) var(--s-4); border-radius: var(--r-md); background: var(--paper); animation: fade-in 180ms var(--ease-out) both; }
 .where-choices { display: grid; gap: var(--s-2); }
 .where-choices .section-label { margin: 0; }
 .where-choice {
@@ -893,12 +865,8 @@ html.sheet-open .bottom-bar { visibility: hidden; }
 .area-chip .off-map-tag { font-size: var(--t-xs); color: var(--ink-2); font-weight: 600; }
 
 /* What the sloth understood from the sentence: removable chips */
-.taste-got { margin: var(--s-2) 0 0; display: grid; gap: var(--s-2); }
-.taste-summary { font-weight: 650; color: var(--ink); line-height: 1.4; }
 .taste-chips { gap: var(--s-2); }
-.taste-needs-title { font-size: var(--t-xs); font-weight: 650; color: var(--ink-3); margin-top: var(--s-1); }
-.into-field .label { display: flex; gap: var(--s-2); align-items: baseline; }
-.optional { font-size: var(--t-xs); font-weight: 600; color: var(--ink-3); }
+.mini-label { font-size: var(--t-xs); font-weight: 650; color: var(--ink-2); }
 
 /* The organiser's moment: the yellow paint drops in behind the crew's name, once */
 .paint-in { animation: paint-in 480ms var(--ease-out) 120ms both; }

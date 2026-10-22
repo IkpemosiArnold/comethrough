@@ -101,6 +101,7 @@ export function WhereAsk({ ask, step, steps, city, rereading, onBack, onAnswer, 
   const [busy, setBusy] = useState(null); // 'locating'
   const [error, setError] = useState(null);
   const [neither, setNeither] = useState(false);
+  const [why, setWhy] = useState(false);
   const blocking = !!ask.blocking;
 
   async function locate() {
@@ -136,9 +137,10 @@ export function WhereAsk({ ask, step, steps, city, rereading, onBack, onAnswer, 
           <p class="lede">
             {ask.labels.length
               ? `The sloth couldn't find ${quoteList(ask.labels)} on the map${city ? ` in ${city}` : ''}.`
-              : "The sloth couldn't tell where the crew is from your sentence."}
+              : "The sloth couldn't tell where the crew is."}
+            {' '}<button type="button" class="link-btn why-btn" aria-expanded={why} onClick={() => setWhy(!why)}>Why?</button>
           </p>
-          <p class="muted where-why">It won't pick a spot or suggest anything until it knows roughly where you are.</p>
+          {why && <p class="why-text">It picks spots in the middle of the crew, so it needs a rough area first. You can skip this and still make the crew.</p>}
         </>
       ) : (
         <>
@@ -165,10 +167,11 @@ export function WhereAsk({ ask, step, steps, city, rereading, onBack, onAnswer, 
           <button type="button" class="btn secondary block" onClick={locate} disabled={!!busy || rereading}>
             <Icon name="pin" size={20} /> {busy === 'locating' ? <>Finding your area <Dots /></> : 'Use my rough location'}
           </button>
+          <p class="fine">Your phone rounds it to about 1 km. Only the area's name is kept.</p>
           <AreaFind label="Or type an area" onFound={onAdd} />
           {ask.cities?.length > 0 && (
             <div class="where-cities">
-              <p class="small muted">Or just pick the city, and the sloth looks again there.</p>
+              <p class="small muted">Or pick the city</p>
               <div class="row wrap seg">
                 {ask.cities.map((c) => (
                   <button type="button" key={c} class="chip" aria-pressed={city === c} disabled={rereading} onClick={() => onCity(c)}>
@@ -179,7 +182,6 @@ export function WhereAsk({ ask, step, steps, city, rereading, onBack, onAnswer, 
             </div>
           )}
           {error && <p class="error-text" role="alert">{error}</p>}
-          <p class="fine">Your phone rounds the location to about a kilometre first, and only the area's name is kept.</p>
         </div>
       ) : neither ? (
         <div class="where-other">
@@ -191,7 +193,7 @@ export function WhereAsk({ ask, step, steps, city, rereading, onBack, onAnswer, 
 
       <div class="where-skip">
         <button type="button" class="link-btn" onClick={onSkip} disabled={rereading}>{blocking ? 'Skip for now' : `Leave ${ask.label} off the map`}</button>
-        <p class="fine">{blocking ? "You can still make the crew. The sloth just won't pick spots until an area is on the map." : 'Rides and fair picks will leave it out.'}</p>
+        {!blocking && <p class="fine">Rides will leave it out.</p>}
       </div>
     </div>
   );

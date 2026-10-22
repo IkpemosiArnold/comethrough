@@ -136,7 +136,6 @@ export function OneTap({ params, query, answer }) {
                 <Icon name="calendar" size={20} /> Add to my calendar
               </a>
             )}
-            {answer === 'going' && api.eventIcsUrl(slug, plan) && <p class="fine">It reminds you before it's time to leave.</p>}
           </div>
           {answer === 'going' && canRide && !area && <AreaAsk slug={slug} onSet={(l) => { setArea(l || 'set'); toast(l ? `Coming from ${l}` : 'Saved'); }} />}
           {answer === 'going' && <NudgeAsk slug={slug} />}
