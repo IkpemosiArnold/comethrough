@@ -215,6 +215,16 @@ Idea {
 
 `draftPlan` is a complete `PlanDraft`: `kind` "found" for an event (its `source.url` is the ticket link, else the post) and "quick" otherwise, `start` and `end` in the crew's zone, the place with its pin when known, the price as stated. One tap sends it through the existing create flow, which validates it as any other plan.
 
+### Hard constraints (25 Oct, from Astra's review)
+
+What a crew said it needs is a filter, never a score (`src/core/constraints.mjs`). Ideas and the ritual are filtered before ranking and the final picks are checked again before anything is shown or published:
+
+- **Hours.** The crew's own window (its rhythm's, "2 pm to 6 pm") bounds every idea and the ritual. The city pack's social hours only narrow it; when they share less than an hour (a "Saturday night" crew outdoors), there is no outdoor hour, not the afternoon. A wet ritual moves only within the crew's window that day, or to the same window the next weekend day, else a covered place in the window, else it is skipped.
+- **Trips.** Nobody travels more than 90 minutes (the pack's estimate), for ideas and the ritual alike. A ritual where every place is too far is not made (`reason: "too_far"`).
+- **Budget.** A free crew gets nothing with a known price; a cheap crew nothing over the pack's ceiling.
+- **Needs.** Step-free (no place tagged `wheelchair=no`), no alcohol and kid-friendly (no bars, clubs, drinks or late nights), daytime (nothing from 8 pm), discreet (no title that names who anyone is, since titles travel).
+- **Nothing fits** is an answer: the card says "Nothing the sloth found fits your hours (2 pm to 6 pm) and your budget this time. Try the other slot, or add a plan yourself."
+
 ## Growth (22 Oct)
 
 The app is the group chat's assistant, so nothing here is a feed, a streak to lose, a

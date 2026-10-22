@@ -64,13 +64,16 @@ const roundUp = (/** @type {string} */ t, step = 30) => hhmm(Math.ceil(minutesOf
  * hours. Tonight is today's evening (from 5 pm under a roof; the light part of it outside).
  * The weekend is Friday evening, Saturday and Sunday, from now on: on a Saturday, the rest
  * of Saturday and Sunday. A day with less than an hour left is dropped.
+ * `crewWindow` is the crew's own hours (its rhythm's window, "2 pm to 6 pm"): a hard
+ * constraint the social hours only narrow, never widen.
  * @param {"tonight"|"weekend"} when
  * @param {number} nowMs
  * @param {string} tz
  * @param {import("./weather.mjs").SocialHours} [social]
+ * @param {TimeWindow|null} [crewWindow]
  * @returns {Slot}
  */
-export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS) {
+export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS, crewWindow = null) {
   const { date: today, time: nowTime, weekday } = localParts(nowMs, tz);
   const earliest = roundUp(nowTime);
   /** @type {string[]} */
@@ -81,8 +84,13 @@ export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS) {
   else dates = [5, 6, 7].map((d) => addDays(today, d - weekday));
   const clip = (/** @type {string} */ date, /** @type {TimeWindow|null} */ w) => {
     if (!w) return null;
-    const from = date === today ? later(w.from, earliest) : w.from;
-    return minutesOfDay(w.to) - minutesOfDay(from) >= 60 ? { from, to: w.to } : null;
+    let from = date === today ? later(w.from, earliest) : w.from;
+    let to = w.to;
+    if (crewWindow) {
+      from = later(from, crewWindow.from);
+      to = to < crewWindow.to ? to : crewWindow.to;
+    }
+    return minutesOfDay(to) - minutesOfDay(from) >= 60 ? { from, to } : null;
   };
   const days = dates.map((date) => {
     const o = socialWindow(date, { outdoor: true, social });

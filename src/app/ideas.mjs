@@ -20,6 +20,7 @@ import { centroid, haversineKm, isLatLon } from "../core/geo.mjs";
 import { EVENTS_MAX_TOKENS, EVENTS_SCHEMA, eventsMessages, freshItems, postText, readEvents } from "../core/feeds.mjs";
 import { IDEAS_TTL_MS, RANK_MAX_TOKENS, RANK_SCHEMA, crewFactsOf, eventCandidates, homeCandidate, ideaView, placeCandidates, pool, rankMessages, readRanking, slotFor, usualCandidates } from "../core/ideas.mjs";
 import { tasteKey } from "../core/taste.mjs";
+import { candidateViolations, crewConstraints, nothingFits } from "../core/constraints.mjs";
 import { recentPlaces } from "../core/plans.mjs";
 import { localisePrompt } from "../core/tasks.mjs";
 import { localParts } from "../core/time.mjs";
@@ -220,12 +221,16 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const pack = packFor(region);
     const local = pack.local(region);
     const tz = crew.tz || region.timezone;
-    const slot = slotFor(when, t, tz, pack.social);
+    // the crew's hard constraints: its own hours bound the slot (the social hours only narrow
+    // them), and budget, trips and needs filter every candidate before ranking and again after
+    const k = crewConstraints(crew, { cheapMax: pack.cheapMax ?? null });
+    const slot = slotFor(when, t, tz, pack.social, k.window);
     /** @type {string[]} */
     const notes = [];
     const base = { when, generatedAt: new Date(t).toISOString(), validUntil: new Date(t + IDEAS_TTL_MS).toISOString(), slot: slot.days };
     if (!slot.days.length) {
-      return { ...base, ideas: [], by: "code", sources: [], notes: [when === "tonight" ? "Tonight is nearly over. Try the weekend." : "The weekend is nearly over."] };
+      const anyHours = slotFor(when, t, tz, pack.social).days.length > 0;
+      return { ...base, ideas: [], by: "code", sources: [], notes: [anyHours ? nothingFits(k) : when === "tonight" ? "Tonight is nearly over. Try the weekend." : "The weekend is nearly over."] };
     }
     const members = /** @type {Member[]} */ (await store.find("members", { crewId: crew.id }));
     const points = crewPoints(crew, members);
@@ -262,9 +267,12 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const pl = placeCandidates(/** @type {any[]} */ (places || []), { ...ctx, crew, recent: recentPlaces(plans, t), now: t });
     const us = usualCandidates(plans, { ...ctx, now: t });
     if (pl.wet) notes.push("Rain is forecast for the open-air hours, so outdoor places are left out.");
-    const cands = pool({ events: ev, places: pl.candidates, usual: us, home: homeCandidate(slot, crew.taste) }, slot.today);
+    // filter first, rank second
+    const fits = (/** @type {any} */ c) => c && !candidateViolations(c, k).length;
+    const home = homeCandidate(slot, crew.taste);
+    const cands = pool({ events: ev.filter(fits), places: pl.candidates.filter(fits), usual: us.filter(fits), home: fits(home) ? home : null }, slot.today);
     const sources = guides.map((g) => ({ name: g.name, url: g.home }));
-    if (!cands.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, "Nothing fits this time. Try the other slot, or add a plan yourself."], ...(partial ? { partial: true } : {}) };
+    if (!cands.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, nothingFits(k)], ...(partial ? { partial: true } : {}) };
 
     const crewFacts = crewFactsOf(crew, when);
     let data = null;
@@ -278,7 +286,14 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       }
     }
     const ranked = readRanking(data, cands, crewFacts);
-    const ideas = ranked.picks.map((p) => ideaView(p, { today: slot.today, tz }));
+    // checked again before anything is shown: a pick that breaks a constraint is dropped
+    const safe = ranked.picks.filter((p) => {
+      const why = candidateViolations(p.candidate, k);
+      if (why.length) log("idea_dropped", { crew: crew.id, kind: p.candidate.kind, why: why.join("; ") });
+      return !why.length;
+    });
+    if (!safe.length) return { ...base, ideas: [], by: "code", sources, notes: [...notes, nothingFits(k)], ...(partial ? { partial: true } : {}) };
+    const ideas = safe.map((p) => ideaView(p, { today: slot.today, tz }));
     if (ideas.length < 3) notes.push(`Only ${ideas.length === 1 ? "one idea fits" : `${ideas.length} ideas fit`} this time.`);
     log("ideas", { crew: crew.id, when, events: ev.length, places: pl.candidates.length, usual: us.length, by: ranked.by });
     sw.end({ when, ideas: ideas.length, partial });

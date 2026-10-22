@@ -38,6 +38,7 @@ import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { createGrowth } from "./growth.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
+import { candidateViolations, crewConstraints } from "../core/constraints.mjs";
 import { diffChange, editDoc } from "./writes.mjs";
 import { safePath } from "../adapters/store.mjs";
 
@@ -1361,31 +1362,40 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       // no forecast in time: the crew's own window, without a weather line (honest, and the heartbeat checks it later)
       sw.time("weather", weatherBudgetMs ? within(forecast, weatherBudgetMs, null) : forecast),
     ]);
-    if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
+    // the crew's hard constraints (core/constraints.mjs): its own window, which the social
+    // hours only narrow; its budget; nobody travelling more than MAX_TRIP_MIN; its needs
+    const k = crewConstraints({ ...crew, rhythm: { ...crew.rhythm, window: due.window } }, { cheapMax: pack.cheapMax ?? null });
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
+    const outdoorHours = clipToSocial(due.date, due.window, { social: pack.social });
+    const coveredHours = clipToSocial(due.date, due.window, { outdoor: false, social: pack.social });
+    if (!outdoorHours && !coveredHours) return { made: false, reason: "no_window" };
+    const cut = (/** @type {{ from: string, to: string }} */ w) => ({ from: w.from, to: hhmm(Math.min(minutesOfDay(w.to), minutesOfDay(w.from) + span * 60)) });
     // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
-    // stretch that day or the next, else a covered place, else the sloth skips this one
-    // (core/weather.mjs, ritualWindow)
-    const rw = hours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }, pack.social) : null;
+    // stretch in that window that day or the next, else a covered place, else the sloth
+    // skips this one (core/weather.mjs, ritualWindow)
+    const rw = hours && outdoorHours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }, pack.social) : null;
     let win = rw?.win ?? null;
     let date = rw?.date ?? due.date;
-    let window = rw ? rw.window : clipToSocial(due.date, { from: due.window.from, to: hhmm(minutesOfDay(due.window.from) + span * 60) }, { social: pack.social });
+    /** @type {{ from: string, to: string }|null} */
+    let window = rw ? rw.window : outdoorHours ? cut(outdoorHours) : null;
     /** @type {import("../core/weather.mjs").RainPlan|null} */
     let rainPlan = rw?.rainPlan ?? null;
-    const open = candidates.filter((c) => c.covered !== true);
+    const open = outdoorHours ? candidates.filter((c) => c.covered !== true) : [];
     let pool = open;
-    if (rainPlan?.kind === "skip") {
+    if (rainPlan?.kind === "skip" || !outdoorHours) {
       // a source says it has a roof: a curated covered spot, or a gallery, museum or the like
-      // the crew is into (OpenStreetMap's tag says what it is)
+      // the crew is into (OpenStreetMap's tag says what it is). A crew whose hours are after
+      // dark ("Saturday night") goes under a roof too, never to the afternoon.
       const covered = candidates.filter((c) => c.covered === true || (c.indoor === true && kindIndoor(c)));
-      if (covered.length) {
+      if (covered.length && coveredHours) {
         pool = covered;
-        window = clipToSocial(due.date, due.window, { outdoor: false, social: pack.social });
-        window = { from: window.from, to: hhmm(Math.min(minutesOfDay(window.to), minutesOfDay(window.from) + span * 60)) };
+        window = cut(coveredHours);
         date = due.date;
         win = null;
       }
     }
+    if (!window || !pool.length) return { made: false, reason: outdoorHours ? "no_places" : "no_window" };
+    if (!pool.some((c) => c.covered !== true) && pool === open) return { made: false, reason: "no_places" };
     const at = zonedToMs(date, window.from, tz);
     let outdoor = pool === open;
     // the fairest few by straight line go to OSRM (its table takes 100 points at most)
@@ -1402,7 +1412,19 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         if (km != null && min != null) roads.set(tripKey(p.area, c), { km, min });
       }));
     }
-    const scored = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null, model: pack.travel, taste });
+    const score = (/** @type {any[]} */ cs) => scorePlaces({ members: points, candidates: cs, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), route: (a, b) => roads.get(tripKey(a, b)) ?? null, model: pack.travel, taste });
+    const slotWindow = /** @type {{ from: string, to: string }} */ (window);
+    const asIdea = (/** @type {any} */ r) => ({ kind: "place", title: r.candidate.name, label: null, time: slotWindow, price: r.candidate.entry?.free === false ? { text: r.candidate.entry.text ?? "Paid entry", free: false } : null, travel: { maxMin: r.maxMin }, place: { name: r.candidate.name, outdoor: r.candidate.outdoor === true, osm: r.candidate.osm } });
+    let scored = score(pool);
+    // filter first, rank second: a place that breaks a constraint (a trip over 90 minutes, a
+    // fee for a crew that wants free) is never the pick, however well it scores
+    const allowed = scored.ranked.filter((r) => !candidateViolations(asIdea(r), k).length);
+    if (!allowed.length) {
+      const reason = scored.ranked.length && scored.ranked.every((r) => r.maxMin > k.maxTripMin) ? "too_far" : "no_places";
+      log("ritual_not_made", { crew: crew.id, reason });
+      return { made: false, reason };
+    }
+    if (allowed.length !== scored.ranked.length) scored = score(allowed.map((r) => r.candidate));
     if (!scored.pick || !scored.explanation) return { made: false, reason: "no_places" };
     const pick = scored.pick.candidate;
     // a gallery or café the crew is into is under a roof: no weather watch on it
@@ -1428,6 +1450,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
     const v = validateDraft(draft, { tz });
     if (!v.ok) return { made: false, reason: "invalid_draft" };
+    // checked again before anything is published: the plan's own hours, trips, price and needs
+    const final = candidateViolations({ ...asIdea(scored.pick), time: { from: localParts(parseInstant(v.draft.start), tz).time, to: localParts(parseInstant(v.draft.end), tz).time } }, k);
+    if (final.length) {
+      log("ritual_not_made", { crew: crew.id, reason: "constraints", why: final.join("; ") });
+      return { made: false, reason: "constraints" };
+    }
     let plan = createPlan(v.draft, { id: `p_r_${crew.id.replace(/^c_/, "")}_${due.date.replace(/-/g, "")}`, crewId: crew.id, createdBy: "sloth", now: now(), why, invite, ritualFor: due.date });
     if (hours && outdoor) {
       const w = weatherForPlan(hours, plan, now());

@@ -230,17 +230,20 @@ export function socialWindow(date, { outdoor = true, social = GENERIC_SOCIAL_HOU
 }
 
 /**
- * The crew's own window cut to the social hours. When the two share less than an hour
- * (a crew that said "Saturday 8am"), the social hours win.
+ * The crew's own window cut to the social hours. The social hours only ever narrow what the
+ * crew said, never widen it (a hard constraint, Astra's review of 25 Oct): when the two share
+ * less than an hour (a crew that said "Saturday 8am", or "Saturday night" for an outdoor
+ * plan), the answer is null and the caller says nothing fits.
  * @param {string} date
  * @param {{ from: string, to: string }} want
  * @param {{ outdoor?: boolean, social?: SocialHours }} [opts]
+ * @returns {{ from: string, to: string }|null}
  */
 export function clipToSocial(date, want, opts = {}) {
   const ok = socialWindow(date, opts);
   const lo = Math.max(minutesOfDay(want.from), minutesOfDay(ok.from));
   const hi = Math.min(minutesOfDay(want.to), minutesOfDay(ok.to));
-  return hi - lo >= 60 ? { from: hhmm(lo), to: hhmm(hi) } : { ...ok };
+  return hi - lo >= 60 ? { from: hhmm(lo), to: hhmm(hi) } : null;
 }
 
 /** "15:00" as "3 pm", "08:30" as "8:30 am". */
@@ -252,12 +255,11 @@ export function clockWords(t) {
 }
 
 /**
- * Where and when a ritual goes when it rains. Every window considered is inside the social
- * hours (the city pack's, or GENERIC_SOCIAL_HOURS): the sloth never moves a Saturday
- * hangout to 8 am. The crew's own
- * window (cut to those hours) comes first; when its best stretch is wet (not ok), the sloth
- * looks, in order, for:
- *   1. a dry stretch of at least two hours in the same day's social hours ("moved");
+ * Where and when a ritual goes when it rains. Every window considered is inside the crew's
+ * own window cut to the social hours (the city pack's, or GENERIC_SOCIAL_HOURS): the sloth
+ * never moves a Saturday hangout to 8 am, nor to an hour the crew did not offer. Its best
+ * stretch comes first; when that is wet (not ok), the sloth looks, in order, for:
+ *   1. a dry stretch of at least two hours elsewhere in the same window that day ("moved");
  *   2. a dry stretch in the crew's window on the next day, when that day is the same kind of
  *      day (Saturday to Sunday, not Sunday to Monday) ("next_day");
  *   3. nothing acceptable: "skip". The caller may offer a covered place instead ("covered");
@@ -267,7 +269,8 @@ export function clockWords(t) {
  * @param {{ date: string, from: string, to: string, hours: number }} slot
  * @param {SocialHours} [social]
  * @returns {null | { date: string, window: { from: string, to: string }, win: NonNullable<ReturnType<typeof bestWindow>>, rainPlan: null | RainPlan }}
- *   null when the forecast does not reach the date
+ *   null when the forecast does not reach the date, or when the crew's window shares no
+ *   hour with the social hours (the caller checks clipToSocial first)
  */
 export function ritualWindow(hours, { date, from, to, hours: span }, social = GENERIC_SOCIAL_HOURS) {
   // an outdoor hangout ends when the light does: in London on the last Sunday of October the
@@ -275,6 +278,7 @@ export function ritualWindow(hours, { date, from, to, hours: span }, social = GE
   // come after its own 18:30 cut-off at the hour, so its windows do not change.
   const lit = (/** @type {string} */ d) => litHours(social, hours, d);
   const mine = clipToSocial(date, { from, to }, { social: lit(date) });
+  if (!mine) return null;
   const own = bestWindow(hours, { date, from: mine.from, to: mine.to, hours: span });
   if (!own) return null;
   if (own.ok) return { date, window: { from: own.from, to: own.to }, win: own, rainPlan: null };
@@ -283,18 +287,18 @@ export function ritualWindow(hours, { date, from, to, hours: span }, social = GE
   const wet = `Rain is likely from ${clockWords(mine.from)} to ${clockWords(mine.to)} (up to ${wanted.rainProb ?? "?"}%)`;
   const day = socialWindow(date, { social: lit(date) });
   const short = Math.min(span, 2);
-  const moved = bestWindow(hours, { date, from: day.from, to: day.to, hours: span });
-  const movedShort = moved?.ok ? moved : bestWindow(hours, { date, from: day.from, to: day.to, hours: short });
+  // a shorter dry stretch inside the same window, never outside what the crew offered
+  const movedShort = span > short ? bestWindow(hours, { date, from: mine.from, to: mine.to, hours: short }) : null;
   if (movedShort?.ok) {
     return {
       date, window: { from: movedShort.from, to: movedShort.to }, win: movedShort,
-      rainPlan: { kind: "moved", wanted, note: `${wet}, so the sloth moved it to ${clockWords(movedShort.from)} to ${clockWords(movedShort.to)}, the driest stretch that day (rain chance up to ${movedShort.rainProb}%). Forecasts change; the sloth checks again before then.` },
+      rainPlan: { kind: "moved", wanted, note: `${wet}, so the sloth moved it to ${clockWords(movedShort.from)} to ${clockWords(movedShort.to)}, the driest stretch of your hours that day (rain chance up to ${movedShort.rainProb}%). Forecasts change; the sloth checks again before then.` },
     };
   }
   const next = addDays(date, 1);
   const nextOk = isWeekend(next) === isWeekend(date);
   const nextMine = clipToSocial(next, { from, to }, { social: lit(next) });
-  const nextWin = nextOk ? bestWindow(hours, { date: next, from: nextMine.from, to: nextMine.to, hours: span }) : null;
+  const nextWin = nextOk && nextMine ? bestWindow(hours, { date: next, from: nextMine.from, to: nextMine.to, hours: span }) : null;
   if (nextWin?.ok) {
     return {
       date: next, window: { from: nextWin.from, to: nextWin.to }, win: nextWin,
