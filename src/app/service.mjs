@@ -34,6 +34,7 @@ import { isSubscription } from "../adapters/push.mjs";
 import { lockedMessage, lockedSite } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
+import { stopwatch } from "./timing.mjs";
 
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
@@ -68,8 +69,11 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {() => number} deps.now
  * @param {{ publicUrl: string, webUrl: string, uidDomain: string }} deps.cfg
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
+ * @param {boolean} [deps.timing]  TIMING=1: one `timing` log line per slow flow, with its stages (src/app/timing.mjs)
  */
-export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null }) {
+export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null, timing = false }) {
+  /** A stopwatch for one flow; it logs only when timing is on. */
+  const watch = (/** @type {string} */ flow) => stopwatch(flow, { on: timing, log });
   // ------------------------------------------------------------ where a crew is
 
   /** A crew's region, its city pack, and what the prompts may know about it. */
@@ -304,14 +308,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (!s || s.length < 3) throw invalid([{ field: "sentence", message: "Describe the crew in a sentence." }]);
     // the optional "what you're into" line; like the sentence, it is read here and never kept
     const i = clip(into, LIMITS.into);
+    const sw = watch("crew_draft");
     const start = hintRegion(hint);
     const first = placeOf({ region: start });
-    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA);
+    // one Gemma call reads everything: the name, rhythm, vibe, areas and the taste
+    const g = await sw.time("gemma", gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA));
     const r = readCrewSetup(g.data, { sentence: s, into: i }, first.local);
     const notes = [...r.notes];
     if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
-    const located = await locateAreas(r.draft.areaLabels, start, hint == null, notes);
-    const region = (await regionFrom(located.found, start)) ?? start;
+    const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, hint == null, notes));
+    const region = (await sw.time("region", regionFrom(located.found, start))) ?? start;
+    sw.end({ areas: located.areas.length, ai: !g.error });
     const { areaLabels, ...rest } = r.draft;
     const { pack } = placeOf({ region });
     const tv = tasteView(r.draft.taste, { areas: located.areas.map((a) => a.label) });
@@ -425,13 +432,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const rhythm = checkRhythm(c.rhythm, errors);
     const areas = (Array.isArray(c.areas) ? c.areas : []).slice(0, LIMITS.areas).map((/** @type {any} */ a) => ({ label: clip(a?.label, 60), lat: isLatLon(a) ? Number(a.lat) : null, lon: isLatLon(a) ? Number(a.lon) : null })).filter((/** @type {any} */ a) => a.label);
     if (errors.length) throw invalid(errors);
+    const sw = watch("crew_create");
     const t = now();
     const given = cleanRegion(c.region);
     const base = given ?? hintRegion(hint);
     const located = areas.filter(isLatLon).map((/** @type {any} */ a) => ({ lat: a.lat, lon: a.lon }));
     const moved = located.length && (!base.center || haversineKm(base.center, /** @type {any} */ (centroid(located))) > 1);
     /** @type {Region} */
-    const region = moved && (given || base.tzSource !== "legacy") ? (await regionFrom(located, base)) ?? base : base;
+    const region = moved && (given || base.tzSource !== "legacy") ? (await sw.time("region", regionFrom(located, base))) ?? base : base;
     const tz = region.timezone;
     /** @type {Crew} */
     const crew = {
@@ -450,13 +458,15 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       createdAt: new Date(t).toISOString(),
       inviteToken: ids.token(),
     };
-    await store.put("crews", crew);
+    await sw.time("store", store.put("crews", crew));
     log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
     const out = { crew: crewView(crew, "member"), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken };
     if (organiser && typeof organiser === "object" && clip(organiser.name, LIMITS.memberName)) {
-      const joined = await addMember(crew, organiser);
+      const joined = await sw.time("organiser", addMember(crew, organiser));
+      sw.end();
       return { ...out, ...joined };
     }
+    sw.end();
     return out;
   }
 
@@ -605,7 +615,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (mine) return { plan: view(mine), reason: "exists" };
     const due = ritualDue({ crew, now: now(), plans, lead: { min: 1, max: 31 } });
     if (!due.due) return { plan: null, reason: due.reason };
-    const r = await makeRitual(crew, due, plans);
+    const r = await makeRitual(crew, due, plans, watch("first_pick"));
     if (!r.made || !r.plan) {
       const again = (await plansOf(crew.id)).find((p) => p.kind === "ritual");
       return { plan: again ? view(again) : null, reason: r.reason || "not_made" };
@@ -663,11 +673,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     /** @type {string[]} */
     const notes = [];
+    const sw = watch("plan_parse");
     let pageMeta = null;
     let img = image ? { mimeType: image.mimeType, data: image.data.toString("base64") } : null;
     if (link) {
       try {
-        const page = await pages.fetchPage(link);
+        const page = await sw.time("page", pages.fetchPage(link));
         pageMeta = page.meta;
         if (page.image && !img) img = page.image;
         if (page.note) notes.push(page.note);
@@ -680,10 +691,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const tz = crew.tz || where.region.timezone;
     const today = localParts(now(), tz).date;
     const input = { text: t, url: link, pageMeta, image: img, today, tz };
-    const g = await gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA);
+    const g = await sw.time("gemma", gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA));
     if (g.error) notes.unshift(pageMeta?.event ? `${g.error} Used the page's own event details.` : `${g.error} Fill this in yourself.`);
     const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name }, local: where.local });
-    const pinned = await pinPlace(r.draft.place, where);
+    const pinned = await sw.time("pin", pinPlace(r.draft.place, where));
     if (pinned.note) notes.push(pinned.note);
     /** @type {Record<string, any>} */
     const source = { ...r.draft.source };
@@ -696,6 +707,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       source.imageUrl = links.flyer(id);
     } else if (typeof pageMeta?.event?.image === "string") source.imageUrl = pageMeta.event.image;
     else if (typeof pageMeta?.image === "string" && pageMeta.image.startsWith("https://")) source.imageUrl = pageMeta.image;
+    sw.end({ link: !!link, image: !!image, ai: !g.error });
     return { draft: { ...r.draft, place: pinned.place, source }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, model: g.model };
   }
 
@@ -708,28 +720,30 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const v = validateDraft(raw, { tz: crew.tz || regionOf(crew).timezone });
     if (!v.ok) throw invalid(v.errors);
     if (parseInstant(v.draft.end) < now()) throw invalid([{ field: "start", message: "That plan has already happened." }]);
+    const sw = watch("plan_add");
     const members = await membersOf(crew.id);
     const draft = { ...v.draft, host: v.draft.host && members.some((m) => m.id === v.draft.host) ? v.draft.host : null };
-    draft.place = (await pinPlace(draft.place, placeOf(crew))).place;
+    draft.place = (await sw.time("pin", pinPlace(draft.place, placeOf(crew)))).place;
     if (draft.source.flyerId) {
       const flyer = await store.get("flyers", draft.source.flyerId);
       if (flyer && flyer.crewId === crew.id) delete draft.source.imageUrl;
       else delete draft.source.flyerId;
     }
     let plan = createPlan(draft, { id: ids.id("p"), crewId: crew.id, createdBy: member.id, now: now() });
-    plan = await withWeather(plan);
+    plan = await sw.time("weather", withWeather(plan));
     if (plan.source.flyerId) {
       const flyer = await store.get("flyers", plan.source.flyerId);
       await store.put("flyers", { ...flyer, planId: plan.id, expiresAt: plan.expiresAt });
     }
     await store.put("plans", plan);
     log("plan_created", { crew: crew.id, plan: plan.id, kind: plan.kind });
-    await notify(members.filter((m) => m.id !== member.id).map((m) => m.id), {
+    await sw.time("notify", notify(members.filter((m) => m.id !== member.id).map((m) => m.id), {
       title: `New plan: ${plan.title}`,
       body: `${member.name} added ${when(plan)}. Tap if you're coming.`,
       url: links.plan(crew, plan.id),
       tag: plan.id,
-    }, `${plan.id}:new`);
+    }, `${plan.id}:new`));
+    sw.end({ kind: plan.kind });
     return { plan: planView(plan, crew, members, "member", member) };
   }
 
@@ -1022,20 +1036,20 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * Make the crew's ritual plan for a due slot. The plan id is derived from the crew and the
    * date, so two overlapping heartbeats write the same plan instead of two.
    */
-  async function makeRitual(crew, due, plans) {
+  async function makeRitual(crew, due, plans, sw = watch("ritual")) {
     const members = await membersOf(crew.id);
     const points = crewPoints(crew, members);
     const center = centroid(points.map((p) => p.area));
     if (!center) return { made: false, reason: "no_location" };
     const { pack, local } = placeOf(crew);
     const taste = crew.taste ?? null;
-    const candidates = await candidatesNear(center, pack, taste);
+    const candidates = await sw.time("places", candidatesNear(center, pack, taste));
     if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
     const tz = crew.tz || regionOf(crew).timezone;
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
     let hours = null;
     try {
-      hours = await weather.hourly(center, { tz, days: 7 });
+      hours = await sw.time("weather", weather.hourly(center, { tz, days: 7 }));
     } catch {}
     // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
     // stretch that day or the next, else a covered place, else the sloth skips this one
@@ -1069,7 +1083,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const roads = new Map();
     const located = points.filter((p) => isLatLon(p.area));
     if (routes && located.length) {
-      const t = await routes.table(located.map((p) => p.area), pool).catch(() => null);
+      const t = await sw.time("routes", routes.table(located.map((p) => p.area), pool).catch(() => null));
       if (t) located.forEach((p, i) => pool.forEach((c, j) => {
         const km = t.km[i]?.[j];
         const min = t.min[i]?.[j];
@@ -1091,12 +1105,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       // nothing to explain or invite to: the note says why, and no Gemma call is spent
       invite = /** @type {string} */ (rainPlan?.note);
     } else {
-      const ex = await gemma("explain-pick", explainMessages(promptFor("explain-pick", local), scored.explanation), EXPLAIN_SCHEMA);
+      const ex = await sw.time("explain", gemma("explain-pick", explainMessages(promptFor("explain-pick", local), scored.explanation), EXPLAIN_SCHEMA));
       why = readExplain(ex.data, scored.explanation).why;
       const facts = { title: draft.title, day: DAY_NAMES[weekdayOf(date)], date, time: `${clockWords(window.from)} to ${clockWords(window.to)}`, place: pick.name, weather: win?.reason.text ?? null, rain: rainPlan?.note ?? null, why: crew.taste?.needs?.length ? null : why, vibe: crew.vibe };
       // the invite travels (calendar, push, the plain page): with needs, the explanation stays in the app
       const fallback = fallbackInvite({ title: draft.title, window, weatherText: rainPlan?.note ?? win?.reason.text ?? null });
-      const inv = await gemma("write-invite", inviteMessages(promptFor("write-invite", local), facts), INVITE_SCHEMA);
+      const inv = await sw.time("invite", gemma("write-invite", inviteMessages(promptFor("write-invite", local), facts), INVITE_SCHEMA));
       invite = readInvite(inv.data, facts, fallback).invite;
     }
 
@@ -1112,6 +1126,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // the last check before writing: another heartbeat may have made it meanwhile
     if (await store.get("plans", plan.id)) return { made: false, reason: "exists" };
     await store.put("plans", plan);
+    sw.end({ candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
     log("ritual_made", { crew: crew.id, plan: plan.id, place: placeKey(pick), candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
     await notify(members.map((m) => m.id), { title: skipped ? `The sloth is skipping ${DAY_NAMES[weekdayOf(date)]}` : plan.title, body: invite.slice(0, 180), url: links.plan(crew, plan.id), tag: plan.id }, `${plan.id}:new`);
     return { made: true, plan };

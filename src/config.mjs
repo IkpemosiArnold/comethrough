@@ -106,6 +106,8 @@ export function config(env = process.env) {
     /** the built web app, served by this server when the folder exists (one origin, no CORS needed) */
     staticDir: path.resolve(env.STATIC_DIR || "web/dist"),
     vapid: { publicKey: env.VAPID_PUBLIC_KEY || "", privateKey: env.VAPID_PRIVATE_KEY || "", subject: env.VAPID_SUBJECT || "mailto:hello@comethrough.tech" },
+    /** TIMING=1: one `timing` log line per slow flow (crew draft and create, first pick, plan parse and add, ideas), with its stages */
+    timing: env.TIMING === "1" || env.TIMING === "true",
     /** OFFLINE=1: fake geocoding, places, weather, links and a regex stand-in for Gemma (UI work with no keys or network) */
     offline: env.OFFLINE === "1" || env.OFFLINE === "true",
   };

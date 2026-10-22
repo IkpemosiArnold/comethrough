@@ -27,6 +27,7 @@ import { packFor, regionOf } from "../packs/index.mjs";
 import { feedsFor } from "../packs/sources.mjs";
 import { badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { safeEqual } from "./ids.mjs";
+import { stopwatch } from "./timing.mjs";
 
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
@@ -63,8 +64,9 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {any[]} [deps.spots]  the curated spots (the Lagos pack's), used when the places pipeline is slow
  * @param {number} [deps.placesBudgetMs]
  * @param {number} [deps.refreshBudgetMs]
+ * @param {boolean} [deps.timing]  TIMING=1: a `timing` log line per card and per guide read
  */
-export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candidatesNear, prompts, now, log = () => {}, spots = [], placesBudgetMs = PLACES_BUDGET_MS, refreshBudgetMs = REFRESH_BUDGET_MS }) {
+export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candidatesNear, prompts, now, log = () => {}, spots = [], placesBudgetMs = PLACES_BUDGET_MS, refreshBudgetMs = REFRESH_BUDGET_MS, timing = false }) {
   /** @type {Map<string, Promise<any>>} */
   const inflight = new Map();
   /** @type {Map<string, Promise<void>>} */
@@ -125,8 +127,9 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       const prompt = localisePrompt(prompts["extract-events"], where.local);
       let data = null;
       const t0 = now();
+      const sw = stopwatch("feed_read", { on: timing, log });
       try {
-        const r = await ai.generate({ task: "extract-events", messages: eventsMessages(prompt, { source, item, text, today }), schema: EVENTS_SCHEMA, maxTokens: EVENTS_MAX_TOKENS, temperature: 0.1, timeoutMs: EVENTS_TIMEOUT_MS });
+        const r = await sw.time("gemma", () => ai.generate({ task: "extract-events", messages: eventsMessages(prompt, { source, item, text, today }), schema: EVENTS_SCHEMA, maxTokens: EVENTS_MAX_TOKENS, temperature: 0.1, timeoutMs: EVENTS_TIMEOUT_MS }));
         data = r.data;
         log("gemma", { task: "extract-events", model: r.model, sec: r.wallSec, parsed: r.data != null });
       } catch (e) {
@@ -140,10 +143,13 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
       // where each venue is, for the distance cap and the trips (cached by the geocoder)
       // only events still to come are looked up, within a time budget
       const until = Date.now() + GEOCODE_BUDGET_MS;
-      for (const e of events) {
-        if (Date.now() > until) break;
-        if (e.dates.some((d) => d >= today)) e.at = await locate(e, where);
-      }
+      await sw.time("venues", async () => {
+        for (const e of events) {
+          if (Date.now() > until) break;
+          if (e.dates.some((d) => d >= today)) e.at = await locate(e, where);
+        }
+      });
+      sw.end({ feed: source.id, events: events.length });
       await cache.set(`feedfacts:${item.link}`, { events, readAt: new Date(now()).toISOString() }, FACTS_TTL_MS);
       log("feed_read", { feed: source.id, post: item.link, events: events.length, dropped: dropped.length, ms: now() - t0 });
       if (!index.posts.some((p) => p.link === item.link)) index.posts.unshift({ link: item.link, published: item.published });
@@ -205,6 +211,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
 
   /** @param {Crew} crew @param {"tonight"|"weekend"} when */
   async function makeCard(crew, when) {
+    const sw = stopwatch("ideas_card", { on: timing, log });
     const t = now();
     const region = regionOf(crew);
     const pack = packFor(region);
@@ -228,10 +235,10 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const plans = /** @type {Plan[]} */ (await store.find("plans", { crewId: crew.id }));
     let hours = null;
     try {
-      hours = await weather.hourly(center, { tz, days: 7 });
+      hours = await sw.time("weather", weather.hourly(center, { tz, days: 7 }));
     } catch {}
     const placesP = candidatesNear(center, pack, crew.taste ?? null).catch(() => /** @type {any[]} */ ([]));
-    let places = await Promise.race([placesP, wait(placesBudgetMs)]);
+    let places = await sw.time("places", Promise.race([placesP, wait(placesBudgetMs)]));
     if (places === undefined) {
       // the map is slow (it keeps going, and fills its cache for next time): the curated spots meanwhile
       places = (pack.curated ? spots : [])
@@ -239,7 +246,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
         .map((x) => ({ name: x.name, lat: x.lat, lon: x.lon, osm: x.osm || undefined, ...(x.covered === true ? { outdoor: false, covered: true } : { outdoor: true }), ...(x.entry ? { entry: x.entry } : {}) }));
       notes.push("The map was slow, so fewer places were checked.");
     }
-    const read = await Promise.race([refresh.then(() => true), wait(refreshBudgetMs)]);
+    const read = await sw.time("guides", Promise.race([refresh.then(() => true), wait(refreshBudgetMs)]));
     const partial = read !== true;
     if (partial) notes.push("Still reading this week's guides. Ask again in a few minutes for their events.");
     const events = (await Promise.all(guides.map(eventsFrom))).flat();
@@ -259,7 +266,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     let data = null;
     if (ai.available && cands.length > 1) {
       try {
-        const r = await ai.generate({ task: "rank-ideas", messages: rankMessages(localisePrompt(prompts["rank-ideas"], local), { crew, when, candidates: cands }), schema: RANK_SCHEMA, maxTokens: RANK_MAX_TOKENS });
+        const r = await sw.time("rank", () => ai.generate({ task: "rank-ideas", messages: rankMessages(localisePrompt(prompts["rank-ideas"], local), { crew, when, candidates: cands }), schema: RANK_SCHEMA, maxTokens: RANK_MAX_TOKENS }));
         data = r.data;
         log("gemma", { task: "rank-ideas", model: r.model, sec: r.wallSec, parsed: r.data != null });
       } catch (e) {
@@ -270,6 +277,7 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const ideas = ranked.picks.map((p) => ideaView(p, { today: slot.today, tz }));
     if (ideas.length < 3) notes.push(`Only ${ideas.length === 1 ? "one idea fits" : `${ideas.length} ideas fit`} this time.`);
     log("ideas", { crew: crew.id, when, events: ev.length, places: pl.candidates.length, usual: us.length, by: ranked.by });
+    sw.end({ when, ideas: ideas.length, partial });
     return { ...base, ideas, by: ranked.by, sources, notes, ...(partial ? { partial: true } : {}) };
   }
 

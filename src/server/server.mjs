@@ -267,7 +267,7 @@ export async function buildDeps(cfg, log = jsonLog) {
   const feesFile = path.resolve(here, "../..", /** @type {any} */ (LAGOS.data).fees);
   const fees = fs.existsSync(feesFile) ? JSON.parse(fs.readFileSync(feesFile, "utf8")).fees : [];
   const spots = withEntries(fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [], fees);
-  const common = { store, cache, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log };
+  const common = { store, cache, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log, timing: cfg.timing };
   if (cfg.offline) {
     return { ...common, feeds: null, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
   }
@@ -291,7 +291,7 @@ async function main() {
   const cfg = config();
   const deps = await buildDeps(cfg);
   const service = createService({ ...deps, cfg });
-  const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, spots: deps.spots, prompts: deps.prompts, now: deps.now, log: jsonLog });
+  const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, spots: deps.spots, prompts: deps.prompts, now: deps.now, log: jsonLog, timing: deps.timing });
   const server = createApi({ service, cfg, log: jsonLog, ideas });
   // a local model on a laptop can take minutes; the request must outlive it
   server.requestTimeout = cfg.llm === "ollama" && !cfg.offline ? Math.max(60_000, cfg.ollama.timeoutMs + 15_000) : 60_000;
