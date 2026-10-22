@@ -1,0 +1,30 @@
+{
+ "runId": "dev-record-blind-2026-10-22T17-41-35-464Z",
+ "at": "2026-10-22T17:53:58.512Z",
+ "git": {
+  "head": "5096115ac953492bdc3eb817b8705315f27b135c"
+ },
+ "geocoder": "nominatim",
+ "added": {
+  "total": 69,
+  "failuresKept": 0,
+  "byService": {
+   "openmeteo": 15,
+   "nominatim": 21,
+   "overpass": 14,
+   "osrm": 13,
+   "wikidata": 6
+  }
+ },
+ "llm": {
+  "live": 0,
+  "liveByTask": {},
+  "failures": 0,
+  "notAskedBlind": 33
+ },
+ "ledger": {
+  "cap": 250,
+  "liveCalls": 236,
+  "thisRun": 0
+ }
+}

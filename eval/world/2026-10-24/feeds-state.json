@@ -1,0 +1,752 @@
+{
+ "readAt": "2026-10-22T10:30:42.765Z",
+ "clock": "2026-10-22T11:00:00Z",
+ "entries": {
+  "feedstate:awe-lagos": {
+   "attemptAt": "2026-10-22T11:00:00.000Z",
+   "okAt": "2026-10-22T11:00:00.000Z",
+   "etag": "W/\"673f1-Zv+QIMEeK98t7LeBGcartQhesTo\""
+  },
+  "robots:awelagos.substack.com": {
+   "text": "User-agent: BLEXBot\nDisallow: /\n\nUser-agent: Twitterbot\nDisallow:\n\n\n\nUser-agent: *\nDisallow: /action/\nDisallow: /publish\nDisallow: /sign-in\nDisallow: /channel-frame\nDisallow: /session-attribution-frame\nDisallow: /visited-surface-frame\nDisallow: /feed/private\nDisallow: /feed/podcast/*/private/*.rss\nDisallow: /subscribe\nDisallow: /lovestack/*\nDisallow: /p/*/comment/*\nDisallow: /inbox/post/*\nDisallow: /notes/post/*\nDisallow: /embed\n\nUser-agent: facebookexternalhit\nAllow: /\nAllow: /subscribe\n\n\nSITEMAP: https://awelagos.substack.com/sitemap.xml\nSITEMAP: https://awelagos.substack.com/news_sitemap.xml\n\n",
+   "ok": true
+  },
+  "feedfacts:https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october": {
+   "events": [
+    {
+     "title": "DAVE: The Boy Who Played the Harp Tour",
+     "dates": [
+      "2026-10-16",
+      "2026-10-17"
+     ],
+     "start": "20:00",
+     "end": null,
+     "venue": "National Theatre, Iganmu",
+     "area": null,
+     "price": {
+      "text": "From ₦50,000",
+      "free": false
+     },
+     "ticketUrl": "https://www.jetronticket.com/dave-lagos-2026",
+     "outdoor": null,
+     "category": "Concert",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Felabration 2026",
+     "dates": [
+      "2026-10-16",
+      "2026-10-17",
+      "2026-10-18"
+     ],
+     "start": "20:00",
+     "end": null,
+     "venue": "New Afrika Shrine, Ikeja",
+     "area": "Ikeja",
+     "price": null,
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": "Music & Cultural Festival",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Sidequests",
+     "dates": [
+      "2026-10-16"
+     ],
+     "start": "21:00",
+     "end": null,
+     "venue": "Lekki, Lagos",
+     "area": "Lekki",
+     "price": {
+      "text": "₦15,000",
+      "free": false
+     },
+     "ticketUrl": "https://tix.africa/discover/sidequests-vol-3",
+     "outdoor": null,
+     "category": "Rave",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Invictus",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "12:00",
+     "end": null,
+     "venue": "One Art Gallery, 2/5 Idowu Ajao Street, Ajao Estate, Anthony Village",
+     "area": "Anthony Village",
+     "price": {
+      "text": "Free",
+      "free": true
+     },
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": "Group Art Exhibition",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Rhythm & Expression 3.0",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "14:00",
+     "end": "15:00",
+     "venue": "Alliance Française de Lagos / Mike Adenuga Centre, Ikoyi",
+     "area": "Ikoyi",
+     "price": {
+      "text": "₦15,000 per person | ₦28,000 for two",
+      "free": false
+     },
+     "ticketUrl": "https://tix.africa/discover/rhythm-expression3dotzero",
+     "outdoor": null,
+     "category": "Salsa Workshop",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "The Things We Kept",
+     "dates": [
+      "2026-10-17",
+      "2026-10-18"
+     ],
+     "start": "17:00",
+     "end": null,
+     "venue": "Rustic Deck, Lekki",
+     "area": "Lekki",
+     "price": {
+      "text": "₦20,000",
+      "free": false
+     },
+     "ticketUrl": "https://www.gruve.events/the-things-we-kept",
+     "outdoor": null,
+     "category": "Immersive Stage Play",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Afrobrews 2026: Grand Finale",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "17:00",
+     "end": null,
+     "venue": "Bature Brewery, 256 Etim Inyang Crescent, Victoria Island",
+     "area": "Victoria Island",
+     "price": {
+      "text": "₦30,000",
+      "free": false
+     },
+     "ticketUrl": "https://www.eventporte.com/event-details/afrobrews",
+     "outdoor": null,
+     "category": "Live Music Showcase",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Adam and Eve",
+     "dates": [
+      "2026-10-17",
+      "2026-10-18"
+     ],
+     "start": "18:00",
+     "end": null,
+     "venue": "The Garden, Ikoyi",
+     "area": "Ikoyi",
+     "price": {
+      "text": "₦30,000",
+      "free": false
+     },
+     "ticketUrl": "https://tix.africa/discover/adam-and-eve",
+     "outdoor": null,
+     "category": "Theatre Show",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "B3AM Galaxy",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "22:00",
+     "end": null,
+     "venue": "The Clubhouse Lagos, Landmark Towers, Victoria Island",
+     "area": "Victoria Island",
+     "price": null,
+     "ticketUrl": "https://tix.africa/discover/b3amgalaxy2",
+     "outdoor": null,
+     "category": "Electronic Music Party",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Human Condition",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "12:00",
+     "end": null,
+     "venue": "GÁLÁRİ, 30 Oluwaleimu Street, Allen, Ikeja",
+     "area": "Ikeja",
+     "price": {
+      "text": "Free",
+      "free": true
+     },
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": "Group Art Exhibition",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Felabration 2026: Final Night",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "20:00",
+     "end": null,
+     "venue": "New Afrika Shrine, Ikeja",
+     "area": "Ikeja",
+     "price": null,
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": "Music & Cultural Festival",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     }
+    },
+    {
+     "title": "Lagos Trivia Night",
+     "dates": [
+      "2026-10-25"
+     ],
+     "start": "17:00",
+     "end": null,
+     "venue": "Red Carpet Hall, Victoria Island",
+     "area": "Victoria Island",
+     "price": {
+      "text": "Solo ₦15,000 | Squad of 4 ₦60,000 | Team of 8 ₦112,000",
+      "free": false
+     },
+     "ticketUrl": "http://awelagos.co/events",
+     "outdoor": null,
+     "category": "Trivia + Social Experience",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "awe-lagos",
+      "name": "Awe Lagos",
+      "url": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+      "title": "Your Lagos Weekend Guide: 16–18 October 2026",
+      "published": "2026-10-16T14:02:40.000Z"
+     },
+     "at": {
+      "lat": 6.4300279,
+      "lon": 3.4259904
+     }
+    }
+   ],
+   "readAt": "2026-10-22T11:00:00.000Z"
+  },
+  "feedposts:awe-lagos": {
+   "posts": [
+    {
+     "link": "https://awelagos.substack.com/p/your-lagos-weekend-guide-1618-october",
+     "published": "2026-10-16T14:02:40.000Z"
+    }
+   ],
+   "failed": false
+  },
+  "feedstate:ntdil": {
+   "attemptAt": "2026-10-22T11:00:00.000Z",
+   "okAt": "2026-10-22T11:00:00.000Z",
+   "etag": "W/\"639b1-pAkHYwcpm5ORes8HWaQ97D61I8w\""
+  },
+  "robots:nothingtodoinlagos.substack.com": {
+   "text": "User-agent: BLEXBot\nDisallow: /\n\nUser-agent: Twitterbot\nDisallow:\n\n\n\nUser-agent: *\nDisallow: /action/\nDisallow: /publish\nDisallow: /sign-in\nDisallow: /channel-frame\nDisallow: /session-attribution-frame\nDisallow: /visited-surface-frame\nDisallow: /feed/private\nDisallow: /feed/podcast/*/private/*.rss\nDisallow: /subscribe\nDisallow: /lovestack/*\nDisallow: /p/*/comment/*\nDisallow: /inbox/post/*\nDisallow: /notes/post/*\nDisallow: /embed\n\nUser-agent: facebookexternalhit\nAllow: /\nAllow: /subscribe\n\n\nSITEMAP: https://nothingtodoinlagos.substack.com/sitemap.xml\nSITEMAP: https://nothingtodoinlagos.substack.com/news_sitemap.xml\n\n",
+   "ok": true
+  },
+  "feedfacts:https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15": {
+   "events": [
+    {
+     "title": "HOME MOVIE FILM CLUB",
+     "dates": [
+      "2026-10-15"
+     ],
+     "start": "18:00",
+     "end": "21:00",
+     "venue": "Suudu Lagos, 10, Raymond Njoku Street",
+     "area": "Ikoyi",
+     "price": {
+      "text": "N15,000",
+      "free": false
+     },
+     "ticketUrl": "https://tix.africa/discover/suudu-lagos-homemoviefilmclub",
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "THE RAVE RUN",
+     "dates": [
+      "2026-10-15"
+     ],
+     "start": "18:30",
+     "end": "00:00",
+     "venue": "POP Landmark, Plot 3 & 4 Water Corporation Drive",
+     "area": "Oniru",
+     "price": {
+      "text": "N2,500",
+      "free": false
+     },
+     "ticketUrl": "https://www.eventporte.com/the-run-rave-3rd-edition",
+     "outdoor": true,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "ON A PLATTER OF BARS 3",
+     "dates": [
+      "2026-10-16"
+     ],
+     "start": "18:00",
+     "end": "23:30",
+     "venue": "Trib3 Lagos, 288b Ajose Adeogun St",
+     "area": "Vi",
+     "price": {
+      "text": "N10,000",
+      "free": false
+     },
+     "ticketUrl": "https://selar.com/m/battlerapafrica",
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "SIDEQUESTS VOL. 3",
+     "dates": [
+      "2026-10-16"
+     ],
+     "start": "21:00",
+     "end": "06:00",
+     "venue": "Shared With Payment",
+     "area": null,
+     "price": {
+      "text": "N15,760",
+      "free": false
+     },
+     "ticketUrl": "https://tix.africa/discover/sidequests-vol-3",
+     "outdoor": null,
+     "category": "Rave",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "HOW UNILAG BECAME A FOREST IN THE CITY",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "10:30",
+     "end": null,
+     "venue": "UniLag, Yaba (Full Address sent to ticket holders)",
+     "area": "Yaba",
+     "price": {
+      "text": "N10,000",
+      "free": false
+     },
+     "ticketUrl": "https://event.getbookt.io/walking-the-citys-hidden-ecology-unilag",
+     "outdoor": true,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "INVICTUS EXHIBITION OPENING",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "12:00",
+     "end": "19:00",
+     "venue": "One Art Gallery, 2/5, Idowu Ajao Street",
+     "area": "Ajao Estate, Anthony Village",
+     "price": {
+      "text": "Open to All",
+      "free": true
+     },
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": "Exhibition",
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "FELABRATION UNDERGROUND SYSTEM",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "18:00",
+     "end": null,
+     "venue": "Freedom Park, 1 Hospital Road",
+     "area": "Lagos Island",
+     "price": {
+      "text": "N3,000",
+      "free": false
+     },
+     "ticketUrl": null,
+     "outdoor": true,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "CRIT NIGHT",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "18:00",
+     "end": null,
+     "venue": "Hangar 1, 8, Emmanuel Str",
+     "area": "Ikeja",
+     "price": {
+      "text": "Open to All (RSVP Required)",
+      "free": true
+     },
+     "ticketUrl": "https://docs.google.com/forms/d/e/1FAIpQLSc_3CrE8TIDzhEyrnD9MFAxeCTD37iAST0-hbj_lxHrc33ZIw/viewform",
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "THE BOY WHO PLAYED THE HARP TOUR",
+     "dates": [
+      "2026-10-17"
+     ],
+     "start": "20:00",
+     "end": "00:00",
+     "venue": "Wole Soyinka Centre for Culture and Creative Arts (National Theatre Nigeria)",
+     "area": "Surulere",
+     "price": {
+      "text": "N50,000",
+      "free": false
+     },
+     "ticketUrl": "https://www.jetronticket.com/dave-lagos-2026?checkout=true&seatmap=UQNdvhHKHrFx&ticketDate=2026-10-17",
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "THE GEARS OF CREATIVITY",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "10:00",
+     "end": "20:00",
+     "venue": "Polygon, 5 Oju Olobun Close",
+     "area": "Vi",
+     "price": {
+      "text": "Open to All",
+      "free": true
+     },
+     "ticketUrl": null,
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "FELABRATION UNDERGROUND SYSTEM",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "18:00",
+     "end": null,
+     "venue": "Freedom Park, 1 Hospital Road",
+     "area": "Lagos Island",
+     "price": {
+      "text": "N3,000",
+      "free": false
+     },
+     "ticketUrl": null,
+     "outdoor": true,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "RESET",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "18:00",
+     "end": "02:00",
+     "venue": "21 Bistro, The Seasons, 21 Ichie Mike Ejezie St",
+     "area": "Lekki",
+     "price": {
+      "text": "N15,000",
+      "free": false
+     },
+     "ticketUrl": "https://selar.com/zenhouse",
+     "outdoor": true,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    },
+    {
+     "title": "AFRIQUE NUEVA CINEMA",
+     "dates": [
+      "2026-10-18"
+     ],
+     "start": "18:30",
+     "end": null,
+     "venue": "Windsor Gallery, 4c Goriola St",
+     "area": "Vi",
+     "price": {
+      "text": "Open to All (RSVP Required)",
+      "free": true
+     },
+     "ticketUrl": "https://www.eventporte.com/afriquefilmscreening",
+     "outdoor": null,
+     "category": null,
+     "confidence": {
+      "date": 1,
+      "time": 1
+     },
+     "source": {
+      "id": "ntdil",
+      "name": "Nothing To Do In Lagos",
+      "url": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+      "title": "This Weekend in Lagos: October 15 - October 18, 2026 #FindYourLagos",
+      "published": "2026-10-15T17:02:45.000Z"
+     }
+    }
+   ],
+   "readAt": "2026-10-22T11:00:00.000Z"
+  },
+  "feedposts:ntdil": {
+   "posts": [
+    {
+     "link": "https://nothingtodoinlagos.substack.com/p/this-weekend-in-lagos-october-15",
+     "published": "2026-10-15T17:02:45.000Z"
+    }
+   ],
+   "failed": false
+  }
+ }
+}

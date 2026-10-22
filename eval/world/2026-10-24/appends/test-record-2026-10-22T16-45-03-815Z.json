@@ -1,0 +1,35 @@
+{
+ "runId": "test-record-2026-10-22T16-45-03-815Z",
+ "at": "2026-10-22T17:40:30.773Z",
+ "git": {
+  "head": "8efe98e0e1bd300b581beb72a05563e46f8cae6b"
+ },
+ "geocoder": "nominatim",
+ "added": {
+  "total": 114,
+  "failuresKept": 1,
+  "byService": {
+   "nominatim": 45,
+   "osrm": 19,
+   "openmeteo": 21,
+   "overpass": 21,
+   "wikidata": 8
+  }
+ },
+ "llm": {
+  "live": 97,
+  "liveByTask": {
+   "explain-pick": 28,
+   "rank-ideas": 28,
+   "write-invite": 30,
+   "parse-crew": 11
+  },
+  "failures": 0,
+  "notAskedBlind": 0
+ },
+ "ledger": {
+  "cap": 250,
+  "liveCalls": 236,
+  "thisRun": 97
+ }
+}

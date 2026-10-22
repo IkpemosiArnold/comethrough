@@ -33,10 +33,11 @@ function shuffled(/** @type {any[]} */ xs, /** @type {number} */ seed) {
 }
 
 /**
- * @param {{ set: string, rows: { p: any, r: any }[], meta: any, resultsDir: string, file: any }} input
+ * @param {{ set: string, rows: { p: any, r: any }[], meta: any, resultsDir: string, file: any, suffix?: string }} input
+ *   suffix: "-after-fix" for a labelled second scored test run (its own files, the baseline's untouched)
  * @returns {string[]} the files written
  */
-export function writeReports({ set, rows, meta, resultsDir, file }) {
+export function writeReports({ set, rows, meta, resultsDir, file, suffix = "" }) {
   fs.mkdirSync(resultsDir, { recursive: true });
   const ok = rows.filter((x) => !x.r.error);
   const judged = rows.map(({ p, r }) => ({ p, r, hard: hardChecks(p, r), safety: safetyChecks(p, r) }));
@@ -106,11 +107,21 @@ export function writeReports({ set, rows, meta, resultsDir, file }) {
 
   // ---- the markdown
   const L = [];
-  const title = set === "test" ? "Persona eval v2: test set (the reported numbers)" : "Persona eval v2: dev set";
+  const title = set === "test" ? `Persona eval v2: test set, ${meta.label === "after-fix" ? "after the crew-parsing fixes (second scored run)" : "baseline (first scored run)"}` : "Persona eval v2: dev set";
   L.push(`# ${title}`, "");
+  if (meta.note) L.push(`_${esc(meta.note)}_`, "");
   if (meta.rerunReason) L.push(`**This is a second scored run of the test set. Reason given: ${esc(meta.rerunReason)}**`, "");
   L.push(`Run ${meta.at.slice(0, 16).replace("T", " ")} UTC, ${rows.length} crews (${set}), ${meta.llm}, app at git ${String(meta.git?.head).slice(0, 7)}${meta.git?.head ? "" : ""} (working tree as it stood, other builders' uncommitted changes included). Personas: \`eval/personas/v2.json\` (sha256 ${meta.sha.slice(0, 12)}, frozen). The app's clock: ${meta.clock}; the target is Saturday 24 October 2026 for every crew.`, "");
   L.push(`The world (eval/world/2026-10-24): ${meta.world.hits} answers replayed${meta.fast ? "" : " with their recorded latencies"}, ${meta.world.misses} misses${meta.world.misses ? ` (**the run is not clean**: ${[...new Set(meta.worldMisses.map((/** @type {any} */ m) => m.service))].join(", ")})` : ""}. Gemma: ${meta.llmStats.hits} answers from the eval's LLM cache (keyed by prompt hash), ${meta.llmStats.misses} misses; live calls so far across both sets: ${meta.ledger.liveCalls} of ${meta.ledger.cap}. Reproduce: \`node eval/run.mjs --set ${set} --replay${set === "test" ? " --scored" : ""}\`.`, "");
+  if (meta.world.hitsExtended) {
+    const ext = (meta.appends || []).filter((/** @type {any} */ a) => a.at >= meta.extendedSince);
+    const by = /** @type {Record<string, number>} */ ({});
+    for (const a of ext) for (const [k, v] of Object.entries(a.added.byService)) by[k] = (by[k] || 0) + /** @type {number} */ (v);
+    const llmBy = /** @type {Record<string, number>} */ ({});
+    for (const a of ext) for (const [k, v] of Object.entries(a.llm.liveByTask || {})) llmBy[k] = (llmBy[k] || 0) + /** @type {number} */ (v);
+    L.push(`**The world was extended after the fixes of 22 Oct.** The fixed app asks different questions (geocoding without ", Lagos", other picks), so the requests it made that were not yet recorded were appended on ${[...new Set(ext.map((/** @type {any} */ a) => a.at.slice(0, 10)))].join(", ") || "a later day"}, for the same target date; nothing recorded earlier was overwritten, so the weather and places answered for earlier queries are unchanged. Appended in total: ${Object.entries(by).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}; Gemma ${Object.entries(llmBy).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}. In this run, ${meta.world.hitsExtended} of ${meta.world.hits} world answers came from the extension.`, "");
+  }
+  if (meta.llmStats.misses) L.push(`**${meta.llmStats.misses} Gemma answers were not in the cache** (${Object.entries(meta.llmStats.missByTask || {}).map(([k, v]) => `${k} ${v}`).join(", ")}): the eval's Gemma budget (250 live calls across both sets) was spent, so for these the app did what it does when Gemma is away, and used its own code.`, "");
   L.push("## Headline", "");
   L.push("| Measure | Result |", "|---|---|");
   L.push(`| Crews that ran end to end | ${ok.length} of ${rows.length} |`);
@@ -204,11 +215,11 @@ export function writeReports({ set, rows, meta, resultsDir, file }) {
   L.push("", "## How each measure works", "");
   L.push("- **Hard constraints** (eval/metrics.mjs, `hardChecks`): every crew has areasOnMap (each area it names is read and pinned within its tolerance of the real neighbourhood), cityCorrect (the crew's centre, areas and every suggestion are in its city; no Lagos guide events elsewhere) and timezoneCorrect. Then its own: noAlcohol (no bar, pub or club by OpenStreetMap kind; no event, reason or invite about drink), noNightlife (no nightlife kind, no party night, nothing from 9 pm), kidFriendly (both, and nothing from 8 pm), maxPrice (no stated price or entry fee over the ceiling; free only means none), budgetRead, stepFree (nothing tagged wheelchair=no, no beach), needsInclude (the stored needs), withinHours (the times the crew said), maxTripMin, discreetNoLabel (see Safety). A crew fails if any one check fails.", "- **Taste alignment** is a deterministic proxy: a suggestion fits when its OpenStreetMap kind is one the crew's interests point to, or an event's title or venue has one of their keywords (eval/personas/v2.json, `taste`), or it is the night in offered to a crew that needs discretion. Chance level judges the same suggestions against every other crew's interests.", "- **Distinctness** is the Jaccard overlap of two crews' suggestion names (the ritual and the ideas).", "- **Travel** uses the city pack's own travel estimate from each named area, at the plan's time.", "- **Copy** checks every ritual reason, invite and idea reason: stock AI phrases (a fixed list), dashes, the Flesch-Kincaid grade, length, and templates that repeat once names, numbers and days are taken out.", "- **Intervals** are 95% Wilson score intervals.", "");
   L.push("<!-- analysis -->", "");
-  const md = path.join(resultsDir, `v2-${set}.md`);
+  const md = path.join(resultsDir, `v2-${set}${suffix}.md`);
   fs.writeFileSync(md, L.join("\n"));
 
   // ---- the JSON (no raw artifacts: the stores and pages stay in the run folder)
-  const json = path.join(resultsDir, `v2-${set}.json`);
+  const json = path.join(resultsDir, `v2-${set}${suffix}.json`);
   fs.writeFileSync(json, `${JSON.stringify({ meta: { ...meta, worldNew: meta.worldNew?.length ?? 0 }, crews: judged.map(({ p, r, hard, safety }) => ({ id: p.id, sentence: p.sentence, error: r.error, timings: r.timings, read: r.crew ? { budget: r.crew.budget, taste: r.crew.taste, areas: r.crew.areas, tz: r.crew.tz, rhythmRead: r.rhythmRead } : null, ritual: r.ritual ? { ...r.ritual } : null, ideas: r.ideas, notes: r.cardNotes, hard, safety, taste: r.error ? null : tasteAlignment(p, r) })) }, null, 1)}\n`);
 
   // ---- the blind human sheet
@@ -221,8 +232,8 @@ export function writeReports({ set, rows, meta, resultsDir, file }) {
     invite: r.ritual?.invite ?? null,
     ideas: (r.ideas || []).map((/** @type {any} */ i) => ({ title: i.title, when: i.when, why: i.why, price: i.price?.text ?? null })),
   }));
-  const sheetBase = set === "test" ? "v2-human-sheet" : "v2-dev-human-sheet";
-  const H = [`# Persona eval v2${set === "test" ? "" : " (dev)"}: human scores`, "", `${crews.length} crews from the ${set} set, in random order (seed 20261024), with nothing but what the crew typed and what the sloth answered. For each: **fit** from 1 (wrong for this crew) to 5 (exactly what they would pick), and a flag for anything off (unsafe, wrong city, wrong time, a bad sentence, a place that is not what it says). On a phone: \`node eval/score.mjs${set === "test" ? "" : " --sheet dev"}\` and open the address it prints.`, ""];
+  const sheetBase = set === "test" ? `v2-human-sheet${suffix}` : "v2-dev-human-sheet";
+  const H = [`# Persona eval v2${set === "test" ? "" : " (dev)"}: human scores`, "", `${crews.length} crews from the ${set} set, in random order (seed 20261024), with nothing but what the crew typed and what the sloth answered. For each: **fit** from 1 (wrong for this crew) to 5 (exactly what they would pick), and a flag for anything off (unsafe, wrong city, wrong time, a bad sentence, a place that is not what it says). On a phone: \`node eval/score.mjs${set === "test" ? (suffix ? ` --sheet ${suffix.slice(1)}` : "") : " --sheet dev"}\` and open the address it prints.`, ""];
   for (const c of crews) {
     H.push(`## Crew ${c.n}`, "", `> ${c.sentence}`, "");
     if (c.ritual) H.push(`**The sloth's pick:** ${c.ritual.skipped ? `skipped (${c.ritual.note ?? "rain"})` : `${c.ritual.place}, ${c.ritual.when}`}${c.ritual.why ? `. ${c.ritual.why}` : ""}`, "");

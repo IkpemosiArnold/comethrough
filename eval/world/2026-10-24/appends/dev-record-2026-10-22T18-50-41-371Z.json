@@ -1,0 +1,26 @@
+{
+ "runId": "dev-record-2026-10-22T18-50-41-371Z",
+ "at": "2026-10-22T18:54:05.173Z",
+ "git": {
+  "head": "099b1118c1e926cfdffc589516c578ee7c41e1cc"
+ },
+ "geocoder": "nominatim",
+ "added": {
+  "total": 0,
+  "failuresKept": 0,
+  "byService": {}
+ },
+ "llm": {
+  "live": 2,
+  "liveByTask": {
+   "write-invite": 2
+  },
+  "failures": 0,
+  "notAskedBlind": 0
+ },
+ "ledger": {
+  "cap": 285,
+  "liveCalls": 285,
+  "thisRun": 2
+ }
+}

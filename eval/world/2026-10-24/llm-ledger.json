@@ -1,0 +1,86 @@
+{
+ "cap": 286,
+ "liveCalls": 286,
+ "runs": [
+  {
+   "label": "dev record only lag-bookclub-yaba",
+   "at": "2026-10-22T10:17:54.873Z",
+   "live": 4,
+   "failed": 0
+  },
+  {
+   "label": "dev record only lag-bookclub-yaba",
+   "at": "2026-10-22T10:30:24.206Z",
+   "live": 3,
+   "failed": 0
+  },
+  {
+   "label": "dev record",
+   "at": "2026-10-22T10:35:33.172Z",
+   "live": 105,
+   "failed": 0
+  },
+  {
+   "label": "test record blind",
+   "at": "2026-10-22T12:41:06.103Z",
+   "live": 27,
+   "failed": 0
+  },
+  {
+   "label": "test record",
+   "at": "2026-10-22T16:45:03.828Z",
+   "live": 97,
+   "failed": 0
+  },
+  {
+   "label": "dev record",
+   "at": "2026-10-22T18:04:10.022Z",
+   "live": 33,
+   "failed": 0
+  },
+  {
+   "label": "dev record",
+   "at": "2026-10-22T18:34:25.375Z",
+   "live": 14,
+   "failed": 1
+  },
+  {
+   "label": "dev record",
+   "at": "2026-10-22T18:50:41.520Z",
+   "live": 2,
+   "failed": 0
+  },
+  {
+   "label": "dev record",
+   "at": "2026-10-22T20:00:37.293Z",
+   "live": 1,
+   "failed": 0
+  }
+ ],
+ "capChanges": [
+  {
+   "at": "2026-10-22T18:04:10.022Z",
+   "from": 250,
+   "to": 269,
+   "run": "dev record"
+  },
+  {
+   "at": "2026-10-22T18:34:25.375Z",
+   "from": 269,
+   "to": 283,
+   "run": "dev record"
+  },
+  {
+   "at": "2026-10-22T18:50:41.520Z",
+   "from": 283,
+   "to": 285,
+   "run": "dev record"
+  },
+  {
+   "at": "2026-10-22T20:00:37.293Z",
+   "from": 285,
+   "to": 286,
+   "run": "dev record"
+  }
+ ]
+}

@@ -69,11 +69,12 @@ const HEADER_KEEP = ["content-type", "etag", "last-modified", "retry-after"];
  * @param {{ dir: string, mode: "record"|"replay", latency?: boolean, llmLive?: boolean, log?: (e: string, f?: any) => void }} opts
  *   latency: replay sleeps for the time the recorded answer took (so latency per crew is real)
  *   llmLive: let requests to the LLM host through (the LLM cache decides when)
+ *   extendedSince: ISO time; hits recorded at or after it are counted as the extension
  */
-export function createWorld({ dir, mode, latency = false, llmLive = false, log = () => {} }) {
+export function createWorld({ dir, mode, latency = false, llmLive = false, extendedSince = null, log = () => {} }) {
   const httpDir = path.join(dir, "http");
   fs.mkdirSync(httpDir, { recursive: true });
-  const stats = { hits: 0, recorded: 0, recordedFailures: 0, misses: 0, liveAttempts: 0, byService: /** @type {Record<string, { hits: number, recorded: number, misses: number }>} */ ({}) };
+  const stats = { hits: 0, recorded: 0, recordedFailures: 0, misses: 0, liveAttempts: 0, hitsExtended: 0, byService: /** @type {Record<string, { hits: number, recorded: number, misses: number }>} */ ({}) };
   /** @type {{ persona: string|null, service: string, canon: string }[]} */
   const misses = [];
   /** @type {{ persona: string|null, service: string, canon: string, recordedAt: string }[]} */
@@ -170,6 +171,8 @@ export function createWorld({ dir, mode, latency = false, llmLive = false, log =
     const hit = read(key);
     if (hit) {
       stats.hits++;
+      // answers recorded after the first recording day's fixes landed (the world was extended, never overwritten)
+      if (extendedSince && hit.recordedAt >= extendedSince) stats.hitsExtended++;
       bump(service, "hits");
       if (mode === "replay" && latency && hit.ms) await sleep(hit.ms);
       return respond(hit);
@@ -244,10 +247,15 @@ export function createLlmCache({ dir, mode, live, model, prompts, maxLive, onlyT
   fs.mkdirSync(llmDir, { recursive: true });
   const ledgerFile = path.join(dir, "llm-ledger.json");
   const ledger = fs.existsSync(ledgerFile) ? JSON.parse(fs.readFileSync(ledgerFile, "utf8")) : { cap: maxLive, liveCalls: 0, runs: [] };
+  // the cap is the run's own (--llm-cap); a raise is noted in the ledger
+  if (mode === "record") {
+    if (maxLive !== ledger.cap) (ledger.capChanges ||= []).push({ at: new Date().toISOString(), from: ledger.cap, to: maxLive, run: runLabel });
+    ledger.cap = maxLive;
+  }
   const run = { label: runLabel, at: new Date().toISOString(), live: 0, failed: 0 };
   ledger.runs.push(run);
   const saveLedger = () => fs.writeFileSync(ledgerFile, `${JSON.stringify(ledger, null, 1)}\n`);
-  const stats = { hits: 0, live: 0, misses: 0, refusedBlind: 0, refusedBudget: 0, failures: 0, sensitiveFieldsSeen: /** @type {Record<string, number>} */ ({}) };
+  const stats = { hits: 0, live: 0, misses: 0, refusedBlind: 0, refusedBudget: 0, failures: 0, liveByTask: /** @type {Record<string, number>} */ ({}), missByTask: /** @type {Record<string, number>} */ ({}), sensitiveFieldsSeen: /** @type {Record<string, number>} */ ({}) };
   /** @type {{ persona: string|null, task: string }[]} */
   const misses = [];
   let persona = /** @type {string|null} */ (null);
@@ -270,6 +278,7 @@ export function createLlmCache({ dir, mode, live, model, prompts, maxLive, onlyT
     }
     if (mode === "replay") {
       stats.misses++;
+      stats.missByTask[req.task] = (stats.missByTask[req.task] || 0) + 1;
       misses.push({ persona, task: req.task });
       log("llm_miss", { persona, task: req.task, promptHash: ph });
       throw Object.assign(new Error(`not in the LLM cache: ${req.task} (prompt ${ph})`), { status: 0, hint: "Not in the eval's LLM cache." });
@@ -293,6 +302,7 @@ export function createLlmCache({ dir, mode, live, model, prompts, maxLive, onlyT
         ledger.liveCalls++;
         run.live++;
         stats.live++;
+        stats.liveByTask[req.task] = (stats.liveByTask[req.task] || 0) + 1;
         saveLedger();
         try {
           const r = await live.generate(req);

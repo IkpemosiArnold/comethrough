@@ -43,8 +43,20 @@ const EVAL = path.join(ROOT, "eval");
 const PERSONAS = path.join(EVAL, "personas/v2.json");
 const WORLD = path.join(EVAL, "world/2026-10-24");
 const RESULTS = path.join(EVAL, "results");
-const TEST_MARKER = path.join(RESULTS, ".v2-test-scored.json");
-const LLM_CAP = 250;
+/**
+ * Scored test runs are labelled: "baseline" (the first, the reported numbers before the
+ * crew-parsing fixes) and "after-fix" (one more, after they land). Each label is scored once;
+ * neither overwrites the other's results, sheet or marker.
+ */
+const SCORED_LABELS = ["baseline", "after-fix"];
+const labelArg = () => {
+  const i = process.argv.indexOf("--label");
+  return i >= 0 ? process.argv[i + 1] : null;
+};
+const label = labelArg();
+const TEST_MARKER = path.join(RESULTS, `.v2-test-scored${label && label !== "baseline" ? `-${label}` : ""}.json`);
+/** Live Gemma calls across both sets: 250, raised to at most 370 for the dev after-run on 22 Oct (approved; Gemma on the Gemini API is free). */
+const LLM_CAP_DEFAULT = 250;
 const BIG = 600_000;
 
 // ---------------------------------------------------------------- arguments and guards
@@ -79,9 +91,12 @@ const scoredTest = set === "test" && mode === "replay";
 if (scoredTest) {
   if (!flag("--scored")) die("The test set is scored once, after the freeze: add --scored when that is what this is.");
   if (only) die("The scored test run takes the whole set.");
+  if (!label || !SCORED_LABELS.includes(label)) die(`Label the scored test run: --label ${SCORED_LABELS.join(" or --label ")}.`);
+  if (label === "after-fix" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("The after-fix run compares with the baseline: score --label baseline first.");
   if (fs.existsSync(TEST_MARKER) && !opt("--rerun-reason")) die(`The test set was already scored (${fs.readFileSync(TEST_MARKER, "utf8").trim()}). A second scored run needs --rerun-reason "...", which goes at the top of the report.`);
 }
 const writesResults = mode === "replay";
+const LLM_CAP = Math.min(370, Number(opt("--llm-cap") || LLM_CAP_DEFAULT));
 
 // ---------------------------------------------------------------- the clock, the world, the ports
 
@@ -102,7 +117,9 @@ const logs = [];
 let current = /** @type {string|null} */ (null);
 const log = (/** @type {string} */ e, /** @type {any} */ f = {}) => logs.push({ persona: current, e, ...f });
 
-const world = createWorld({ dir: WORLD, mode, latency: mode === "replay" && !fast, llmLive: mode === "record", log });
+// the fixes of 22 Oct changed some requests; what they asked for was appended after this time
+const EXTENDED_SINCE = "2026-10-22T16:40:00Z";
+const world = createWorld({ dir: WORLD, mode, latency: mode === "replay" && !fast, llmLive: mode === "record", extendedSince: EXTENDED_SINCE, log });
 world.install();
 const prompts = loadPrompts();
 const llm = createLlmCache({
@@ -310,23 +327,37 @@ const meta = {
   set, mode, runId, sha, at: new Date().toISOString(), clock: file.target.now, llm: describeLlm(cfg), fast, only,
   git: gitState(), world: world.stats, worldMisses: world.misses, worldNew: world.newlyRecorded, llmStats: llm.stats, llmMisses: llm.misses, ledger: llm.ledger(),
   geocoder: cfg.geocoder.provider,
+  extendedSince: EXTENDED_SINCE,
+  appends: fs.existsSync(path.join(WORLD, "appends")) ? fs.readdirSync(path.join(WORLD, "appends")).map((f) => JSON.parse(fs.readFileSync(path.join(WORLD, "appends", f), "utf8"))) : [],
   promptHashes: Object.fromEntries(Object.entries(prompts).map(([k, v]) => [k, crypto.createHash("sha256").update(`${v.system ?? ""}\n----\n${v.user ?? ""}`).digest("hex").slice(0, 16)])),
   rerunReason: opt("--rerun-reason"),
+  note: opt("--note"),
+  label: scoredTest ? label : null,
 };
 fs.writeFileSync(path.join(runDir, "meta.json"), JSON.stringify(meta, null, 1));
 console.error(`world: ${world.stats.hits} answered from the world, ${world.stats.recorded} recorded now (${world.stats.recordedFailures} failures kept), ${world.stats.misses} misses`);
 console.error(`LLM: ${llm.stats.hits} from the cache, ${llm.stats.live} live (ledger ${llm.ledger().liveCalls} of ${llm.ledger().cap}), ${llm.stats.misses} misses, ${llm.stats.failures} failures kept${blind ? `, ${llm.stats.refusedBlind} not asked (blind)` : ""}`);
 
 if (!writesResults) {
-  // a recording pass keeps only the world: no results, nothing to read
+  // a recording pass keeps only the world (and a note of what it added): no results, nothing to read
+  const byService = /** @type {Record<string, number>} */ ({});
+  for (const e of world.newlyRecorded) byService[e.service] = (byService[e.service] || 0) + 1;
+  const appends = path.join(WORLD, "appends");
+  fs.mkdirSync(appends, { recursive: true });
+  fs.writeFileSync(path.join(appends, `${runId}.json`), `${JSON.stringify({ runId, at: meta.at, git: meta.git, geocoder: meta.geocoder, added: { total: world.newlyRecorded.length, failuresKept: world.stats.recordedFailures, byService }, llm: { live: llm.stats.live, liveByTask: llm.stats.liveByTask, failures: llm.stats.failures, notAskedBlind: llm.stats.refusedBlind }, ledger: llm.ledger() }, null, 1)}\n`);
   fs.rmSync(runDir, { recursive: true, force: true });
   console.error("recording pass: the world is kept; no results were written.");
   process.exit(0);
 }
 const errors = rows.filter((x) => x.r.error).length;
 fs.writeFileSync(path.join(runDir, "rows.json"), JSON.stringify(rows.map(({ p, r }) => ({ id: p.id, ...r })), null, 1));
-const out = writeReports({ set, rows, meta, resultsDir: RESULTS, file });
-if (scoredTest) fs.writeFileSync(TEST_MARKER, `${JSON.stringify({ at: meta.at, runId, sha, rerunReason: meta.rerunReason })}\n`);
+if (world.stats.misses || llm.stats.misses) {
+  // not a clean replay: the numbers would measure missing world data, not the app
+  console.error(`NOT CLEAN: ${world.stats.misses} world misses and ${llm.stats.misses} Gemma misses. No results written (the run's raw output is in ${path.relative(ROOT, runDir)}). Record the missing entries first.`);
+  process.exit(1);
+}
+const out = writeReports({ set, rows, meta, resultsDir: RESULTS, file, suffix: scoredTest && label !== "baseline" ? `-${label}` : "" });
+if (scoredTest) fs.writeFileSync(TEST_MARKER, `${JSON.stringify({ at: meta.at, runId, sha, rerunReason: meta.rerunReason, label })}\n`);
 console.error(`wrote ${out.map((f) => path.relative(ROOT, f)).join(", ")}; ${errors} crews errored; world misses ${world.stats.misses}, LLM misses ${llm.stats.misses}`);
 process.exit(world.stats.misses || llm.stats.misses ? 1 : 0);
 
