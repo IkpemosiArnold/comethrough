@@ -12,8 +12,7 @@ export const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Con
 export const sleep = (/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Launch Chrome and connect. */
-export async function launch({ headless = true } = {}) {
-  const port = 9300 + Math.floor(Math.random() * 600);
+export async function launch({ headless = true, port = Number(process.env.CDP_PORT) || 9300 + Math.floor(Math.random() * 600) } = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "ct-chrome-"));
   const proc = spawn(CHROME, [...(headless ? ["--headless=new"] : []), `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
   let version;

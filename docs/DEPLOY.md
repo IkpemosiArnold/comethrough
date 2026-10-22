@@ -162,6 +162,13 @@ Safari, each with WhatsApp, Instagram and Snapchat installed:
 
 ## 7. Running it
 
+- **What the sloth leaves empty**: every Gemma call logs a `gemma_fields` line (the task,
+  the output fields that came back empty, the attempts, whether a retry or another model ran)
+  and every read crew or plan a `gemma_read` line (the fields the app kept empty, the fields
+  code dropped, and `fallback` when code made a best guess). Field names only, never what
+  anyone wrote. For the stored crews and plans, `MONGODB_URI=... node scripts/live-report.mjs`
+  prints the empty fields per crew and plan, with counts, read only, with no names, text or
+  tokens.
 - **Logs**: Render, the service, Logs. One JSON line per event; query strings are never
   logged because they carry tokens.
 - **Roll back**: Render, the service, Events, pick the last good deploy, Rollback.
