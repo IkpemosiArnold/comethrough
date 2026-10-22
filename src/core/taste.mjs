@@ -146,11 +146,112 @@ export const EMPTY_TASTE = Object.freeze({ scenes: [], likes: [], placeKinds: []
 const norm = (/** @type {string} */ s) => String(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9+]+/g, " ").trim();
 const STOP = new Set(["the", "and", "for", "with", "our", "we", "are", "who", "into", "like", "likes", "love", "mostly", "some", "lot", "lots", "crew", "group", "guys", "people", "friends", "gang"]);
 
-/** True when a word or phrase is said in the source: one of its distinctive words, as a whole word. */
+/**
+ * A word's stem, so close variants match: "raves" and "rave", "parties" and "party",
+ * "clubbing" and "club", "galleries" and "gallery". Rough on purpose; it only ever compares
+ * a word with the organiser's own words.
+ */
+export function stem(/** @type {string} */ w) {
+  let t = String(w).toLowerCase();
+  if (t.length > 5 && t.endsWith("ing")) t = t.slice(0, -3).replace(/(.)\1$/, "$1");
+  else if (t.length > 4 && t.endsWith("ies")) t = `${t.slice(0, -3)}y`;
+  else if (t.length > 4 && /(ches|shes|sses|xes)$/.test(t)) t = t.slice(0, -2);
+  else if (t.length > 3 && t.endsWith("s") && !t.endsWith("ss")) t = t.slice(0, -1);
+  if (t.length > 4 && t.endsWith("e")) t = t.slice(0, -1);
+  return t;
+}
+
+/** True when a word or phrase is said in the source: one of its distinctive words, as a whole word or a close variant ("rave" for "raves"). */
 function said(/** @type {string} */ v, /** @type {string} */ source) {
-  const src = ` ${norm(source)} `;
+  const srcToks = new Set(norm(source).split(" ").filter(Boolean).map(stem));
   const toks = norm(v).split(" ").filter((t) => (t.length >= 3 || /\d/.test(t)) && !STOP.has(t));
-  return toks.length > 0 && toks.some((t) => src.includes(` ${t} `) || (t.length >= 5 && src.includes(` ${t.replace(/s$/, "")}`)));
+  return toks.length > 0 && toks.some((t) => srcToks.has(stem(t)));
+}
+
+/**
+ * Taste words people use, read by code alone: the floor under Gemma's reading, and the whole
+ * reading when Gemma is busy. Each says what the words are into, which kinds of place suit
+ * them (PLACE_KINDS), words to look for in event guides, the vibe words (VIBE_MATCHERS) and
+ * the energy. Only words the text says are matched; nothing is inferred about who anyone is.
+ * @type {readonly { re: RegExp, likes?: string[], kinds?: string[], keys?: string[], tags?: string[], energy?: "chill"|"lively" }[]}
+ */
+export const TASTE_WORDS = Object.freeze([
+  { re: /\b(raves?|raving|ravers?)\b/i, likes: ["raves"], kinds: ["nightclub", "live music"], keys: ["rave", "party", "dj"], tags: ["party", "music"], energy: "lively" },
+  { re: /\b(part(?:y|ies)|turn ?up|owambe|clubbing|clubs?|nightlife|night ?out)\b/i, likes: ["parties"], kinds: ["nightclub", "bar"], keys: ["party"], tags: ["party"], energy: "lively" },
+  { re: /\b(danc(?:e|es|ing))\b/i, likes: ["dancing"], kinds: ["nightclub"], keys: ["dance"], tags: ["party"], energy: "lively" },
+  { re: /\b(live music|concerts?|gigs?|afrobeats?|amapiano|jazz|highlife|music)\b/i, likes: ["live music"], kinds: ["live music"], keys: ["music", "concert", "live"], tags: ["music"] },
+  { re: /\b(karaoke)\b/i, likes: ["karaoke"], kinds: ["bar"], keys: ["karaoke"], tags: ["music"], energy: "lively" },
+  { re: /\b(chill(?:ed|ing)?|low[- ]?key|laid[- ]back|relaxed|easy ?going|cosy|cozy)\b/i, kinds: ["cafe"], tags: ["chill"], energy: "chill" },
+  { re: /\b(arts?|galler(?:y|ies)|exhibitions?|artsy)\b/i, likes: ["art"], kinds: ["gallery", "arts centre"], keys: ["art", "exhibition"], tags: ["art"] },
+  { re: /\b(museums?|history)\b/i, likes: ["museums"], kinds: ["museum"], keys: ["museum"], tags: ["art"] },
+  { re: /\b(beach(?:es)?|seaside|by the water)\b/i, likes: ["beach"], kinds: ["beach"], keys: ["beach"], tags: ["beach"] },
+  { re: /\b(outside|outdoors?|parks?|picnics?|nature|green)\b/i, likes: ["outdoors"], kinds: ["park", "garden"], keys: ["picnic", "outdoor"], tags: ["outside"] },
+  { re: /\b(food|foodies?|eat(?:ing)?|brunch|suya|restaurants?|amala|jollof)\b/i, likes: ["food"], kinds: ["restaurant", "street food"], keys: ["food", "brunch"], tags: ["food"] },
+  { re: /\b(drinks?|cocktails?|wine|beers?|palm ?wine)\b/i, likes: ["drinks"], kinds: ["bar"], keys: ["drinks"], tags: ["drinks"] },
+  { re: /\b(games?|game nights?|board ?games|gaming|arcades?|bowling|ps5)\b/i, likes: ["games"], kinds: ["arcade", "bowling"], keys: ["games"], tags: ["games"] },
+  { re: /\b(movies?|cinema|films?)\b/i, likes: ["movies"], kinds: ["cinema"], keys: ["film", "movie"] },
+  { re: /\b(comedy|stand[- ]?up)\b/i, likes: ["comedy"], kinds: ["theatre"], keys: ["comedy"] },
+  { re: /\b(theatre|theater|plays|drama)\b/i, likes: ["theatre"], kinds: ["theatre"], keys: ["theatre", "play"] },
+  { re: /\b(books?|bookshops?|reading)\b/i, likes: ["books"], kinds: ["bookshop", "library"], keys: ["book", "reading"] },
+  { re: /\b(thrift(?:ing)?|vintage)\b/i, likes: ["thrift"], kinds: ["thrift", "market"], keys: ["thrift", "vintage"] },
+  { re: /\b(sports?|football|basketball|tennis|gym|running|fitness)\b/i, likes: ["sport"], kinds: ["sports"], keys: ["sport"], tags: ["sport", "active"], energy: "lively" },
+  { re: /\b(shopping|malls?)\b/i, likes: ["shopping"], kinds: ["mall"], keys: ["market"] },
+]);
+
+/**
+ * The taste a text plainly says, from TASTE_WORDS: { likes, placeKinds, eventKeywords,
+ * vibeTags, energy }. Empty lists when it says nothing.
+ * @param {string|null|undefined} text
+ */
+export function plainTaste(text) {
+  return tasteOf(plainEntries(text));
+}
+
+/** The TASTE_WORDS entries a text says. */
+export function plainEntries(/** @type {string|null|undefined} */ text) {
+  const t = String(text ?? "");
+  return TASTE_WORDS.filter((w) => w.re.test(t));
+}
+
+/** The taste a few TASTE_WORDS entries add up to. */
+function tasteOf(/** @type {typeof TASTE_WORDS[number][]} */ entries) {
+  /** @type {Set<string>} */ const likes = new Set();
+  /** @type {Set<string>} */ const kinds = new Set();
+  /** @type {Set<string>} */ const keys = new Set();
+  /** @type {Set<string>} */ const tags = new Set();
+  /** @type {Set<string>} */ const energies = new Set();
+  for (const w of entries) {
+    (w.likes || []).forEach((x) => likes.add(x));
+    (w.kinds || []).forEach((x) => kinds.add(x));
+    (w.keys || []).forEach((x) => keys.add(x));
+    (w.tags || []).forEach((x) => tags.add(x));
+    if (w.energy) energies.add(w.energy);
+  }
+  /** @type {"chill"|"lively"|"mixed"|null} */
+  const energy = energies.size === 2 ? "mixed" : energies.size === 1 ? /** @type {"chill"|"lively"} */ ([...energies][0]) : null;
+  return { likes: [...likes], placeKinds: [...kinds], eventKeywords: [...keys], vibeTags: [...tags], energy };
+}
+
+/** Lists merged in order, without repeats, at most n. */
+const merge = (/** @type {string[]} */ a, /** @type {string[]} */ b, /** @type {number} */ n) => [...new Set([...a, ...b])].slice(0, n);
+
+/**
+ * A taste from the organiser's edits, with the vibe they typed read in when the taste says
+ * nothing about what they like (the sloth was busy and they filled the vibe in by hand: on
+ * 22 Oct 2026 "Raves and chill vibes" was saved next to an empty taste). Needs stay as they
+ * are and are added on top; the vibe never removes anything.
+ * @param {Taste} taste  cleanTaste's output
+ * @param {string|null|undefined} vibe
+ * @returns {Taste}
+ */
+export function withVibe(taste, vibe) {
+  if (!vibe || taste.likes.length || taste.scenes.length || taste.eventKeywords.length) return taste;
+  const p = plainTaste(vibe);
+  if (!p.likes.length && !p.placeKinds.length) return taste;
+  const dry = taste.needs.includes("no alcohol") || taste.needs.includes("kid-friendly");
+  // the kinds that came only from the needs (a quiet default) go after what the vibe says
+  const kinds = merge(p.placeKinds, taste.placeKinds, 8).filter((k) => !dry || (!PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife));
+  return { ...taste, likes: p.likes.slice(0, 6), placeKinds: kinds, eventKeywords: p.eventKeywords.slice(0, 8), energy: taste.energy ?? p.energy };
 }
 
 /** A clean list of short lower-case words: no sensitive words, no dashes, deduplicated. */
@@ -235,10 +336,16 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     scenes = scenes.filter((s) => said(s, src));
     // the rest may be inferred (cultural knowledge), but only from something the sentence says
     const basis = (Array.isArray(d.basis) ? d.basis : []).filter((b) => typeof b === "string" && said(b, src));
+    // what code reads from the sentence on its own: the floor under Gemma's reading
+    const plain = plainTaste(src);
     // a kind of group the sentence names (students, parents, a church youth group, an age)
     // is a basis too, even when Gemma leaves basis empty (it did for "queer and mostly
-    // female" on 21 Oct 2026: it was told not to repeat those words)
-    const anchored = basis.length > 0 || scenes.length > 0 || likes.some((l) => said(l, src)) || impliedNeeds(src).length > 0 || AGE_WORDS.test(src) || GROUP_WORDS.test(src);
+    // female" on 21 Oct 2026: it was told not to repeat those words). So is any taste word
+    // the sentence says, in any form: on 22 Oct 2026 "raves and chill vibes" came back with
+    // likes ["nightlife", "dancing", "music"] and keyword "rave", none of them word for word
+    // in the sentence, and the whole taste was thrown away.
+    const anchored = basis.length > 0 || scenes.length > 0 || likes.some((l) => said(l, src)) || eventKeywords.some((k) => said(k, src)) || plain.likes.length > 0 || plain.placeKinds.length > 0
+      || impliedNeeds(src).length > 0 || AGE_WORDS.test(src) || GROUP_WORDS.test(src);
     if (!anchored) {
       likes = likes.filter((l) => said(l, src));
       placeKinds = placeKinds.filter((k) => said(k, src));
@@ -248,6 +355,26 @@ export function cleanTaste(raw, { sentence = null } = {}) {
       energy = null;
     }
     if (age && !AGE_WORDS.test(src)) age = null;
+    // Gemma's reading is trusted; what the sentence plainly says is never lost: each taste
+    // word Gemma's lists do not cover adds its own like, kind of place and keyword
+    const has = (/** @type {string[]} */ list, /** @type {string[]} */ xs) => xs.some((x) => list.some((l) => stem(l) === stem(x)));
+    const entries = plainEntries(src);
+    const covers = (/** @type {string[]} */ list, /** @type {string[]|undefined} */ xs, /** @type {number} */ n) => {
+      if (!xs?.length) return list;
+      if (!list.length) return merge(list, xs, n);
+      return has(list, xs) ? list : merge(list.slice(0, n - 1), xs.slice(0, 1), n);
+    };
+    const hadKinds = placeKinds.length > 0;
+    for (const w of entries) {
+      likes = covers(likes, w.likes, 6);
+      eventKeywords = covers(eventKeywords, w.keys, 8);
+      if (!hadKinds) placeKinds = merge(placeKinds, w.kinds || [], 6);
+      else if (w.kinds?.length && !w.kinds.some((k) => placeKinds.includes(k))) placeKinds = merge(placeKinds.slice(0, 5), w.kinds.slice(0, 1), 6);
+    }
+    energy = energy ?? plain.energy;
+    // trusted unless it contradicts the sentence: a kind the crew said to avoid goes
+    if (avoid.length) placeKinds = placeKinds.filter((k) => !avoid.some((a) => avoidHits(a, k)));
+    // needs add constraints on top of the taste; they never replace it
     needs = [...new Set([...needs, ...impliedNeeds(src)])];
     // needs imply kinds of place when Gemma named none: a discreet crew still gets somewhere to go
     if (!placeKinds.length) placeKinds = [...new Set(needs.flatMap((n) => NEED_KINDS[n] || []))].slice(0, 6);

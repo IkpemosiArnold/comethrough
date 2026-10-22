@@ -205,7 +205,8 @@ test("end to end: a queer crew's setup leaves needs only, in every store, view, 
   const pick = await svc.firstPick({ slug: crew.slug, token: /** @type {string} */ (made.memberToken) });
   assert.ok(pick.plan, pick.reason);
   assert.notEqual(pick.plan.place.name, "Loud Bar");
-  assert.match(pick.plan.why || "", /low-key/, "the explanation says it, without saying who");
+  // a garden café fits its taste (brunch) and is quiet: the reason says so, never who they are
+  assert.match(pick.plan.why || "", /low-key|quiet/, "the explanation says it, without saying who");
   const me = /** @type {any} */ (await store.findOne("members", { token: made.memberToken }));
   const ics = await svc.feed({ calToken: me.calToken });
   for (const [what, text] of [["store", JSON.stringify(await store.find("crews", {})) + JSON.stringify(await store.find("plans", {}))], ["logs", JSON.stringify(logs)], ["calendar", ics], ["push", JSON.stringify(push.sent)], ["invite", pick.plan.invite]]) {
