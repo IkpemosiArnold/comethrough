@@ -131,6 +131,13 @@ All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx s
 | POST | `/api/members/:id/push-subscription` | that member | `{ subscription }` (the browser's `PushSubscription.toJSON()`) | `204` |
 | DELETE | `/api/members/:id/push-subscription` | that member | `{ endpoint }` | `204` |
 | POST | `/api/tick` | `Bearer TICK_SECRET` | | `{ rituals, firstPicks, weatherChecked, rainAlerts, pushes, expired }`; idempotent. `firstPicks`: first picks that had failed (after their backoff: 1 min, 15 min, 3 h; 4 tries) or were cut off by a restart, made now |
+| PATCH | `/api/crews/:slug` | member | `{ name }` (1 to 40 characters as people count them, emoji welcome; refused like a new crew's name when it says who the crew is) | `{ name, previous }`. The slug and links stay; every message, card and calendar made after uses the new name |
+| POST | `/api/crews/:slug/names` | member | | `{ names: [string] (3), ai: bool }`: "Let the sloth name you" (see "Growth"). Counts against the Gemma limits |
+| PUT | `/api/members/:id/face` | that member | the picture itself (WebP, JPEG or PNG, at most 48 KB; the phone sends a 128 px circle of about 20 KB) | `{ faceV }`; members then carry `faceV` in `members` |
+| GET | `/api/members/:id/face?t=` | invite or member of that crew | | the picture (`private, max-age=604800`); never at a public address |
+| DELETE | `/api/members/:id/face` | that member | | `204`; the sloth comes back |
+| POST | `/api/members/:id/seen` | that member | `{ key: "another-crew" \| "status:<plan id>" }` | `{ seen: [key] }`: a one-time card done with, on every phone |
+| GET | `/api/og/p/:planId.png?v=&k=`, `/api/og/c/:slug.png?v=&k=`, `/api/og/discreet-plan.png`, `/api/og/discreet-crew.png`, `/api/og/default.png` | the signature `k` (an HMAC with the crew's invite key) | | a 1200x630 PNG preview card (see "Growth") |
 | GET | `/healthz` | none | | `{ ok, store, ai, push, you }` (`you` is the client address the rate limits see; check it after a deploy) |
 
 `Taste` is what the crew is into and needs (src/core/taste.mjs): `{ scenes: [string], likes: [string], placeKinds: [string], eventKeywords: [string], avoid: [string], needs: ["safe"|"discreet"|"women-friendly"|"inclusive"|"no alcohol"|"kid-friendly"|"step-free"|"quiet"|"daytime"], budget: "free"|"cheap"|"any"|null, ageBand: string|null, energy: "chill"|"lively"|"mixed"|null }`. `placeKinds` come from a closed list (park, garden, beach, playground, gallery, museum, arts centre, cafe, restaurant, street food, ice cream, bar, pub, nightclub, live music, cinema, theatre, bookshop, thrift, market, library, community centre, sports, bowling, arcade, theme park, zoo) that code maps to OpenStreetMap tags. It never holds a word for who the crew is (docs/LOCAL-FACTS.md, "Sensitive attributes"). `TasteView` is `{ chips: [{ field, value, label }], summary: "Got it: alte, art and live music, late 20s, around Yaba and Lekki Phase 1." | null }`.
@@ -196,6 +203,51 @@ Idea {
 ```
 
 `draftPlan` is a complete `PlanDraft`: `kind` "found" for an event (its `source.url` is the ticket link, else the post) and "quick" otherwise, `start` and `end` in the crew's zone, the place with its pin when known, the price as stated. One tap sends it through the existing create flow, which validates it as any other plan.
+
+## Growth (22 Oct)
+
+The app is the group chat's assistant, so nothing here is a feed, a streak to lose, a
+leaderboard or a prompt that repeats. Each piece adds no required screen. Code: the rules in
+`src/core/growth.mjs` and `src/core/avatar.mjs` (pure), the use cases in `src/app/growth.mjs`,
+the routes in `src/server/growth-routes.mjs`, the previews in `src/server/og.mjs`.
+
+**Discreet crews** (`taste.needs` includes "discreet") never have their name, members' names,
+faces or a Status card in anything that leaves the app: their previews are the generic card,
+and the Status card is offered only after a member opts in under "You in this crew", and then
+without the crew's name.
+
+- **Rename.** A member taps the crew's painted name and edits it in place; it saves on Enter
+  or when the field is left, and a toast offers Undo (a rename back). "Let the sloth name you"
+  asks Gemma for three names from the crew's areas, its regular day, its vibe words and what
+  it is into (never its needs, what it avoids or its age band). Code keeps a name only when
+  every word is one of the crew's own or a plain word ("crew", "lot", "sloths"; for a Lagos
+  crew also owambe, jollof, suya, danfo, gbedu), so an invented place ("Ikeja Ballers" for a
+  Yaba crew) is dropped; code's own names fill the rest.
+- **Sloth avatars.** Every member is a painted sloth, seeded from the member id: a colour, a fur
+  tone and one of 12 things it wears (gele, shades, cap, agbada collar, headphones, coral
+  beads, bucket hat, hibiscus, bow tie, beanie, fila, hoops). About 1 KB of SVG each, drawn by
+  the same code on the phone and on the server.
+- **Add your face.** Optional. The phone cuts the photo to a 128 px circle of about 20 KB and
+  PUTs it. Stored in the `faces` collection by member id (the member keeps only `faceV`).
+  Seen only with the crew's invite key or a member's, never in a preview card.
+- **Link previews.** `index.html` for `/c/:slug`, `/c/:slug/p/:id` and its `/in` and `/maybe`
+  gets `og:title`, `og:description`, `og:image` (absolute, with its size) and the Twitter
+  tags when the link's `?t=` is the crew's invite key or a member's; anything else gets the
+  generic card. The card shows the sloth on the branch, the plan's title, day and time and
+  place (a home is "At Tolu's"), up to 7 sloths going and the count, and "comethrough.tech".
+  Drawn with satori and resvg-js, cached by a hash of what it shows; a change is a new `v`.
+- **We came through.** `GET /api/crews/:slug` adds, for members, `growth: { linkups, recap:
+  { planId, title, going, date } | null, cameThrough, discreet, seen }`. `recap` is the newest
+  plan that 2 or more went to, from the day after it until 3 days after it ended. `linkups`
+  counts the crew's plans that happened with someone going; the crew keeps their ids
+  (`crew.linkups`), because plans expire. The crew page shows one card ("Make a card for your
+  Status?"); the card is drawn on the phone at 1080x1920 with up to 3 photos that never upload
+  ("<Crew> came through. 3 linkups, slow and steady"), then shared as a file alone through the
+  share sheet, or saved (docs/LOCAL-FACTS.md, "Sharing a Status card").
+- **Got another crew?** After a member's first plan that happened (they said going, and it is
+  over), once: "Family, work, church people. Start one in a sentence." It links to /start.
+- **Once means once.** One of these cards a visit; dismissing or using one marks it seen on the
+  phone and for the member (`POST /api/members/:id/seen`).
 
 ## Delivery: how a plan reaches people (from the 21 Oct research)
 

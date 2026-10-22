@@ -409,6 +409,6 @@ The JavaScript a friend downloads from a WhatsApp link fell from 36.0 KB to 31.0
 ### Still open
 
 - Organiser waits on the server: the crew read (43 s) and posting while the ideas feeds refresh (about 48 s).
-- A link's page title can keep its SEO tail ("Selfie Sunday at Alali VI! : Things to do in Lagos Every Sunday").
-- WhatsApp's link preview is the generic Come Through card. A preview with the plan's name and day would make the first screen even plainer.
+- ~~A link's page title can keep its SEO tail ("Selfie Sunday at Alali VI! : Things to do in Lagos Every Sunday").~~ Fixed 22 Oct: the site's tail is dropped (`src/core/titles.mjs`).
+- ~~WhatsApp's link preview is the generic Come Through card.~~ Fixed 22 Oct: every plan and invite link has its own card (docs/SPEC.md, "Growth"; `docs/screens/growth/13-og-plan.png`).
 - Not checked on a real phone yet: the sheet with the keyboard open, the rough location prompt, and the calendar file on iPhone.

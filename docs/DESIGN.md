@@ -135,6 +135,15 @@ The flyer path is the other moment people should enjoy:
 
 The sloth is a character, and it appears sparingly. It appears on the start screen, in the ritual panel, on "Why this place", while Gemma reads, on the invite and joined screens, and on empty or error pages. It never appears inside lists or on buttons. It has three moods: asleep (the default), awake (good news), and one eye open (reading). In copy, "the sloth" does the reading, guessing, picking and writing, always in the third person ("The sloth is reading the flyer", "The sloth picked Saturday"). Gemma is named once: in the line shown the first time a phone sends something to be read, and on How the sloth works (`/how`).
 
+### Sloth avatars
+
+Faces are sloths too. Each member gets a small painted sloth, the same one every time: a wall
+colour behind it, a fur tone, and one thing it wears (a gele, shades, a cap, an agbada collar,
+headphones, coral beads, a bucket hat, a hibiscus, a bow tie, a beanie, a fila or hoops). They
+use the big sloth's own fur and face colours, flat fills and round strokes, and hang on the
+branch, sit in ride pods and stack on plan rows. A member can add their own photo, which
+only the crew sees. WhatsApp preview cards and Status cards only ever draw the sloths.
+
 ## Voice
 
 The app speaks plainly, in the second person, like a friend in the group chat. There is no "we" and no "I". The sloth is the crew's lazy assistant, talked about in the third person. Laziness is the feature: the copy says what you no longer have to do. The full reasoning is in docs/UX-REVIEW-2.md.

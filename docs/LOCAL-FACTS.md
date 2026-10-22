@@ -316,6 +316,51 @@ Tested in `test/api.test.mjs` with an Opera Mini User-Agent: view, say maybe, jo
 invite and land back on the plan, the crew page, and the noscript link. Not tested in real
 Opera Mini, which only runs on phones.
 
+## Sharing a Status card (Web Share with files)
+
+"We came through" makes a picture on the phone and hands it to the phone's own share sheet,
+so the friend picks WhatsApp (My status), Instagram, Snapchat or Save. Checked 22 Oct 2026
+from documentation and source code; what only a phone can show is on the Friday phone check
+in docs/DEPLOY.md.
+
+| Claim | Verdict | Source (checked 22 Oct 2026) |
+|---|---|---|
+| Sharing files with `navigator.share({ files })` and `navigator.canShare` works in Chrome for Android 76+, Opera for Android 54+, Safari on iOS 14+ and Samsung Internet 11+ | Confirmed | MDN browser-compat-data 8.1.6 (2026-10-15), `api.Navigator.share.data_files_parameter` and `api.Navigator.canShare.data_files_parameter` (raw.githubusercontent.com/mdn/browser-compat-data/main/api/Navigator.json) |
+| Desktop Chrome shares files too (89+ on Windows and ChromeOS, every desktop from 128); Firefox does not, on desktop or Android | Confirmed | Same BCD keys; caniuse.com/web-share (github.com/Fyrd/caniuse, features-json/web-share.json) |
+| Chromium accepts JPEG, PNG and WebP images, and checks the file name's extension as well as its type; at most 10 files and 50 MB | Confirmed | Chromium source, `components/browser_ui/webshare/android/.../ShareServiceImpl.java` (`PERMITTED_EXTENSIONS`, `PERMITTED_MIME_TYPES`, `MAX_SHARED_FILE_COUNT`, `MAX_SHARED_FILE_BYTES`) |
+| `share()` needs the person's own tap (transient activation), else `NotAllowedError` | Confirmed | MDN, developer.mozilla.org/en-US/docs/Web/API/Navigator/share; Chromium `navigator_share.cc` |
+| On an iPhone, a share with text and a file can drop the file | Reported, open | WebKit bug 251500, bugs.webkit.org/show_bug.cgi?id=251500 (filed 1 Feb 2023, still NEW) |
+| WhatsApp offers "My status" when a picture is shared to it from another app | Reported, not official | WABetaInfo: Android beta 2.25.20.3 (1 Jul 2025), wabetainfo.com/whatsapp-beta-for-android-2-25-20-3-whats-new/; iOS 25.22.83 (25 Aug 2025), wabetainfo.com/whatsapp-for-ios-25-22-83-whats-new/. WhatsApp's help pages could not be read without JavaScript. |
+| Instagram appears in the share sheet for a picture, with Stories | Not confirmed | Meta documents only an Android `ACTION_SEND` intent into the feed composer (developers.facebook.com/documentation/instagram-platform/sharing-to-feed) |
+| Snapchat appears in the share sheet for a picture | Not confirmed | No current documentation found |
+| Instagram's own "Sharing to Stories" needs a registered app: "Beginning in January 2023, you must provide a Facebook AppID to share content to Instagram Stories" | Confirmed | developers.facebook.com/documentation/instagram-platform/sharing-to-stories |
+| Snap's Creative Kit needs "A client ID from the Snap Kit developer portal"; its web button shares a link, not a picture | Confirmed | developers.snap.com/reference/CreativeKit/ios/index.html; developers.snap.com/snap-kit/creative-kit/web |
+| `<a download>` saves a same-origin `blob:` file (Chrome 14+, Firefox 20+, Safari on iOS 13+) | Confirmed | MDN, the `<a>` element's `download` attribute |
+
+What the app does because of this:
+
+- **The system share sheet, not Instagram's or Snap's kits**: both kits need a registered
+  Meta or Snap app, which a web page is not. The share sheet offers whatever apps the phone
+  has, and WhatsApp, Instagram and Snapchat each decide what they show there.
+- **The file goes alone**, a JPEG named `came-through.jpg`, made before the tap so the tap
+  itself calls `share()` with nothing awaited first. No text goes with it (WebKit bug
+  251500); the card carries "comethrough.tech" in the picture.
+- **Save the card** is the fallback where `canShare({ files })` is false (Firefox), and is
+  always offered under Share.
+- **The photos never upload**: the card is drawn in a canvas on the phone
+  (`web/src/lib/statuscard.js`); only the finished picture goes to the share sheet the
+  person chose.
+
+## Link previews
+
+WhatsApp, Facebook, X, iMessage and Slack draw a link's preview from its Open Graph tags,
+fetched without JavaScript. Every crew and plan link now answers with its own `og:title`,
+`og:description` and a 1200x630 `og:image` (about 50 to 110 KB, PNG), with absolute URLs and
+`og:image:width` and `height` (`src/server/og.mjs`, tested in `test/growth.test.mjs`). The
+preview never answers for anyone: "I'm in" links answer only from the page's script. A
+discreet crew's links show the same generic card, with no title, place, crew name, names or
+faces. Not yet seen on a phone (DEPLOY.md, Friday phone check).
+
 ## Social hours
 
 The sloth never plans a hangout at a time people would not go. These are assumptions, not

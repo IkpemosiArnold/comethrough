@@ -136,6 +136,29 @@ The server side of each is tested (see docs/NOTES.md). These need a phone in Lag
 - **A real flyer photo**, including an iPhone HEIC photo, read by Gemma.
 - **Voice**: the "Say it" button on Android Chrome with a Nigerian English sentence.
 
+**Friday phone check: the growth features** (22 Oct; the sources are in docs/LOCAL-FACTS.md,
+"Sharing a Status card"). On an Android phone with Chrome and Opera, and an iPhone with
+Safari, each with WhatsApp, Instagram and Snapchat installed:
+
+- **Link previews**: paste a plan link (the "I'm in" one too) and a crew invite into a
+  WhatsApp chat, Facebook Messenger, X, iMessage and Slack. Each shows the plan's title,
+  day, time and place and the sloths going (never a photo), with "comethrough.tech". A
+  discreet crew's link shows "A plan with your crew" and nothing else. Nobody is marked
+  going by the preview. WhatsApp caches a link's preview: test with a fresh plan.
+- **Status card, Share**: on the crew page the day after a plan with 2 or more going, "Make
+  the card", pick 3 photos, Share. Note for each phone and browser: does the sheet open; does
+  WhatsApp offer "My status" (reported for Android beta 2.25.20.3 and iOS 25.22.83, not
+  confirmed on stable); does Instagram appear, and with Stories or only Feed and Chats; does
+  Snapchat appear; is there "Save image" or "Save to Photos"; how is the 1080x1920 card
+  cropped in each.
+- **Status card, Save**: where sharing files is not supported (Firefox), "Save the card"
+  downloads a JPEG that the gallery shows.
+- **Add your face**: "Add your face" opens the front camera on Android and iPhone
+  (`capture="user"`); "Pick a photo" opens the gallery; an iPhone HEIC photo opens in Safari.
+  The photo shows on the branch for the crew; "Remove my photo" brings the sloth back.
+- **Rename**: tap the crew's name, type with the phone's keyboard (emoji too), tap Done:
+  the name saves and Undo works; the next WhatsApp invite uses the new name.
+
 ## 7. Running it
 
 - **Logs**: Render, the service, Logs. One JSON line per event; query strings are never
