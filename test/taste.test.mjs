@@ -98,6 +98,7 @@ test("edited chips are checked again: vocabularies, and no word for who anyone i
   assert.deepEqual(t.likes, ["art"]);
   assert.deepEqual(t.placeKinds, ["gallery"]);
   assert.deepEqual(t.needs, ["discreet"]);
+  assert.deepEqual(cleanTaste({ likes: ["playgrounds", "도락"], placeKinds: ["playground"] }, { sentence: "parents with young kids" }).likes, ["playgrounds"], "a slip into another script is dropped");
   assert.equal(t.energy, null);
   assert.equal(t.ageBand, null);
   assert.deepEqual(cleanTaste({ placeKinds: ["bar", "cafe"], needs: ["no alcohol"] }).placeKinds, ["cafe"]);

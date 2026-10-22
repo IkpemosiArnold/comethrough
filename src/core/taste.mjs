@@ -191,7 +191,7 @@ function said(/** @type {string} */ v, /** @type {string} */ source) {
 }
 
 /** A clean list of short lower-case words: no sensitive words, no dashes, deduplicated. */
-function words(/** @type {any} */ xs, max = 6, len = 30) {
+function words(/** @type {any} */ xs, max = 6, len = 30, /** @type {string|null} */ source = null) {
   if (!Array.isArray(xs)) return [];
   /** @type {string[]} */
   const out = [];
@@ -199,6 +199,9 @@ function words(/** @type {any} */ xs, max = 6, len = 30) {
     if (typeof x !== "string") continue;
     const w = x.toLowerCase().replace(/[—–]/g, " ").replace(/\s+/g, " ").trim().slice(0, len);
     if (!w || /^(null|none|n\/a|unknown|anything|everything)$/.test(w) || hasSensitive(w) || out.includes(w)) continue;
+    // a word in another script than the source's is a model slip (Gemma answered "도락" for
+    // parents with young kids on 22 Oct 2026), unless the source says it
+    if (source != null && /[^\p{Script=Latin}\p{N}\p{P}\p{Zs}+&']/u.test(w) && !source.toLowerCase().includes(w)) continue;
     out.push(w);
     if (out.length >= max) break;
   }
@@ -239,11 +242,12 @@ export function cleanTaste(raw, { sentence = null } = {}) {
   const d = raw && typeof raw === "object" ? raw : {};
   const fromModel = typeof sentence === "string";
   const src = fromModel ? /** @type {string} */ (sentence) : "";
-  let scenes = words(d.scenes, 4, 24);
-  let likes = words(d.likes, 6);
+  const from = fromModel ? /** @type {string} */ (sentence) : null;
+  let scenes = words(d.scenes, 4, 24, from);
+  let likes = words(d.likes, 6, 30, from);
   let placeKinds = (Array.isArray(d.placeKinds) ? d.placeKinds : []).map((k) => String(k).toLowerCase().trim()).filter((k, i, a) => PLACE_KINDS[k] && a.indexOf(k) === i).slice(0, 6);
-  let eventKeywords = words(d.eventKeywords, 8, 24);
-  let avoid = words(d.avoid, 6);
+  let eventKeywords = words(d.eventKeywords, 8, 24, from);
+  let avoid = words(d.avoid, 6, 30, from);
   let needs = (Array.isArray(d.needs) ? d.needs : []).map((n) => String(n).toLowerCase().trim()).filter((n) => NEEDS.includes(n));
   let energy = ENERGY.includes(d.energy) ? d.energy : null;
   let age = ageBand(d.ageBand);
