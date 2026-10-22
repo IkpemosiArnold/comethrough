@@ -93,7 +93,29 @@ export function refusedFeature(message) {
   return null;
 }
 
-const transient = (/** @type {number} */ status, /** @type {string} */ body) => status >= 500 || status === 408 || (status === 404 && !String(body || "").trim());
+const transient = (/** @type {number} */ status, /** @type {string} */ body) => status >= 500 || status === 408 || status === 429 || (status === 404 && !String(body || "").trim());
+
+/** The longest a 429's Retry-After is waited out before one retry; longer means give up now. */
+export const MAX_RETRY_AFTER_MS = 8000;
+
+/**
+ * How long a 429 asks us to wait, in ms, or null: the Retry-After header (seconds or a date),
+ * else the RetryInfo detail Google puts in the body ("retryDelay": "17s").
+ * @param {{ get(name: string): string|null }|null|undefined} headers
+ * @param {any} json
+ * @param {number} [nowMs]
+ */
+export function retryAfterMs(headers, json, nowMs = Date.now()) {
+  const h = headers?.get?.("retry-after");
+  if (h) {
+    if (/^\d+(\.\d+)?$/.test(h.trim())) return Math.round(Number(h) * 1000);
+    const at = Date.parse(h);
+    if (Number.isFinite(at)) return Math.max(0, at - nowMs);
+  }
+  const info = (json?.error?.details || []).find((/** @type {any} */ d) => typeof d?.retryDelay === "string");
+  const m = info?.retryDelay?.match(/^(\d+(?:\.\d+)?)s$/);
+  return m ? Math.round(Number(m[1]) * 1000) : null;
+}
 
 /**
  * One generateContent call with a timeout, one retry for transient failures, and a retry
@@ -145,6 +167,10 @@ export async function geminiGenerate({ key, model, messages, schema, maxTokens, 
       lastErr = new Error(`Gemini API ${res.status}: ${message}`);
       lastErr.status = res.status;
       lastErr.transient = transient(res.status, body);
+      // a 429 is retried once, after the wait it asks for; a wait longer than a person
+      // would sit through is not retried here (the next model in line may still answer)
+      lastErr.waitMs = res.status === 429 ? retryAfterMs(res.headers, json) : null;
+      if (res.status === 429 && lastErr.waitMs != null && lastErr.waitMs > MAX_RETRY_AFTER_MS) lastErr.transient = false;
       lastErr.hint =
         res.status === 429
           ? "The free Gemma quota is used up for the moment. Wait a minute and try again."
@@ -155,7 +181,7 @@ export async function geminiGenerate({ key, model, messages, schema, maxTokens, 
               : "Gemma is slow or busy right now. Try again in a minute.";
     }
     if (!lastErr.transient || attempts > retries) break;
-    await new Promise((r) => setTimeout(r, backoffMs * attempts));
+    await new Promise((r) => setTimeout(r, Math.max(backoffMs * attempts, lastErr.waitMs ?? 0)));
   }
   throw Object.assign(lastErr, { attempts, wallSec: +((Date.now() - t0) / 1000).toFixed(2) });
 }
@@ -167,6 +193,8 @@ export async function geminiGenerate({ key, model, messages, schema, maxTokens, 
  * @property {string} model
  * @property {number} wallSec
  * @property {boolean} jsonMode  whether the model accepted JSON mode for this call
+ * @property {number} [attempts]  calls made, retries and other models included
+ * @property {boolean} [modelFallback]  a fallback model answered
  * @property {{ promptTokens: number|null, outTokens: number|null, loadSec?: number|null, totalSec?: number|null }} [usage]  token counts, when the adapter knows them
  */
 /**
@@ -196,18 +224,22 @@ export function createGemini({ key, model, fallbacks = [], visionModel = "", tim
       const order = [...new Set([hasImage && visionModel ? visionModel : model, model, ...fallbacks])];
       /** @type {any} */
       let last = null;
+      // attempts across every model, for the logs (src/core/diagnose.mjs): retries are not free
+      let attempts = 0;
       for (const m of order) {
         try {
           const r = await geminiGenerate({ key, model: m, messages, schema, maxTokens, temperature, features: learned.get(m) || {}, fetchImpl, base, timeoutMs: callTimeout ?? timeoutMs });
           learned.set(m, r.features);
-          return { data: parseModelJson(r.text), text: r.text, model: m, wallSec: r.wallSec, jsonMode: !!schema && r.features.json !== false };
+          attempts += r.attempts;
+          return { data: parseModelJson(r.text), text: r.text, model: m, wallSec: r.wallSec, jsonMode: !!schema && r.features.json !== false, attempts, modelFallback: m !== order[0] };
         } catch (e) {
           last = e;
+          attempts += /** @type {any} */ (e).attempts || 1;
           // a bad key or a refused request will fail on every model; a busy or missing model may not
           if (/** @type {any} */ (e).status === 400 || /** @type {any} */ (e).status === 403) break;
         }
       }
-      throw last;
+      throw Object.assign(last, { attempts });
     },
   };
 }

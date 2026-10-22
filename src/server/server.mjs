@@ -20,7 +20,7 @@ import { withEntries } from "../core/places.mjs";
 import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather, fakeWikidata } from "../adapters/fakes.mjs";
 import { createFeeds } from "../adapters/feeds.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
-import { createLlm, describeLlm } from "../adapters/llm.mjs";
+import { createLlm, describeLlm, diagnosedAi } from "../adapters/llm.mjs";
 import { layeredCache, memoryCache, storeCache } from "../adapters/http.mjs";
 import { laneAi } from "../adapters/lanes.mjs";
 import { createOpenMeteo } from "../adapters/openmeteo.mjs";
@@ -305,7 +305,7 @@ export async function buildDeps(cfg, log = jsonLog) {
     prewarm: true,
     // LLM=gemini (default) or LLM=ollama: every Gemma task goes through this one port, in two
     // lanes: a crew sentence or a plan never waits for the background's calls
-    ai: laneAi(createLlm(cfg), { onWait }),
+    ai: laneAi(diagnosedAi(createLlm(cfg), log), { onWait }),
     feeds: createFeeds({ cache, contact: cfg.contact, log }),
     geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache, onWait }),
     places: createOverpass({ urls: cfg.overpassUrls, contact: cfg.contact, cache }),
