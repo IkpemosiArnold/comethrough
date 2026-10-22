@@ -7,9 +7,18 @@
 //           is set; indexes for every lookup, and TTL indexes so expired plans and cache
 //           entries delete themselves
 //
-// The port is deliberately small: documents with a string `id`, equality filters on
-// top-level fields, put (insert or replace) and delete. The app's repository functions in
-// src/app build on it, so swapping databases never touches the core or the app logic.
+// The port is deliberately small: documents with a string `id`, filters on fields (equality,
+// plus $in, $ne, $lt, $lte, $gt, $gte, $exists and $or), put (insert or replace), insert
+// (only when new), update (targeted) and delete. The app's repository functions in src/app
+// build on it, so swapping databases never touches the core or the app logic.
+//
+// Concurrency (docs/SPEC.md, "Concurrent writes"): `put` replaces a whole document, so it is
+// for creating one. A change to a document that already exists goes through `update`: a
+// targeted $set / $unset / $inc of the fields that changed, atomic in every store (Mongo's
+// findOneAndUpdate; in memory and in the file store the read and the write happen in one
+// synchronous step of the single process, which is the per-document lock), and every update
+// bumps the document's `version`. A whole-document edit passes `ifMatch: { version }` and
+// retries when someone else wrote first (optimistic concurrency).
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -21,14 +30,73 @@ import path from "node:path";
  * @property {(coll: string, filter: Record<string, any>) => Promise<any|null>} findOne
  * @property {(coll: string, filter?: Record<string, any>, opts?: { limit?: number }) => Promise<any[]>} find
  * @property {(coll: string, doc: { id: string, [key: string]: any }) => Promise<void>} put
+ * @property {(coll: string, doc: { id: string, [key: string]: any }) => Promise<boolean>} insert  only when no document has this id; false when one does
+ * @property {(coll: string, id: string, change: Change, opts?: { ifMatch?: Record<string, any> }) => Promise<any|null>} update
+ *   atomic; the document after the change, or null when there is none or ifMatch does not match. Bumps `version`.
  * @property {(coll: string, id: string) => Promise<boolean>} delete
  * @property {() => Promise<boolean>} ping
  * @property {() => Promise<void>} close
  */
 
-export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "flyers", "faces"];
+/**
+ * A targeted change: fields by dotted path ("rsvps.m_1").
+ * @typedef {{ set?: Record<string, any>, unset?: string[], inc?: Record<string, number> }} Change
+ */
 
-const matches = (/** @type {any} */ doc, /** @type {Record<string, any>} */ filter) => Object.entries(filter).every(([k, v]) => doc[k] === v);
+export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "deliveries", "flyers", "faces"];
+
+/** A path segment may not start with $ or hold a dot inside it (ids are [A-Za-z0-9_-]). */
+const SAFE_PATH = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;
+export const safePath = (/** @type {string} */ p) => SAFE_PATH.test(p);
+
+const getPath = (/** @type {any} */ doc, /** @type {string} */ p) => p.split(".").reduce((o, k) => (o == null ? undefined : o[k]), doc);
+function setPath(/** @type {any} */ doc, /** @type {string} */ p, /** @type {any} */ v) {
+  const ks = p.split(".");
+  let o = doc;
+  for (const k of ks.slice(0, -1)) {
+    if (o[k] == null || typeof o[k] !== "object") o[k] = {};
+    o = o[k];
+  }
+  o[/** @type {string} */ (ks.at(-1))] = v;
+}
+function unsetPath(/** @type {any} */ doc, /** @type {string} */ p) {
+  const ks = p.split(".");
+  const o = getPath(doc, ks.slice(0, -1).join("."));
+  if (ks.length === 1) delete doc[ks[0]];
+  else if (o && typeof o === "object") delete o[/** @type {string} */ (ks.at(-1))];
+}
+const isOps = (/** @type {any} */ v) => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0 && Object.keys(v).every((k) => k.startsWith("$"));
+const same = (/** @type {any} */ a, /** @type {any} */ b) => (b === null ? a == null : a === b);
+/** One field's condition, as Mongo reads it (the subset this app uses). */
+function test1(/** @type {any} */ a, /** @type {any} */ cond) {
+  if (!isOps(cond)) return same(a, cond);
+  return Object.entries(cond).every(([op, v]) => {
+    switch (op) {
+      case "$in": return v.some((/** @type {any} */ x) => same(a, x));
+      case "$ne": return !same(a, v);
+      case "$lt": return a != null && a < v;
+      case "$lte": return a != null && a <= v;
+      case "$gt": return a != null && a > v;
+      case "$gte": return a != null && a >= v;
+      case "$exists": return (a !== undefined) === !!v;
+      default: throw new TypeError(`unsupported filter operator ${op}`);
+    }
+  });
+}
+/** True when a document matches a filter. Exported for tests. */
+export function matches(/** @type {any} */ doc, /** @type {Record<string, any>} */ filter) {
+  return Object.entries(filter).every(([k, v]) => (k === "$or" ? v.some((/** @type {any} */ f) => matches(doc, f)) : test1(getPath(doc, k), v)));
+}
+/** Apply a change to a document in place (and bump its version). */
+function applyChange(/** @type {any} */ doc, /** @type {Change} */ change) {
+  for (const [p, v] of Object.entries(change.set || {})) setPath(doc, p, clone(v));
+  for (const p of change.unset || []) unsetPath(doc, p);
+  for (const [p, n] of Object.entries({ ...(change.inc || {}), version: (change.inc?.version ?? 0) + 1 })) setPath(doc, p, (Number(getPath(doc, p)) || 0) + n);
+}
+function checkChange(/** @type {Change} */ change) {
+  const paths = [...Object.keys(change?.set || {}), ...(change?.unset || []), ...Object.keys(change?.inc || {})];
+  for (const p of paths) if (!safePath(p) || p === "id" || p.startsWith("id.")) throw new TypeError(`bad field path ${p}`);
+}
 const clone = (/** @type {any} */ x) => (x == null ? x : structuredClone(x));
 
 /** @returns {Store} */
@@ -60,6 +128,22 @@ export function memoryStore() {
     async put(c, doc) {
       if (typeof doc?.id !== "string" || !doc.id) throw new TypeError("a document needs a string id");
       coll(c).set(doc.id, clone(doc));
+    },
+    async insert(c, doc) {
+      if (typeof doc?.id !== "string" || !doc.id) throw new TypeError("a document needs a string id");
+      if (coll(c).has(doc.id)) return false;
+      coll(c).set(doc.id, clone(doc));
+      return true;
+    },
+    async update(c, id, change, { ifMatch = {} } = {}) {
+      checkChange(change);
+      // read, check and write with no await in between: nothing else runs meanwhile
+      const d = coll(c).get(id);
+      if (!d || !matches(d, ifMatch)) return null;
+      const next = clone(d);
+      applyChange(next, change);
+      coll(c).set(id, next);
+      return clone(next);
     },
     async delete(c, id) {
       return coll(c).delete(id);
@@ -133,6 +217,20 @@ export async function fileStore(dir) {
       await mem.put(c, doc);
       await save(c);
     },
+    async insert(c, doc) {
+      await load(c);
+      const fresh = await mem.insert(c, doc);
+      if (fresh) await save(c);
+      return fresh;
+    },
+    async update(c, id, change, opts) {
+      await load(c);
+      // the in-memory copy is the source of truth for this process; the change is applied
+      // there atomically (see memoryStore), then the collection is written in order
+      const after = await mem.update(c, id, change, opts);
+      if (after) await save(c);
+      return after;
+    },
     async delete(c, id) {
       await load(c);
       const had = await mem.delete(c, id);
@@ -156,6 +254,8 @@ export const MONGO_INDEXES = {
   push: [[{ memberId: 1 }, {}], [{ crewId: 1 }, {}]],
   cache: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   sent: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
+  // push deliveries: the heartbeat looks for the ones due again (src/app/service.mjs, notify)
+  deliveries: [[{ state: 1, nextAt: 1 }, {}], [{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   flyers: [[{ _expireAt: 1 }, { expireAfterSeconds: 0 }]],
   // a member's photo, by member id (about 27 KB as base64; Mongo's limit is 16 MB)
   faces: [[{ crewId: 1 }, {}]],
@@ -200,6 +300,33 @@ export async function mongoStore({ uri, db: dbName, appName = "comethrough" }) {
       const exp = Date.parse(/** @type {any} */ (doc).expiresAt);
       if (Number.isFinite(exp)) stored._expireAt = new Date(exp);
       await db.collection(c).replaceOne({ _id: stored._id }, stored, { upsert: true });
+    },
+    async insert(c, doc) {
+      if (typeof doc?.id !== "string" || !doc.id) throw new TypeError("a document needs a string id");
+      /** @type {any} */
+      const stored = { ...doc, _id: doc.id };
+      const exp = Date.parse(/** @type {any} */ (doc).expiresAt);
+      if (Number.isFinite(exp)) stored._expireAt = new Date(exp);
+      try {
+        await db.collection(c).insertOne(stored);
+        return true;
+      } catch (e) {
+        if (/** @type {any} */ (e).code === 11000 && /_id_/.test(String(/** @type {any} */ (e).message))) return false;
+        throw e;
+      }
+    },
+    async update(c, id, change, { ifMatch = {} } = {}) {
+      checkChange(change);
+      /** @type {any} */
+      const u = {};
+      if (change.set && Object.keys(change.set).length) u.$set = { ...change.set };
+      if (change.unset?.length) u.$unset = Object.fromEntries(change.unset.map((p) => [p, ""]));
+      u.$inc = { ...(change.inc || {}), version: (change.inc?.version ?? 0) + 1 };
+      // the TTL date follows expiresAt
+      const exp = Date.parse(change.set?.expiresAt);
+      if (Number.isFinite(exp)) u.$set._expireAt = new Date(exp);
+      const r = await db.collection(c).findOneAndUpdate(/** @type {any} */ ({ ...ifMatch, _id: id }), u, { returnDocument: "after" });
+      return toDoc(r);
     },
     async delete(c, id) {
       return (await db.collection(c).deleteOne({ _id: /** @type {any} */ (id) })).deletedCount > 0;

@@ -19,7 +19,7 @@ import { NEAR_KM } from "../adapters/geocode.mjs";
 import { cleanRegion, hintRegion, packFor, packView, regionOf } from "../packs/index.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
-import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, setRsvp, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
+import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
 import { podTrips, podsForPlan } from "../core/pods.mjs";
 import { directionsLinks, ridesForApi } from "../core/rides.mjs";
 import { fallbackInvite, ritualDraft, ritualDue } from "../core/ritual.mjs";
@@ -38,6 +38,8 @@ import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { createGrowth } from "./growth.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
+import { diffChange, editDoc } from "./writes.mjs";
+import { safePath } from "../adapters/store.mjs";
 
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
@@ -540,7 +542,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const labels = (crew.areas || []).map((a) => a.label);
     if (b.taste && typeof b.taste === "object") {
       const taste = cleanTaste(b.taste);
-      await store.put("crews", { ...crew, taste });
+      await store.update("crews", crew.id, { set: { taste } });
       log("crew_taste", { crew: crew.id, taste: hasTaste(taste) });
       return { taste, ...tasteView(taste, { areas: labels }), saved: true };
     }
@@ -585,10 +587,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // first member on the map
     if (area && isLatLon(area) && !where.region.center && crew.region) {
       const region = await regionFrom([{ lat: /** @type {number} */ (area.lat), lon: /** @type {number} */ (area.lon), country, city }], where.region);
-      if (region) {
+      // only while the crew still has no centre: two first joiners at once set it once
+      if (region && (await store.update("crews", crew.id, { set: { region, tz: region.timezone } }, { ifMatch: { "region.center": null } }))) {
         crew.region = region;
         crew.tz = region.timezone;
-        await store.put("crews", crew);
       }
     }
     /** @type {Member} */
@@ -640,8 +642,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const input = body?.near ? await areaNear(body.near, where.geo) : body?.area;
     const { area, note } = await resolveArea(input, where.geo);
     if (!area) throw invalid([{ field: "area", message: "Add the area you're coming from." }]);
-    const next = { ...member, area: /** @type {any} */ (area) };
-    await store.put("members", next);
+    const next = (await store.update("members", member.id, { set: { area } })) ?? { ...member, area: /** @type {any} */ (area) };
     log("member_area", { crew: crew.id, member: member.id, located: isLatLon(area), rough: !!body?.near });
     return { you: memberView(next), notes: note ? [note] : [] };
   }
@@ -676,7 +677,9 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const fresh = state.status === "pending" && state.attempts === 0;
     if (!fresh && !(force && state.status === "pending") && !shouldRun(state, now(), { running: false })) return state;
     const begun = beginPick(state, now());
-    await store.put("crews", { ...crew, firstPick: begun });
+    // a claim: only the job that moves the state from what it read starts the pick
+    const claimed = await store.update("crews", crewId, { set: { firstPick: begun } }, { ifMatch: { "firstPick.status": state.status, "firstPick.attempts": state.attempts, "firstPick.startedAt": state.startedAt ?? null } });
+    if (!claimed) return /** @type {Crew|null} */ ((await store.get("crews", crewId)))?.firstPick ?? state;
     const t0 = now();
     /** @type {{ planId?: string|null, reason: string }} */
     let outcome;
@@ -687,9 +690,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       outcome = { reason: "error" };
     }
     const done = finishPick(begun, outcome, now());
-    // the crew may have changed meanwhile (a member joined, the taste was edited): keep that
-    const latest = /** @type {Crew|null} */ (await store.get("crews", crewId)) ?? crew;
-    await store.put("crews", { ...latest, firstPick: done });
+    // only the pick's own field: a rename or a taste saved meanwhile stays
+    await store.update("crews", crewId, { set: { firstPick: done } });
     log("first_pick", { crew: crewId, status: done.status, reason: done.reason, attempts: done.attempts, ms: now() - t0 });
     return done;
   }
@@ -724,7 +726,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function firstPick({ slug, token, waitMs = budget.pickWaitMs }) {
     const { crew, role, member } = await viewerOf(slug, token);
     if (!crew.rhythm) return { status: "ready", plan: null, reason: "no_rhythm" };
-    if (!crew.firstPick) await store.put("crews", { ...crew, firstPick: pendingPick(now()) });
+    if (!crew.firstPick) await store.update("crews", crew.id, { set: { firstPick: pendingPick(now()) } }, { ifMatch: { firstPick: { $exists: false } } });
     const state = crew.firstPick ?? pendingPick(now());
     if (shouldRun(state, now(), { running: picking.has(crew.id) })) kickFirstPick(crew.id, { force: true });
     const job = picking.get(crew.id);
@@ -845,8 +847,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     let plan = createPlan(draft, { id: ids.id("p"), crewId: crew.id, createdBy: member.id, now: now() });
     plan = await sw.time("weather", within(withWeather(plan), budget.weatherMs, plan));
     if (plan.source.flyerId) {
-      const flyer = await store.get("flyers", plan.source.flyerId);
-      await store.put("flyers", { ...flyer, planId: plan.id, expiresAt: plan.expiresAt });
+      await store.update("flyers", plan.source.flyerId, { set: { planId: plan.id, expiresAt: plan.expiresAt } });
     }
     await store.put("plans", plan);
     log("plan_created", { crew: crew.id, plan: plan.id, kind: plan.kind });
@@ -860,41 +861,80 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { plan: planView(plan, crew, members, "member", member) };
   }
 
-  /** RSVP and edits. */
+  /**
+   * RSVP and edits. An RSVP is one targeted write of that member's own answer (rsvps.<id>),
+   * so answers made at the same moment all land. An edit is worked out from the plan as it
+   * is now and written under its version, read again and retried when someone else wrote
+   * first; the place's pin and the forecast are looked up once and reused on a retry.
+   */
   async function patchPlan({ id, token, body }) {
     const { member, crew, plan } = await planFor(id, token);
     const b = body && typeof body === "object" ? body : {};
     const members = await membersOf(crew.id);
-    let next = plan;
     /** @type {string[]} */
     let changed = [];
     const { rsvp, ...edits } = b;
+    if ("rsvp" in b && b.rsvp !== null && b.rsvp !== "going" && b.rsvp !== "maybe") throw invalid([{ field: "rsvp", message: "rsvp must be going, maybe or null." }]);
+    let current = plan;
     if (Object.keys(edits).length) {
       if (!canEdit(plan, member.id)) throw new AppError(403, "not_yours", "Only the person who added this plan or its host can change it.");
-      const r = applyEdit(plan, edits, { now: now() });
-      if (!r.ok) throw invalid(r.errors);
-      next = r.plan;
-      changed = r.changed;
-      if (changed.includes("place")) next = { ...next, place: (await pinWithin(next.place, placeOf(crew))).place };
-      if (changed.includes("start") || changed.includes("place")) {
-        const bare = { ...next, weather: null };
-        next = await within(withWeather(bare), budget.weatherMs, bare);
-      }
+      /** @type {Map<string, any>} */
+      const pins = new Map();
+      /** @type {Map<string, any>} */
+      const forecasts = new Map();
+      const done = await editDoc(store, "plans", plan.id, async (fresh) => {
+        const r = applyEdit(fresh, edits, { now: now() });
+        if (!r.ok) throw invalid(r.errors);
+        changed = r.changed;
+        if (!r.changed.length) return null;
+        let next = r.plan;
+        if (r.changed.includes("place")) {
+          const k = JSON.stringify(next.place);
+          if (!pins.has(k)) pins.set(k, (await pinWithin(next.place, placeOf(crew))).place);
+          next = { ...next, place: pins.get(k) };
+        }
+        if (r.changed.includes("start") || r.changed.includes("place")) {
+          const k = JSON.stringify([next.start, next.end, next.place]);
+          if (!forecasts.has(k)) {
+            const bare = { ...next, weather: null };
+            forecasts.set(k, (await within(withWeather(bare), budget.weatherMs, bare)).weather ?? null);
+          }
+          next = { ...next, weather: forecasts.get(k) };
+        }
+        return diffChange(fresh, next, ["rsvps"]);
+      });
+      if (!done) throw notFound("That plan");
+      current = done.after;
     }
+    let answered = false;
+    /** @type {string|null} */
+    let before = null;
     if ("rsvp" in b) {
-      if (b.rsvp !== null && b.rsvp !== "going" && b.rsvp !== "maybe") throw invalid([{ field: "rsvp", message: "rsvp must be going, maybe or null." }]);
-      next = setRsvp(next, member.id, b.rsvp, now());
+      const path = `rsvps.${member.id}`;
+      if (!safePath(path)) throw badToken();
+      before = current.rsvps?.[member.id] ?? null;
+      const stamp = { updatedAt: new Date(now()).toISOString() };
+      const after = b.rsvp == null
+        ? await store.update("plans", plan.id, { unset: [path], set: stamp, inc: { seq: 1 } }, { ifMatch: { [path]: { $exists: true } } })
+        : await store.update("plans", plan.id, { set: { [path]: b.rsvp, ...stamp }, inc: { seq: 1 } }, { ifMatch: { [path]: { $ne: b.rsvp } } });
+      answered = !!after;
+      current = after ?? /** @type {Plan} */ ((await store.get("plans", plan.id)) ?? current);
     }
-    if (next === plan) return { plan: planView(plan, crew, members, "member", member) };
-    const podsBefore = podKeys(plan, members, crew);
-    await store.put("plans", next);
-    const audience = Object.keys(next.rsvps).filter((m) => m !== member.id);
+    if (!changed.length && !answered) return { plan: planView(current, crew, members, "member", member) };
+    const next = current;
+    const audience = Object.keys(next.rsvps || {}).filter((m) => m !== member.id);
     if (changed.includes("status") && next.status === "cancelled") {
       await notify(audience, { title: `Cancelled: ${next.title}`, body: `${member.name} called it off.`, url: links.plan(crew, next.id), tag: next.id }, `${next.id}:cancelled:${next.seq}`);
     } else if (changed.some((f) => ["start", "end", "place"].includes(f))) {
       await notify(audience, { title: `Changed: ${next.title}`, body: `Now ${when(next)}${next.place.name ? ` at ${next.place.name}` : ""}.`, url: links.plan(crew, next.id), tag: next.id }, `${next.id}:changed:${next.seq}`);
     }
-    if ("rsvp" in b) await notifyNewPods(next, crew, members, podsBefore);
+    if (answered) {
+      // the pods as they were just before this answer
+      const rsvps = { ...next.rsvps };
+      if (before == null) delete rsvps[member.id];
+      else rsvps[member.id] = /** @type {any} */ (before);
+      await notifyNewPods(next, crew, members, podKeys({ ...next, rsvps }, members, crew));
+    }
     return { plan: planView(next, crew, members, "member", member) };
   }
 
@@ -1069,6 +1109,27 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     } catch {
       return plan;
     }
+  }
+
+  /**
+   * The heartbeat's forecast refresh for one plan: a targeted write of `weather` (and seq
+   * when the verdict flips), guarded by the version the forecast was worked out from. When
+   * the plan changed meanwhile (an answer, a new time) it is read again and the forecast
+   * redone (the adapter caches it), so nothing anyone wrote is undone.
+   * @returns {Promise<{ before: Plan, after: Plan }|null>}  null: no forecast to write
+   */
+  async function updateWeather(/** @type {string} */ planId, /** @type {number} */ t) {
+    const r = await editDoc(store, "plans", planId, async (p) => {
+      if (!p.place?.outdoor || !weatherSpot(p.place) || p.status === "cancelled") return null;
+      const fresh = await withWeather({ ...p, weather: null });
+      if (!fresh.weather) return null;
+      const flipped = !p.weather || p.weather.ok !== fresh.weather.ok;
+      return { set: { weather: fresh.weather, ...(flipped ? { updatedAt: new Date(t).toISOString() } : {}) }, ...(flipped ? { inc: { seq: 1 } } : {}) };
+    }).catch((e) => {
+      log("weather_write_conflict", { plan: planId, message: String(e?.message).slice(0, 120) });
+      return null;
+    });
+    return r?.changed ? r : null;
   }
 
   // ------------------------------------------------------------ the ritual
@@ -1251,9 +1312,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     if (rainPlan) plan = { ...plan, rainPlan };
     if (skipped) plan = { ...plan, status: "cancelled" };
-    // the last check before writing: another heartbeat may have made it meanwhile
-    if (await store.get("plans", plan.id)) return { made: false, reason: "exists" };
-    await store.put("plans", plan);
+    // written only when new: another heartbeat may have made it meanwhile
+    if (!(await store.insert("plans", plan))) return { made: false, reason: "exists" };
     sw.end({ candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
     log("ritual_made", { crew: crew.id, plan: plan.id, place: placeKey(pick), candidates: candidates.length, weather: !!hours, rain: rainPlan?.kind ?? null });
     await notify(members.map((m) => m.id), { title: skipped ? `The sloth is skipping ${DAY_NAMES[weekdayOf(date)]}` : plan.title, body: invite.slice(0, 180), url: links.plan(crew, plan.id), tag: plan.id }, `${plan.id}:new`);
@@ -1298,18 +1358,15 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         for (const p of live) {
           const start = parseInstant(p.start);
           if (!p.place?.outdoor || !weatherSpot(p.place) || p.status === "cancelled" || start < t || start - t > 6 * DAY) continue;
-          const fresh = await withWeather({ ...p, weather: null });
-          if (!fresh.weather) continue;
+          const w = await updateWeather(p.id, t);
+          if (!w) continue;
           out.weatherChecked++;
-          const flipped = !!p.weather && p.weather.ok !== fresh.weather.ok;
-          const next = { ...p, weather: fresh.weather, ...(flipped || !p.weather ? { seq: (p.seq || 0) + 1, updatedAt: new Date(t).toISOString() } : {}) };
-          await store.put("plans", next);
-          if (rainMovedIn(p.weather, fresh.weather) && start - t <= 3 * DAY) {
+          if (rainMovedIn(w.before.weather, w.after.weather) && start - t <= 3 * DAY) {
             out.rainAlerts++;
             const audience = Object.keys(p.rsvps || {});
             const sent = await notify(audience.length ? audience : (await membersOf(crew.id)).map((m) => m.id), {
               title: `Rain watch: ${p.title}`,
-              body: `${fresh.weather.summary}. Bring cover or move it.`,
+              body: `${w.after.weather.summary}. Bring cover or move it.`,
               url: links.plan(crew, p.id),
               tag: p.id,
             }, `${p.id}:rain:${localParts(start, p.tz).date}`);

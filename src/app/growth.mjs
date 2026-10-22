@@ -15,6 +15,7 @@ import { DAY_NAMES } from "../core/time.mjs";
 import { packFor, regionOf } from "../packs/index.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { safeEqual } from "./ids.mjs";
+import { editDoc } from "./writes.mjs";
 
 /** A face is a small square picture made on the phone (128 px, about 20 KB). */
 export const FACE_MAX_BYTES = 48 * 1024;
@@ -85,7 +86,7 @@ export function createGrowth({ store, ai, now, log = () => {}, promptText = NAME
     if (!name) throw invalid([{ field: "name", message: /** @type {string} */ (error) }]);
     const previous = crew.name;
     if (name !== previous) {
-      await store.put("crews", { ...crew, name, renamedAt: new Date(now()).toISOString() });
+      await store.update("crews", crew.id, { set: { name, renamedAt: new Date(now()).toISOString() } });
       log("crew_renamed", { crew: crew.id, member: member.id });
     }
     return { name, previous };
@@ -148,7 +149,7 @@ export function createGrowth({ store, ai, now, log = () => {}, promptText = NAME
     if (image.data.length > FACE_MAX_BYTES) throw new AppError(413, "too_large", "That photo is too large. Try again and it will be shrunk first.");
     const v = crypto.createHash("sha256").update(image.data).digest("base64url").slice(0, 10);
     await store.put("faces", { id: member.id, crewId: member.crewId, mimeType: image.mimeType, data: image.data.toString("base64"), v, updatedAt: new Date(now()).toISOString() });
-    await store.put("members", { ...member, faceV: v });
+    await store.update("members", member.id, { set: { faceV: v } });
     log("face_set", { crew: member.crewId, member: member.id, bytes: image.data.length });
     return { faceV: v };
   }
@@ -157,8 +158,7 @@ export function createGrowth({ store, ai, now, log = () => {}, promptText = NAME
   async function removeFace({ memberId, token }) {
     const member = await self(memberId, token);
     await store.delete("faces", member.id);
-    const { faceV, ...rest } = member;
-    await store.put("members", rest);
+    await store.update("members", member.id, { unset: ["faceV"] });
     log("face_removed", { crew: member.crewId, member: member.id });
     return null;
   }
@@ -184,9 +184,11 @@ export function createGrowth({ store, ai, now, log = () => {}, promptText = NAME
     const member = await self(memberId, token);
     const key = String(body?.key || "");
     if (!SEEN_KEY.test(key)) throw invalid([{ field: "key", message: "That is not something to remember." }]);
-    const seen = Array.isArray(member.seen) ? member.seen : [];
-    if (!seen.includes(key)) await store.put("members", { ...member, seen: [...seen, key].slice(-SEEN_MAX) });
-    return { seen: seen.includes(key) ? seen : [...seen, key].slice(-SEEN_MAX) };
+    const r = await editDoc(store, "members", member.id, (m) => {
+      const seen = Array.isArray(m.seen) ? m.seen : [];
+      return seen.includes(key) ? null : { set: { seen: [...seen, key].slice(-SEEN_MAX) } };
+    });
+    return { seen: r?.after?.seen ?? [] };
   }
 
   // ------------------------------------------------------------ the crew page
@@ -203,9 +205,12 @@ export function createGrowth({ store, ai, now, log = () => {}, promptText = NAME
     const merged = mergeLinkups(crew.linkups, linkupIds(plans, t));
     if (merged.length !== (crew.linkups || []).length) {
       crew.linkups = merged;
-      // the latest crew document, so a rename made a moment ago is not undone
-      const fresh = await store.get("crews", crew.id);
-      if (fresh) await store.put("crews", { ...fresh, linkups: mergeLinkups(fresh.linkups, merged) });
+      // only the linkups, merged into the latest list under its version: a rename made a
+      // moment ago, or another member's page doing the same, is not undone
+      await editDoc(store, "crews", crew.id, (fresh) => {
+        const next = mergeLinkups(fresh.linkups, merged);
+        return next.length === (fresh.linkups || []).length ? null : { set: { linkups: next } };
+      });
     }
     return growthView({ crew, member, plans, now: t, tz });
   }

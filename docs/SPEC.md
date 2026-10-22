@@ -101,6 +101,15 @@ Pod    (computed) { memberIds, names, fromLabel, solo, leaveBy, travelMin, cross
 
 Times are ISO 8601 with an offset (`2026-10-24T16:00:00+01:00`). Plans expire 30 days after they end. A hosted place marked `private` (a home address) is visible only to crew members. `seq` goes up on every change (it is the calendar SEQUENCE). `token` is the member's own link secret (read and write as that member); `calToken` only reads the calendar feed, because calendar apps and Google's servers see that URL.
 
+### Concurrent writes (25 Oct, from Astra's review)
+
+Two people answering at the same moment, or the heartbeat's forecast landing beside an answer, never undo each other. Every document carries a `version` (missing on old documents, read as none), bumped by every change. `put` replaces a whole document and is used only to create one; `insert` creates only when the id is new (the ritual's plan, push deliveries). Changes go through `update`, a targeted `$set` / `$unset` / `$inc` (Mongo `findOneAndUpdate`; the memory and file stores apply it in one synchronous step of the single process, which is their per-document lock):
+
+- an RSVP sets or unsets only `rsvps.<memberId>` (and bumps `seq`);
+- the heartbeat's forecast sets only `weather`, guarded by the version it was worked out from, and is redone when the plan changed meanwhile;
+- a plan edit, a crew's linkups and a member's seen cards are worked out from the document as read and written under its `version`, read again and retried on a conflict (a 409 after six tries);
+- a rename, a taste, a photo, an area and the first pick's state each set only their own field; the first pick's start is a claim on the state it read, so two jobs never both run.
+
 ## HTTP API (Node server)
 
 All JSON. Errors are `{ error: { code, message, fields? } }` with a 4xx or 5xx status; `message` is plain words the UI can show.
