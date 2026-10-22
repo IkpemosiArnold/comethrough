@@ -222,17 +222,21 @@ test("setting your own area from a rough location keeps only the neighbourhood, 
   assert.equal(typed.you.area.label, "Surulere");
 });
 
-test("the first pick is made when the crew is made, and asking again returns the same plan", async () => {
+test("the first pick: asked for, it runs once, and asking again returns the same plan", async () => {
   const { store, svc } = make({ places: fakeOverpass([PLACES.freedom]) });
-  await store.put("crews", CREW);
+  await store.put("crews", CREW); // a crew from before the first pick was a job: it gets one when asked
   const a = await svc.firstPick({ slug: CREW.slug, token: CREW.inviteToken });
+  assert.equal(a.status, "ready");
   assert.equal(a.reason, "made");
   assert.equal(a.plan?.kind, "ritual");
-  const b = await svc.firstPick({ slug: CREW.slug, token: CREW.inviteToken });
-  assert.equal(b.reason, "exists");
+  const b = await svc.firstPick({ slug: CREW.slug, token: CREW.inviteToken, waitMs: 0 });
+  assert.equal(b.status, "ready");
   assert.equal(b.plan?.id, a.plan?.id);
+  assert.equal((await store.find("plans", { crewId: CREW.id })).length, 1);
   const t = await svc.tick();
   assert.equal(t.rituals, 0, "the heartbeat leaves the first pick be");
+  assert.equal(t.firstPicks, 0);
   await store.put("crews", { ...CREW, id: "c_norhythm", slug: "no-rhythm", inviteToken: "inv2", rhythm: null });
-  assert.equal((await svc.firstPick({ slug: "no-rhythm", token: "inv2" })).reason, "no_rhythm");
+  const none = await svc.firstPick({ slug: "no-rhythm", token: "inv2" });
+  assert.deepEqual([none.status, none.reason, none.plan], ["ready", "no_rhythm", null]);
 });

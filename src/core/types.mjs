@@ -30,6 +30,7 @@
  * @property {string} [tz]       the crew's IANA zone (the same as region.timezone)
  * @property {{ center: LatLon|null, countryCode: string|null, city: string|null, timezone: string, tzSource: "open-meteo"|"browser"|"legacy"|"utc" }} [region]
  *   where the crew is, derived from its areas when they are first geocoded; a crew without one is in Lagos (src/packs)
+ * @property {import("./firstpick.mjs").FirstPick} [firstPick]  the sloth's first pick, a background job (crews with a regular day)
  */
 
 /**

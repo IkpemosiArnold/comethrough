@@ -55,7 +55,9 @@ export function createOpenMeteo({ url, cache, fetchImpl }) {
       return cached(cache, key, 3600_000, async () => hoursFromOpenMeteo(await fetchJson(forecastUrl(url, at, { tz, days }), { timeoutMs: 10000, retries: 1, fetchImpl }), tz === "auto" ? null : tz));
     },
     async timezoneAt(at) {
-      const key = `tz:${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
+      // cached on a 0.25 degree grid (about 28 km): every crew in a city after the first gets its zone at once
+      const snap = (/** @type {number} */ x) => (Math.round(x / 0.25) * 0.25).toFixed(2);
+      const key = `tz:${snap(at.lat)},${snap(at.lon)}`;
       const json = await cached(cache, key, 30 * 24 * 3600_000, async () => {
         const j = await fetchJson(zoneUrl(url, at), { timeoutMs: 8000, retries: 1, fetchImpl });
         return { timezone: typeof j?.timezone === "string" ? j.timezone : null };

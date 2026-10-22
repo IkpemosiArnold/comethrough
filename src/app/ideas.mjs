@@ -28,6 +28,7 @@ import { feedsFor } from "../packs/sources.mjs";
 import { badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { safeEqual } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
+import { inBackground } from "../adapters/lanes.mjs";
 
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
@@ -201,12 +202,14 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const key = `ideas:${crew.id}:${w}:${tasteKey(crew.taste)}`;
     const hit = await cache.get(key);
     if (hit) return { ...hit, cached: true };
-    return once(inflight, key, async () => {
+    // a new card is background work (src/adapters/lanes.mjs): its map, weather, venue and
+    // Gemma calls never hold up someone posting a plan or answering one
+    return once(inflight, key, () => inBackground(async () => {
       onMiss();
       const card = /** @type {any} */ (await makeCard(crew, w));
       await cache.set(key, card, card.partial ? PARTIAL_TTL_MS : IDEAS_TTL_MS);
       return { ...card, cached: false };
-    });
+    }));
   }
 
   /** @param {Crew} crew @param {"tonight"|"weekend"} when */
@@ -232,12 +235,13 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     // curated guides: refresh (at most daily) while the rest is gathered
     const guides = feedsFor(pack);
     const refresh = Promise.all(guides.map((g) => once(refreshing, g.id, () => refreshFeed(g, { pack, region, local, tz })).catch((e) => log("feed_error", { feed: g.id, message: String(e?.message).slice(0, 120) }))));
+    // the places and the forecast need only the centre: both at once
+    const placesP = candidatesNear(center, pack, crew.taste ?? null).catch(() => /** @type {any[]} */ ([]));
     const plans = /** @type {Plan[]} */ (await store.find("plans", { crewId: crew.id }));
     let hours = null;
     try {
       hours = await sw.time("weather", weather.hourly(center, { tz, days: 7 }));
     } catch {}
-    const placesP = candidatesNear(center, pack, crew.taste ?? null).catch(() => /** @type {any[]} */ ([]));
     let places = await sw.time("places", Promise.race([placesP, wait(placesBudgetMs)]));
     if (places === undefined) {
       // the map is slow (it keeps going, and fills its cache for next time): the curated spots meanwhile
@@ -282,12 +286,14 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
   }
 
   /** The heartbeat's part: refresh every guide for packs that have them (at most daily each). */
-  async function refreshAll(/** @type {{ pack: any, region: any }[]} */ targets) {
-    for (const { pack, region } of targets) {
-      for (const g of feedsFor(pack)) {
-        await once(refreshing, g.id, () => refreshFeed(g, { pack, region, local: pack.local(region), tz: region.timezone })).catch(() => {});
+  function refreshAll(/** @type {{ pack: any, region: any }[]} */ targets) {
+    return inBackground(async () => {
+      for (const { pack, region } of targets) {
+        for (const g of feedsFor(pack)) {
+          await once(refreshing, g.id, () => refreshFeed(g, { pack, region, local: pack.local(region), tz: region.timezone })).catch(() => {});
+        }
       }
-    }
+    });
   }
 
   return { getIdeas, refreshAll, _internal: { refreshFeed, eventsFrom } };

@@ -3,13 +3,18 @@
 // the sloth's first pick reaching the invite screen), and reading a link plan, once on a
 // quiet server and once while the ideas card reads a weekly guide in the background.
 //
-// Run: node scripts/perf-check.mjs [--root <repo copy>] [--port 3200] [--link <event url>]
+// Run: node scripts/perf-check.mjs [--root <repo copy>] [--port 3200] [--skip crew,quiet]
+//        [--link <event url>] [--link-extract <event url>] [--link-venues <event url>]
 //   Starts the API in this process on the port (3200 by default, never 3000), with a fresh
 //   data folder, the real Gemini API, Photon, Overpass, OSRM and Open-Meteo, and TIMING=1.
 //   --root runs another copy of this repo (an older commit) through the same steps, so the
 //   numbers before and after a change come from one script.
 //   The guide is synthetic (invented events at real Lagos venues, so the venue lookups are
-//   real); no curator's feed is fetched. About 7 Gemini calls per run.
+//   real); no curator's feed is fetched. About 8 Gemini calls per run; --skip crew makes the
+//   crew from a written draft with no regular day (no setup call, no first pick) and
+//   --skip quiet leaves out the quiet link, and --skip ideas the busy ones. The two busy links are different event pages,
+//   so neither finds the other's venue in the cache: one is read while Gemma reads the
+//   guide, the other right after, while the guide's venues are looked up.
 //   Prints a JSON report; tokens are never printed.
 
 import fs from "node:fs";
@@ -26,7 +31,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(opt("root", path.join(here, "..")));
 const PORT = Number(opt("port", "3200"));
 if (PORT === 3000) throw new Error("Port 3000 is Arnold's own server. Use another port.");
+const SKIP = opt("skip", "").split(",");
 const LINK = opt("link", "https://www.eventbrite.com/e/the-amala-and-palmwine-festival-20-tickets-2002313797469");
+const LINK_EXTRACT = opt("link-extract", "https://www.eventbrite.com/e/leadway-lifestyle-fair-tickets-2002921744856");
+const LINK_VENUES = opt("link-venues", "https://www.eventbrite.com/e/fabric-painting-class-with-cz-tickets-2001406002229");
 const SENTENCE = "the uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki";
 
 const imp = (/** @type {string} */ rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
@@ -88,14 +96,26 @@ async function call(method, p, o = {}) {
 /** @type {Record<string, any>} */
 const report = { root: ROOT === path.resolve(here, "..") ? "this checkout" : ROOT, startedAt: new Date().toISOString() };
 try {
+  /** @type {string} */
+  let slug;
+  /** @type {string} */
+  let token;
+  if (SKIP.includes("crew")) {
+    const confirm = { name: "Perf crew", vibe: "outside and cheap", vibeTags: ["outside"], budget: "cheap", rhythm: null, taste: null, areas: [{ label: "Yaba", lat: 6.5068, lon: 3.3755 }, { label: "Lekki Phase 1", lat: 6.4474, lon: 3.4723 }], region: { center: { lat: 6.4771, lon: 3.4239 }, countryCode: "NG", city: "Lagos", timezone: "Africa/Lagos", tzSource: "open-meteo" } };
+    const made = await call("POST", "/api/crews", { json: { confirm, organiser: { name: "Tolu", area: { label: "Yaba", lat: 6.5068, lon: 3.3755 } } } });
+    if (made.status !== 201) throw new Error(`create: ${made.status} ${JSON.stringify(made.body)}`);
+    slug = made.body.crew.slug;
+    token = made.body.memberToken;
+    report.crew = { skipped: true, createMs: made.ms };
+  } else {
   // 1. Start a crew: the sentence, then the confirm (the invite screen shows after this)
   const draft = await call("POST", "/api/crews", { json: { sentence: SENTENCE, hint: { tz: "Africa/Lagos" } } });
   if (draft.status !== 200) throw new Error(`draft: ${draft.status} ${JSON.stringify(draft.body)}`);
   const { confidence, low, notes, ai, pack, taste, ...rest } = draft.body;
   const made = await call("POST", "/api/crews", { json: { confirm: rest.draft, organiser: { name: "Tolu", area: "Yaba" }, hint: { tz: "Africa/Lagos" } } });
   if (made.status !== 201) throw new Error(`create: ${made.status} ${JSON.stringify(made.body)}`);
-  const slug = made.body.crew.slug;
-  const token = made.body.memberToken;
+  slug = made.body.crew.slug;
+  token = made.body.memberToken;
   // 2. The first pick, as the invite screen asks for it
   const p0 = performance.now();
   let pick = await call("GET", `/api/crews/${slug}/first-pick?wait=25`, { token });
@@ -112,23 +132,37 @@ try {
     pick: pick.body?.plan ? { place: pick.body.plan.place?.name, start: pick.body.plan.start, status: pick.body.plan.status } : { status: pick.status, body: pick.body },
   };
 
-  // 3. A link plan on a quiet server
-  const quiet = await call("POST", `/api/crews/${slug}/plans/parse`, { token, json: { url: LINK } });
-  report.linkQuiet = { ms: quiet.ms, status: quiet.status, title: quiet.body?.draft?.title, place: quiet.body?.draft?.place?.name, pinned: quiet.body?.draft?.place?.lat != null };
+  }
 
-  // 4. The same link while the ideas card reads a weekly guide (Gemma, then 20 venue lookups)
+  // 3. A link plan on a quiet server
+  if (!SKIP.includes("quiet")) {
+    const quiet = await call("POST", `/api/crews/${slug}/plans/parse`, { token, json: { url: LINK } });
+    report.linkQuiet = { ms: quiet.ms, status: quiet.status, title: quiet.body?.draft?.title, place: quiet.body?.draft?.place?.name, pinned: quiet.body?.draft?.place?.lat != null };
+  }
+
+  // 4. Links while the ideas card reads a weekly guide: one while Gemma reads the guide,
+  //    one right after, while its 20 venues are looked up
+  if (SKIP.includes("ideas")) throw "done";
   const c0 = performance.now();
-  const extracted = when((e) => e.event === "gemma" && e.task === "extract-events");
+  const extracted = when((e) => (e.event === "gemma" || e.event === "gemma_error") && e.task === "extract-events");
   const card = call("GET", `/api/crews/${slug}/ideas?when=weekend`, { token });
-  await Promise.race([extracted, new Promise((r) => setTimeout(r, 60_000))]);
-  const busy = await call("POST", `/api/crews/${slug}/plans/parse`, { token, json: { url: LINK } });
+  await new Promise((r) => setTimeout(r, 3000));
+  const parse = async (/** @type {string} */ url) => {
+    const at = Math.round(performance.now() - c0);
+    const r = await call("POST", `/api/crews/${slug}/plans/parse`, { token, json: { url } });
+    return { ms: r.ms, status: r.status, startedAtMs: at, title: r.body?.draft?.title, place: r.body?.draft?.place?.name, pinned: r.body?.draft?.place?.lat != null };
+  };
+  report.linkDuringGuideRead = await parse(LINK_EXTRACT);
+  await Promise.race([extracted, new Promise((r) => setTimeout(r, 90_000))]);
+  report.linkDuringVenueLookups = await parse(LINK_VENUES);
   const cardDone = await card;
-  report.linkDuringIdeas = { ms: busy.ms, status: busy.status, startedAfterMs: Math.round(performance.now() - c0 - busy.ms), pinned: busy.body?.draft?.place?.lat != null };
-  report.ideasCard = { ms: Math.round(performance.now() - c0), status: cardDone.status, ideas: cardDone.body?.ideas?.length ?? null, partial: !!cardDone.body?.partial };
+  report.ideasCard = { ms: cardDone.ms, status: cardDone.status, ideas: cardDone.body?.ideas?.length ?? null, partial: !!cardDone.body?.partial };
+  // the guide's venues, looked up after the card answered (partial cards go on in the background)
+  await Promise.race([when((e) => e.event === "timing" && e.flow === "feed_read"), new Promise((r) => setTimeout(r, 30_000))]);
   // a moment for background work to land its timing lines
   await new Promise((r) => setTimeout(r, 1500));
 } catch (e) {
-  report.error = String(/** @type {any} */ (e)?.stack || e).slice(0, 600);
+  if (e !== "done") report.error = String(/** @type {any} */ (e)?.stack || e).slice(0, 600);
 } finally {
   report.gemmaCalls = logs.filter((l) => l.event === "gemma" || l.event === "gemma_error").map((l) => ({ t: l.t, task: l.task, sec: l.sec ?? null, error: l.event === "gemma_error" ? l.message : undefined }));
   report.timings = logs.filter((l) => l.event === "timing").map(({ event, ...rest }) => rest);

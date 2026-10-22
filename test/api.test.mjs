@@ -93,6 +93,16 @@ test("start a crew: Gemma's draft, then confirm with the organiser joining", asy
   assert.equal(c.json.inviteUrl, `https://comethrough.test/c/${c.json.crew.slug}?t=${encodeURIComponent(c.json.inviteToken)}`);
   assert.ok(c.json.memberToken.length >= 32);
   assert.match(c.json.webcalUrl, /^webcal:\/\/api\.comethrough\.test\/cal\/[A-Za-z0-9_-]+\.ics$/);
+  // the sloth's first pick is not in the answer: it starts once the answer is sent
+  assert.deepEqual(c.json.crew.firstPick, { status: "pending", planId: null });
+  const pick = await call("GET", `/api/crews/${c.json.crew.slug}/first-pick?wait=5`, { token: c.json.inviteToken });
+  assert.equal(pick.status, 200);
+  assert.equal(pick.json.status, "ready");
+  assert.equal(pick.json.plan.kind, "ritual");
+  assert.equal(pick.json.plan.ritualFor, "2026-10-24");
+  assert.equal((await call("GET", `/api/crews/${c.json.crew.slug}`, { token: c.json.inviteToken })).json.crew.firstPick.planId, pick.json.plan.id);
+  // the rest of this file follows the heartbeat's own ritual, so the first pick is taken away
+  await store.delete("plans", pick.json.plan.id);
   Object.assign(S, { slug: c.json.crew.slug, invite: c.json.inviteToken, tolu: c.json.memberToken, toluId: c.json.member.id, cal: c.json.calendarUrl });
 });
 

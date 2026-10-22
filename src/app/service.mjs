@@ -31,6 +31,8 @@ import { HIGH_RISK, PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, osmTagsFor,
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
+import { inBackground, within } from "../adapters/lanes.mjs";
+import { beginPick, finishPick, pendingPick, pickView, shouldRun } from "../core/firstpick.mjs";
 import { lockedMessage, lockedSite } from "../core/netguard.mjs";
 import { AppError, badToken, invalid, noToken, notFound } from "./errors.mjs";
 import { endpointId, safeEqual, slugify } from "./ids.mjs";
@@ -48,6 +50,14 @@ export const LIMITS = { sentence: 500, into: 300, planText: 2000, url: 2000, mem
 /** The ritual looks for places this far from the crew's middle, then wider if it finds too few. */
 export const SEARCH_RADII_M = [6000, 12000];
 const SPOT_RADIUS_KM = 15;
+/**
+ * How long someone waiting is kept waiting before the honest fallback: a plan's place not
+ * pinned yet, a plan without its forecast (the heartbeat adds it), Gemma's draft left to
+ * fill by hand. The first pick runs in the background, but someone is watching its card, so
+ * the map and the forecast get budgets there too; what they had not answered by then still
+ * fills the caches for the next time.
+ */
+export const BUDGETS = { pinMs: 8000, weatherMs: 6000, gemmaMs: 35_000, pickPlacesMs: 8000, pickWeatherMs: 8000, pickWaitMs: 25_000 };
 const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
 
 /**
@@ -70,8 +80,11 @@ const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "squar
  * @param {{ publicUrl: string, webUrl: string, uidDomain: string }} deps.cfg
  * @param {(event: string, fields?: Record<string, any>) => void} [deps.log]
  * @param {boolean} [deps.timing]  TIMING=1: one `timing` log line per slow flow, with its stages (src/app/timing.mjs)
+ * @param {Partial<typeof BUDGETS>} [deps.budgets]  the waits above (a local Ollama model needs a longer gemmaMs)
+ * @param {boolean} [deps.prewarm]  look up a new crew's places and forecast while the organiser reads the draft (the server turns it on)
  */
-export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null, timing = false }) {
+export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null, timing = false, budgets = {}, prewarm = false }) {
+  const budget = { ...BUDGETS, ...budgets };
   /** A stopwatch for one flow; it logs only when timing is on. */
   const watch = (/** @type {string} */ flow) => stopwatch(flow, { on: timing, log });
   // ------------------------------------------------------------ where a crew is
@@ -116,18 +129,17 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       for (const x of xs) if (x) n.set(x, (n.get(x) || 0) + 1);
       return [...n.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
     };
-    // the city at the centre, at city level (Nominatim), names it best; the areas' own say otherwise
-    let at = null;
-    if (geocoder.cityAt) {
-      try {
-        at = await geocoder.cityAt(center);
-      } catch (e) {
+    // the city at the centre, at city level (Nominatim), names it best; the areas' own say
+    // otherwise. The city and the zone are asked for at the same time.
+    const cityP = geocoder.cityAt
+      ? geocoder.cityAt(center).catch((e) => {
         log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
-      }
-    }
+        return null;
+      })
+      : Promise.resolve(null);
+    const [at, tz] = await Promise.all([cityP, zoneAt(center)]);
     const countryCode = at?.country ?? mode(pts.map((p) => p.country)) ?? base.countryCode;
     const city = at?.city ?? mode(pts.map((p) => p.city)) ?? base.city;
-    const tz = await zoneAt(center);
     const round = (/** @type {number} */ x) => Math.round(x * 1e4) / 1e4;
     return {
       center: { lat: round(center.lat), lon: round(center.lon) },
@@ -187,11 +199,20 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   // ------------------------------------------------------------ Gemma
 
-  /** One Gemma task. Returns the parsed answer, or null with the reason when Gemma is unavailable. */
-  async function gemma(task, messages, schema) {
+  /**
+   * One Gemma task. Returns the parsed answer, or null with the reason when Gemma is
+   * unavailable. `waitMs`: someone is waiting, so give up after this long (the adapter's own
+   * retries and fallback model could otherwise take minutes).
+   */
+  async function gemma(task, messages, schema, { waitMs = 0 } = {}) {
     if (!ai.available) return { data: null, model: null, error: "Gemma is not set up on this server." };
     try {
-      const r = await ai.generate({ task, messages, schema, maxTokens: MAX_TOKENS[/** @type {keyof typeof MAX_TOKENS} */ (task)] });
+      const call = ai.generate({ task, messages, schema, maxTokens: MAX_TOKENS[/** @type {keyof typeof MAX_TOKENS} */ (task)] });
+      const r = waitMs ? await within(call, waitMs, null) : await call;
+      if (!r) {
+        log("gemma_error", { task, status: 0, message: `no answer within ${Math.round(waitMs / 1000)} s` });
+        return { data: null, model: null, error: "Gemma is slow right now." };
+      }
       log("gemma", { task, model: r.model, sec: r.wallSec, json: r.jsonMode, parsed: r.data != null });
       return { data: r.data, model: r.model, error: r.data == null ? "Gemma's answer could not be read." : null };
     } catch (e) {
@@ -208,6 +229,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     id: c.id, slug: c.slug, name: c.name, vibe: c.vibe, vibeTags: c.vibeTags || [], budget: c.budget || "any",
     rhythm: c.rhythm, areas: (c.areas || []).map((a) => ({ label: a.label })), tz: c.tz || regionOf(c).timezone, inviteToken: c.inviteToken, createdAt: c.createdAt,
     ...regionFields(c),
+    firstPick: pickView(c.firstPick),
     ...(role === "member" ? { taste: c.taste ?? null } : {}),
   });
   /** The crew's region and pack, as the web app sees them (for times, examples and the ride card). */
@@ -294,6 +316,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { place: bare, note: "Could not pin the place on the map, so there are no ride times. Riders will paste the address into their ride app." };
   }
 
+  /** pinPlace, for someone waiting: after budget.pinMs the place goes on unpinned, and says so. */
+  function pinWithin(/** @type {any} */ place, /** @type {ReturnType<typeof placeOf>} */ where) {
+    return within(pinPlace(place, where), budget.pinMs, { place, note: place && (place.address || place.name) && !isLatLon(place) ? "The map was slow to answer, so the place is not pinned yet. Riders will paste the address into their ride app." : null });
+  }
+
   // ------------------------------------------------------------ crews
 
   /**
@@ -312,7 +339,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const start = hintRegion(hint);
     const first = placeOf({ region: start });
     // one Gemma call reads everything: the name, rhythm, vibe, areas and the taste
-    const g = await sw.time("gemma", gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA));
+    const g = await sw.time("gemma", gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA, { waitMs: budget.gemmaMs }));
     const r = readCrewSetup(g.data, { sentence: s, into: i }, first.local);
     const notes = [...r.notes];
     if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
@@ -322,7 +349,18 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const { areaLabels, ...rest } = r.draft;
     const { pack } = placeOf({ region });
     const tv = tasteView(r.draft.taste, { areas: located.areas.map((a) => a.label) });
+    // a crew with a regular day gets the sloth's first pick once it is made: look up its
+    // places and forecast now, while the organiser reads the draft (cached by tile)
+    if (prewarm && r.draft.rhythm && region.center) warmUp(/** @type {{ lat: number, lon: number }} */ (region.center), pack, r.draft.taste, region.timezone);
     return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error };
+  }
+
+  /** The first pick's lookups, in the background: places near the centre and the forecast. Never throws. */
+  function warmUp(/** @type {{ lat: number, lon: number }} */ center, /** @type {CityPack} */ pack, /** @type {any} */ taste, /** @type {string} */ tz) {
+    inBackground(() => Promise.all([
+      candidatesNear(center, pack, taste).catch(() => null),
+      weather.hourly(center, { tz, days: 7 }).catch(() => null),
+    ])).catch(() => {});
   }
 
   /**
@@ -344,8 +382,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function locateAreas(labels, start, noHint, notes) {
     const startPack = packFor(start);
     if (startPack.id !== "default") {
-      const lagos = [];
-      for (const label of labels) lagos.push(await resolveArea(label, startPack.geocode(start)));
+      // all at once (the geocoder's gate still spaces the requests)
+      const lagos = await Promise.all(labels.map((label) => resolveArea(label, startPack.geocode(start))));
       if (!(noHint && labels.length && lagos.every((g) => !isLatLon(g.area)))) return collect(lagos, notes);
     }
     return collect(await anywhere(labels, start.timezone), notes);
@@ -373,8 +411,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   async function anywhere(labels, tz) {
     const prefer = await zoneCountry(tz);
     /** @type {any[][]} */
-    const lists = [];
-    for (const label of labels) {
+    const lists = await Promise.all(labels.map(async (label) => {
       const q = clip(label, 60) || "";
       let rs = [];
       try {
@@ -383,8 +420,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       } catch (e) {
         log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
       }
-      lists.push(prefer ? [...rs.filter((r) => r.country === prefer), ...rs.filter((r) => r.country !== prefer)] : rs);
-    }
+      return prefer ? [...rs.filter((r) => r.country === prefer), ...rs.filter((r) => r.country !== prefer)] : rs;
+    }));
     const firstList = lists.find((l) => l.length) || [];
     let best = { anchor: /** @type {any} */ (null), picks: /** @type {any[]} */ ([]), n: -1 };
     for (const anchor of firstList.slice(0, 3)) {
@@ -457,6 +494,8 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       region,
       createdAt: new Date(t).toISOString(),
       inviteToken: ids.token(),
+      // the sloth's first pick runs after the answer is sent (kickFirstPick); see src/core/firstpick.mjs
+      ...(rhythm ? { firstPick: pendingPick(t) } : {}),
     };
     await sw.time("store", store.put("crews", crew));
     log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
@@ -504,7 +543,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const s = clip(b.sentence, LIMITS.into);
     if (!s || s.length < 3) throw invalid([{ field: "sentence", message: "Tell the sloth what the crew is into." }]);
     const { local } = placeOf(crew);
-    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", local), { sentence: "(the crew is already set up)", into: s }), CREW_SCHEMA);
+    const g = await gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", local), { sentence: "(the crew is already set up)", into: s }), CREW_SCHEMA, { waitMs: budget.gemmaMs });
     const r = readCrewSetup(g.data, { sentence: "", into: s }, local);
     const taste = r.draft.taste;
     return { taste, ...tasteView(taste, { areas: labels }), saved: false, ai: !g.error, notes: g.error ? [`${g.error} Pick the chips yourself.`] : [] };
@@ -599,28 +638,94 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return { you: memberView(next), notes: note ? [note] : [] };
   }
 
+  // ------------------------------------------------------------ the first pick (a background job)
+
+  /** First picks running in this process, by crew id. @type {Map<string, Promise<any>>} */
+  const picking = new Map();
+
   /**
-   * The sloth's first pick, right after a crew with a regular day is made, so the invite has
-   * something to come to. It is the ritual for the next slot of the rhythm, made now instead
-   * of two or three days before; the heartbeat then finds it and leaves it be. Asking again
-   * returns the same plan.
+   * Start the crew's first pick in the background, unless it is done, running, or waiting
+   * for its next try (src/core/firstpick.mjs). Returns the running job, or null.
+   * @param {string} crewId
+   * @param {{ force?: boolean }} [opts]  force: run a pending job even if its start looks recent
    */
-  async function firstPick({ slug, token }) {
-    const { crew, role, member } = await viewerOf(slug, token);
-    if (!crew.rhythm) return { plan: null, reason: "no_rhythm" };
-    const plans = (await plansOf(crew.id)).filter((p) => !isExpired(p, now()));
-    const members = await membersOf(crew.id);
-    const view = (/** @type {Plan} */ p) => planView(p, crew, members, role, member);
-    const mine = plans.find((p) => p.kind === "ritual");
-    if (mine) return { plan: view(mine), reason: "exists" };
-    const due = ritualDue({ crew, now: now(), plans, lead: { min: 1, max: 31 } });
-    if (!due.due) return { plan: null, reason: due.reason };
-    const r = await makeRitual(crew, due, plans, watch("first_pick"));
-    if (!r.made || !r.plan) {
-      const again = (await plansOf(crew.id)).find((p) => p.kind === "ritual");
-      return { plan: again ? view(again) : null, reason: r.reason || "not_made" };
+  function kickFirstPick(crewId, { force = false } = {}) {
+    const running = picking.get(crewId);
+    if (running) return running;
+    const job = inBackground(() => firstPickJob(crewId, force)).catch((e) => {
+      log("first_pick_error", { crew: crewId, message: String(e?.message).slice(0, 200) });
+      return null;
+    }).finally(() => picking.delete(crewId));
+    picking.set(crewId, job);
+    return job;
+  }
+
+  /** One attempt: mark it started, pick, and record what happened. Safe to run twice. */
+  async function firstPickJob(/** @type {string} */ crewId, force = false) {
+    const crew = /** @type {Crew|null} */ (await store.get("crews", crewId));
+    if (!crew?.firstPick) return null;
+    const state = crew.firstPick;
+    const fresh = state.status === "pending" && state.attempts === 0;
+    if (!fresh && !(force && state.status === "pending") && !shouldRun(state, now(), { running: false })) return state;
+    const begun = beginPick(state, now());
+    await store.put("crews", { ...crew, firstPick: begun });
+    const t0 = now();
+    /** @type {{ planId?: string|null, reason: string }} */
+    let outcome;
+    try {
+      outcome = await pickNow(crew);
+    } catch (e) {
+      log("first_pick_error", { crew: crewId, message: String(/** @type {any} */ (e)?.message).slice(0, 200) });
+      outcome = { reason: "error" };
     }
-    return { plan: view(r.plan), reason: "made" };
+    const done = finishPick(begun, outcome, now());
+    // the crew may have changed meanwhile (a member joined, the taste was edited): keep that
+    const latest = /** @type {Crew|null} */ (await store.get("crews", crewId)) ?? crew;
+    await store.put("crews", { ...latest, firstPick: done });
+    log("first_pick", { crew: crewId, status: done.status, reason: done.reason, attempts: done.attempts, ms: now() - t0 });
+    return done;
+  }
+
+  /**
+   * The pick itself: the ritual for the next slot of the rhythm, made now instead of two or
+   * three days before, so the invite has something to come to. The heartbeat then finds it
+   * and leaves it be.
+   * @param {Crew} crew
+   * @returns {Promise<{ planId?: string|null, reason: string }>}
+   */
+  async function pickNow(crew) {
+    if (!crew.rhythm) return { reason: "no_rhythm" };
+    const plans = (await plansOf(crew.id)).filter((p) => !isExpired(p, now()));
+    const mine = plans.find((p) => p.kind === "ritual");
+    if (mine) return { planId: mine.id, reason: "exists" };
+    const due = ritualDue({ crew, now: now(), plans, lead: { min: 1, max: 31 } });
+    if (!due.due) return { reason: due.reason };
+    const r = await makeRitual(crew, due, plans, watch("first_pick"), { placesBudgetMs: budget.pickPlacesMs, weatherBudgetMs: budget.pickWeatherMs });
+    if (r.made && r.plan) return { planId: r.plan.id, reason: "made" };
+    const again = (await plansOf(crew.id)).find((p) => p.kind === "ritual");
+    return again ? { planId: again.id, reason: "exists" } : { reason: r.reason || "not_made" };
+  }
+
+  /**
+   * The first pick as the invite screen asks for it: `{ status, plan, reason }`. A pending
+   * pick running here is waited for up to `waitMs` (so the app can ask again at once when it
+   * comes back pending); one cut off by a restart, or a failed one whose wait is over, is
+   * started again. A crew made before the job existed gets one now.
+   * @param {{ slug: string, token: string|null, waitMs?: number }} input
+   */
+  async function firstPick({ slug, token, waitMs = budget.pickWaitMs }) {
+    const { crew, role, member } = await viewerOf(slug, token);
+    if (!crew.rhythm) return { status: "ready", plan: null, reason: "no_rhythm" };
+    if (!crew.firstPick) await store.put("crews", { ...crew, firstPick: pendingPick(now()) });
+    const state = crew.firstPick ?? pendingPick(now());
+    if (shouldRun(state, now(), { running: picking.has(crew.id) })) kickFirstPick(crew.id, { force: true });
+    const job = picking.get(crew.id);
+    if (job && waitMs > 0) await within(job, Math.min(waitMs, budget.pickWaitMs), null);
+    const latest = /** @type {Crew} */ ((await store.get("crews", crew.id)) ?? crew);
+    const s = latest.firstPick ?? state;
+    const plan = s.planId ? /** @type {Plan|null} */ (await store.get("plans", s.planId)) : null;
+    const members = plan ? await membersOf(crew.id) : [];
+    return { status: s.status, plan: plan && !isExpired(plan, now()) ? planView(plan, latest, members, role, member) : null, reason: s.reason ?? null };
   }
 
   /**
@@ -691,10 +796,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const tz = crew.tz || where.region.timezone;
     const today = localParts(now(), tz).date;
     const input = { text: t, url: link, pageMeta, image: img, today, tz };
-    const g = await sw.time("gemma", gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA));
+    const g = await sw.time("gemma", gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA, { waitMs: budget.gemmaMs }));
     if (g.error) notes.unshift(pageMeta?.event ? `${g.error} Used the page's own event details.` : `${g.error} Fill this in yourself.`);
     const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name }, local: where.local });
-    const pinned = await sw.time("pin", pinPlace(r.draft.place, where));
+    const pinned = await sw.time("pin", pinWithin(r.draft.place, where));
     if (pinned.note) notes.push(pinned.note);
     /** @type {Record<string, any>} */
     const source = { ...r.draft.source };
@@ -723,14 +828,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const sw = watch("plan_add");
     const members = await membersOf(crew.id);
     const draft = { ...v.draft, host: v.draft.host && members.some((m) => m.id === v.draft.host) ? v.draft.host : null };
-    draft.place = (await sw.time("pin", pinPlace(draft.place, placeOf(crew)))).place;
+    draft.place = (await sw.time("pin", pinWithin(draft.place, placeOf(crew)))).place;
     if (draft.source.flyerId) {
       const flyer = await store.get("flyers", draft.source.flyerId);
       if (flyer && flyer.crewId === crew.id) delete draft.source.imageUrl;
       else delete draft.source.flyerId;
     }
     let plan = createPlan(draft, { id: ids.id("p"), crewId: crew.id, createdBy: member.id, now: now() });
-    plan = await sw.time("weather", withWeather(plan));
+    plan = await sw.time("weather", within(withWeather(plan), budget.weatherMs, plan));
     if (plan.source.flyerId) {
       const flyer = await store.get("flyers", plan.source.flyerId);
       await store.put("flyers", { ...flyer, planId: plan.id, expiresAt: plan.expiresAt });
@@ -762,8 +867,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       if (!r.ok) throw invalid(r.errors);
       next = r.plan;
       changed = r.changed;
-      if (changed.includes("place")) next = { ...next, place: (await pinPlace(next.place, placeOf(crew))).place };
-      if (changed.includes("start") || changed.includes("place")) next = await withWeather({ ...next, weather: null });
+      if (changed.includes("place")) next = { ...next, place: (await pinWithin(next.place, placeOf(crew))).place };
+      if (changed.includes("start") || changed.includes("place")) {
+        const bare = { ...next, weather: null };
+        next = await within(withWeather(bare), budget.weatherMs, bare);
+      }
     }
     if ("rsvp" in b) {
       if (b.rsvp !== null && b.rsvp !== "going" && b.rsvp !== "maybe") throw invalid([{ field: "rsvp", message: "rsvp must be going, maybe or null." }]);
@@ -807,10 +915,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     /** @type {Map<string, any>} */
     const found = new Map();
     if (routes) {
-      for (const t of podTrips(plan, going, { near, model })) {
+      // all trips at once (OSRM's gate still spaces them; most are cached by tile)
+      await Promise.all(podTrips(plan, going, { near, model }).map(async (t) => {
         const r = await routes.route(t.from, t.to).catch(() => null);
         if (r) found.set(tripKey(t.from, t.to), r);
-      }
+      }));
     }
     return podsForPlan(plan, going, { near, model, route: (a, b) => found.get(tripKey(a, b)) ?? null });
   }
@@ -977,33 +1086,42 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * With a taste that names kinds of place beyond green ones (galleries, cafés, bookshops),
    * those are asked for too, in one more cached Overpass query; each comes back marked
    * `indoor` unless its kind is open-air.
+   * With `budgetMs`, whatever has not answered by then is left out (the curated spots and
+   * whatever did answer carry the pick) and goes on filling its cache for the next time.
    * @param {{ lat: number, lon: number }} center
    * @param {CityPack} [pack]
    * @param {import("../core/taste.mjs").Taste|null} [taste]
+   * @param {{ budgetMs?: number }} [opts]
    */
-  async function candidatesNear(center, pack = placeOf({}).pack, taste = null) {
-    const fromWikidata = pack.wikidataSpots && wikidata
+  async function candidatesNear(center, pack = placeOf({}).pack, taste = null, { budgetMs = 0 } = {}) {
+    const capped = (/** @type {Promise<any[]>} */ p, /** @type {string} */ what) => (budgetMs ? within(p, budgetMs, null).then((x) => {
+      if (x === null) log("places_slow", { what, ms: budgetMs });
+      return x ?? [];
+    }) : p);
+    const fromWikidata = capped(pack.wikidataSpots && wikidata
       ? wikidata.spotsNear(center, SEARCH_RADII_M[0] / 1000).catch((e) => {
         log("wikidata_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
         return /** @type {any[]} */ ([]);
       })
-      : Promise.resolve(/** @type {any[]} */ ([]));
+      : Promise.resolve(/** @type {any[]} */ ([])), "wikidata");
     // the taste's own query runs beside the green one, so a crew with a taste waits no longer
-    const fromTaste = tastePlaces(center, taste);
-    /** @type {any[]} */
-    let live = [];
-    for (const r of SEARCH_RADII_M) {
-      try {
-        live = await places.greenNear(center, r);
-      } catch (e) {
-        // Overpass is down or at capacity: a wider search would only wait again, and the
-        // heartbeat has to answer within 100 s. The curated spots carry this one.
-        log("overpass_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
-        live = [];
-        break;
+    const fromTaste = capped(tastePlaces(center, taste), "taste");
+    const live = await capped((async () => {
+      /** @type {any[]} */
+      let found = [];
+      for (const r of SEARCH_RADII_M) {
+        try {
+          found = await places.greenNear(center, r);
+        } catch (e) {
+          // Overpass is down or at capacity: a wider search would only wait again, and the
+          // heartbeat has to answer within 100 s. The curated spots carry this one.
+          log("overpass_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
+          return [];
+        }
+        if (found.length >= 3) break;
       }
-      if (live.length >= 3) break;
-    }
+      return found;
+    })(), "green");
     // outdoor spots, plus any spot a source says has a roof (offered only when it rains)
     const curated = (pack.curated ? spots : [])
       .filter((s) => (OUTDOOR_KINDS.includes(s.kind) || s.covered === true) && haversineKm(center, s) <= SPOT_RADIUS_KM)
@@ -1036,21 +1154,23 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * Make the crew's ritual plan for a due slot. The plan id is derived from the crew and the
    * date, so two overlapping heartbeats write the same plan instead of two.
    */
-  async function makeRitual(crew, due, plans, sw = watch("ritual")) {
+  async function makeRitual(crew, due, plans, sw = watch("ritual"), { placesBudgetMs = 0, weatherBudgetMs = 0 } = {}) {
     const members = await membersOf(crew.id);
     const points = crewPoints(crew, members);
     const center = centroid(points.map((p) => p.area));
     if (!center) return { made: false, reason: "no_location" };
     const { pack, local } = placeOf(crew);
     const taste = crew.taste ?? null;
-    const candidates = await sw.time("places", candidatesNear(center, pack, taste));
-    if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
     const tz = crew.tz || regionOf(crew).timezone;
+    // the places and the forecast need only the centre: both at once
+    const forecast = weather.hourly(center, { tz, days: 7 }).catch(() => null);
+    const [candidates, hours] = await Promise.all([
+      sw.time("places", candidatesNear(center, pack, taste, { budgetMs: placesBudgetMs })),
+      // no forecast in time: the crew's own window, without a weather line (honest, and the heartbeat checks it later)
+      sw.time("weather", weatherBudgetMs ? within(forecast, weatherBudgetMs, null) : forecast),
+    ]);
+    if (!candidates.some((c) => c.covered !== true)) return { made: false, reason: "no_places" };
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
-    let hours = null;
-    try {
-      hours = await sw.time("weather", weather.hourly(center, { tz, days: 7 }));
-    } catch {}
     // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
     // stretch that day or the next, else a covered place, else the sloth skips this one
     // (core/weather.mjs, ritualWindow)
@@ -1137,12 +1257,21 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * days (alerting within three), and delete expired plans. Safe to run late, twice or
    * concurrently.
    */
-  async function tick() {
+  function tick() {
+    return inBackground(heartbeat);
+  }
+
+  async function heartbeat() {
     const t = now();
-    const out = { rituals: 0, weatherChecked: 0, rainAlerts: 0, pushes: 0, expired: 0, errors: 0 };
+    const out = { rituals: 0, firstPicks: 0, weatherChecked: 0, rainAlerts: 0, pushes: 0, expired: 0, errors: 0 };
     const crews = /** @type {Crew[]} */ (await store.find("crews"));
     for (const crew of crews) {
       try {
+        // a first pick that failed, or was cut off by a restart (the free instance sleeps)
+        if (shouldRun(crew.firstPick, t, { running: picking.has(crew.id) })) {
+          const done = await kickFirstPick(crew.id, { force: true });
+          if (done?.status === "ready" && done.planId) out.firstPicks++;
+        }
         const plans = await plansOf(crew.id);
         for (const p of plans) {
           if (isExpired(p, t)) {
@@ -1197,10 +1326,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
   }
 
   return {
-    draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, firstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
+    draftCrew, createCrew, crewTaste, getCrew, joinCrew, setMyArea, areaNear, firstPick, kickFirstPick, searchAreas, parsePlan, addPlan, patchPlan, getPlan, getFlyer, getPods, eventIcs, feed,
     pushKey: async () => ({ publicKey: push.publicKey }), subscribePush, unsubscribePush, tick, health,
     // exposed for tests
-    _internal: { makeRitual, candidatesNear, notify },
+    _internal: { makeRitual, candidatesNear, notify, firstPickJob, picking },
   };
 
   function when(/** @type {Plan} */ plan) {

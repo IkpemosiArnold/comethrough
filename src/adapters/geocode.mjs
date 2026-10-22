@@ -12,7 +12,8 @@
 // biased to the crew's centre and no city is added, except to retry a name that found
 // nothing within 50 km of the crew ("Westlands" alone could be anywhere).
 
-import { cached, fetchJson, throttle, userAgent } from "./http.mjs";
+import { cached, fetchJson, userAgent } from "./http.mjs";
+import { laneGate } from "./lanes.mjs";
 
 /** @typedef {import("./http.mjs").Cache} Cache */
 /** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string, country?: string, city?: string }} GeoResult */
@@ -82,14 +83,17 @@ const kmBetween = (/** @type {{ lat: number, lon: number }} */ a, /** @type {{ l
 };
 
 /**
- * @param {{ provider: "photon"|"nominatim", photonUrl: string, nominatimUrl: string, countryCodes?: string, contact: string, cache: Cache, fetchImpl?: typeof fetch }} cfg
+ * @param {{ provider: "photon"|"nominatim", photonUrl: string, nominatimUrl: string, countryCodes?: string, contact: string, cache: Cache, fetchImpl?: typeof fetch, onWait?: import("./lanes.mjs").GateOpts["onWait"] }} cfg
  *   countryCodes: kept for GEOCODE_COUNTRY; a call's own context wins
  * @returns {Geocoder}
  */
-export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes = "", contact, cache, fetchImpl }) {
+export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes = "", contact, cache, fetchImpl, onWait }) {
   const headers = { "user-agent": userAgent(contact), accept: "application/json" };
-  const photonGate = throttle(250);
-  const nominatimGate = throttle(1100); // "an absolute maximum of 1 request per second"
+  // a gap between any two requests, two at a time for someone waiting (a new crew's areas
+  // are looked up together), one for the background, and someone waiting goes first
+  // (src/adapters/lanes.mjs): the guides' venue lookups never hold up a plan's pin
+  const photonGate = laneGate({ name: "photon", minGapMs: 250, concurrency: { user: 2, background: 1 }, onWait });
+  const nominatimGate = laneGate({ name: "nominatim", minGapMs: 1100, concurrency: { user: 1, background: 1 }, onWait }); // "an absolute maximum of 1 request per second"
   const envCountry = countryCodes.split(",")[0] || "";
 
   const photon = (/** @type {string} */ q, /** @type {number} */ limit, /** @type {boolean} */ areas, /** @type {{ lat: number, lon: number }|null} */ near, /** @type {string} */ country) =>
@@ -204,7 +208,9 @@ export function createGeocoder({ provider, photonUrl, nominatimUrl, countryCodes
    */
   const cityAt = async (at) => {
     if (!nominatimUrl) return null;
-    return cached(cache, `geo:city:${at.lat.toFixed(2)},${at.lon.toFixed(2)}`, TTL, () => nominatimGate(async () => {
+    // cached on a 0.05 degree grid (about 5 km): the city does not change within it
+    const snap = (/** @type {number} */ x) => (Math.round(x / 0.05) * 0.05).toFixed(2);
+    return cached(cache, `geo:city:${snap(at.lat)},${snap(at.lon)}`, TTL, () => nominatimGate(async () => {
       const u = new URL("/reverse", nominatimUrl);
       u.searchParams.set("format", "jsonv2");
       u.searchParams.set("lat", at.lat.toFixed(5));

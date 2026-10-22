@@ -12,6 +12,7 @@
 // move). When every endpoint fails, the ritual still has the curated spots. Unnamed features are skipped: in Lekki most mapped
 // green is unnamed grass, and "meet at an unnamed lawn" is not a plan.
 
+import { haversineKm } from "../core/geo.mjs";
 import { GREEN_TAGS } from "../core/places.mjs";
 import { cached, fetchJson, userAgent } from "./http.mjs";
 
@@ -19,6 +20,21 @@ import { cached, fetchJson, userAgent } from "./http.mjs";
 /** @typedef {import("../core/places.mjs").Candidate} Candidate */
 
 const TTL = 7 * 24 * 3600_000;
+/**
+ * Queries are cached by tile, not by exact point: the centre snaps to a grid of 0.02 degrees
+ * (about 2.2 km), the query reaches the radius plus the tile's half-diagonal from the tile's
+ * centre, and the answer is cut back to the radius around the real point. So crews whose
+ * middles are in the same tile (and the ideas card, the first pick and the heartbeat for one
+ * crew) share one query a week.
+ */
+export const TILE_DEG = 0.02;
+const TILE_REACH_M = 1600;
+/** A point's tile: its key and its centre. */
+export function tileOf(/** @type {{ lat: number, lon: number }} */ at) {
+  const y = Math.round(at.lat / TILE_DEG);
+  const x = Math.round(at.lon / TILE_DEG);
+  return { key: `${y},${x}`, center: { lat: +(y * TILE_DEG).toFixed(5), lon: +(x * TILE_DEG).toFixed(5) } };
+}
 const KEEP_TAGS = ["name", "leisure", "natural", "landuse", "amenity", "tourism", "shop", "fee", "access", "opening_hours", "outdoor_seating", "wheelchair", "addr:street", "addr:city", "website"];
 
 /**
@@ -99,13 +115,17 @@ export function createOverpass({ urls, contact, cache, fetchImpl, sleep, attempt
       throw last ?? new Error("Overpass: no endpoint answered in time");
     });
   }
+  /** Only what is within the radius of the real point. */
+  const near = (/** @type {Candidate[]} */ xs, /** @type {{ lat: number, lon: number }} */ at, /** @type {number} */ radiusM) => xs.filter((c) => haversineKm(at, c) * 1000 <= radiusM);
   return {
-    greenNear(at, radiusM) {
-      return ask(`osm:green:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}`, greenQuery(at, radiusM));
+    async greenNear(at, radiusM) {
+      const tile = tileOf(at);
+      return near(await ask(`osm:green:t:${tile.key}:${Math.round(radiusM)}`, greenQuery(tile.center, radiusM + TILE_REACH_M, 200)), at, radiusM);
     },
-    kindsNear(at, radiusM, tags) {
+    async kindsNear(at, radiusM, tags) {
+      const tile = tileOf(at);
       const sig = Object.entries(tags).map(([k, vs]) => `${k}=${[...vs].sort().join("|")}`).sort().join(";");
-      return ask(`osm:kinds:${at.lat.toFixed(3)},${at.lon.toFixed(3)}:${Math.round(radiusM)}:${sig}`, kindsQuery(at, radiusM, tags));
+      return near(await ask(`osm:kinds:t:${tile.key}:${Math.round(radiusM)}:${sig}`, kindsQuery(tile.center, radiusM + TILE_REACH_M, tags, 160)), at, radiusM);
     },
   };
 }

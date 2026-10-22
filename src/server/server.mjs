@@ -22,6 +22,7 @@ import { createFeeds } from "../adapters/feeds.mjs";
 import { createGeocoder } from "../adapters/geocode.mjs";
 import { createLlm, describeLlm } from "../adapters/llm.mjs";
 import { layeredCache, memoryCache, storeCache } from "../adapters/http.mjs";
+import { laneAi } from "../adapters/lanes.mjs";
 import { createOpenMeteo } from "../adapters/openmeteo.mjs";
 import { createOsrm } from "../adapters/osrm.mjs";
 import { createOverpass } from "../adapters/overpass.mjs";
@@ -87,7 +88,9 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       const body = await readJson(req);
       if (body.confirm) {
         limit("create", ip);
-        return { status: 201, body: await service.createCrew({ confirm: body.confirm, organiser: body.organiser, hint: body.hint }) };
+        const made = await service.createCrew({ confirm: body.confirm, organiser: body.organiser, hint: body.hint });
+        // the sloth's first pick starts once the answer is on its way (GET .../first-pick follows it)
+        return { status: 201, body: made, after: made.crew.firstPick ? () => service.kickFirstPick(made.crew.id) : null };
       }
       aiLimits(ip);
       return service.draftCrew({ sentence: body.sentence, into: body.into, hint: body.hint });
@@ -102,9 +105,16 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       limit("create", ip);
       return { status: 201, body: await service.joinCrew({ slug: m[1], token, body: await readJson(req) }) };
     }],
+    // the first pick's state; ?wait=25 holds the answer up to 25 s while the pick runs
+    // (wrapped: the answer has a `status` field of its own)
+    ["GET", /^\/api\/crews\/([a-z0-9-]{1,64})\/first-pick$/, async ({ m, token, url }) => {
+      const wait = Math.max(0, Math.min(25, Number(url.searchParams.get("wait")) || 0));
+      return { status: 200, body: await service.firstPick({ slug: m[1], token, waitMs: wait * 1000 }) };
+    }],
+    // older clients: the same, waiting up to 25 s
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/first-pick$/, async ({ m, token, ip }) => {
       aiLimits(ip);
-      return service.firstPick({ slug: m[1], token });
+      return { status: 200, body: await service.firstPick({ slug: m[1], token, waitMs: 25_000 }) };
     }],
     ["PATCH", /^\/api\/members\/([A-Za-z0-9_-]{1,64})$/, async ({ m, token, req, ip }) => {
       limit("areas", ip);
@@ -216,6 +226,8 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
           res.writeHead(status, { ...BASE_HEADERS, ...wrapped.headers, ...(status === 304 ? {} : { "content-length": String(Buffer.isBuffer(wrapped.raw) ? wrapped.raw.length : Buffer.byteLength(wrapped.raw)) }) });
           res.end(status === 304 ? undefined : wrapped.raw);
         } else sendJson(res, status, wrapped.body);
+        // work that must not hold up the answer (the first pick)
+        if (typeof wrapped.after === "function") setImmediate(() => Promise.resolve().then(wrapped.after).catch((e) => log("error", { path: url.pathname, message: String(e?.message).slice(0, 200) })));
         return;
       }
       // Opera Mini and phones without JavaScript get plain pages for the links in the chat
@@ -267,20 +279,26 @@ export async function buildDeps(cfg, log = jsonLog) {
   const feesFile = path.resolve(here, "../..", /** @type {any} */ (LAGOS.data).fees);
   const fees = fs.existsSync(feesFile) ? JSON.parse(fs.readFileSync(feesFile, "utf8")).fees : [];
   const spots = withEntries(fs.existsSync(spotsFile) ? JSON.parse(fs.readFileSync(spotsFile, "utf8")).spots : [], fees);
-  const common = { store, cache, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log, timing: cfg.timing };
+  // TIMING=1 also logs every wait of 100 ms or more in a lane (src/adapters/lanes.mjs)
+  const onWait = cfg.timing ? (/** @type {any} */ e) => log("lane_wait", e) : undefined;
+  // a local model on a laptop can take minutes: someone waiting on it waits that long too
+  const budgets = cfg.llm === "ollama" && !cfg.offline ? { gemmaMs: cfg.ollama.timeoutMs + 5000 } : {};
+  const common = { store, cache, spots, prompts: loadPrompts(), ids: makeIds(), now: Date.now, log, timing: cfg.timing, budgets };
   if (cfg.offline) {
-    return { ...common, feeds: null, ai: fakeAi(), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
+    return { ...common, feeds: null, ai: laneAi(fakeAi(), { onWait }), geocoder: fakeGeocoder(), places: fakeOverpass(), weather: fakeWeather(), wikidata: fakeWikidata(), pages: fakePageMeta(), push: fakePush({ enabled: false }) };
   }
   return {
     ...common,
-    // LLM=gemini (default) or LLM=ollama: every Gemma task goes through this one port
-    ai: createLlm(cfg),
+    prewarm: true,
+    // LLM=gemini (default) or LLM=ollama: every Gemma task goes through this one port, in two
+    // lanes: a crew sentence or a plan never waits for the background's calls
+    ai: laneAi(createLlm(cfg), { onWait }),
     feeds: createFeeds({ cache, contact: cfg.contact, log }),
-    geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache }),
+    geocoder: createGeocoder({ ...cfg.geocoder, contact: cfg.contact, cache, onWait }),
     places: createOverpass({ urls: cfg.overpassUrls, contact: cfg.contact, cache }),
     weather: createOpenMeteo({ url: cfg.openMeteoUrl, cache }),
     wikidata: cfg.wikidataUrl ? createWikidata({ url: cfg.wikidataUrl, contact: cfg.contact, cache }) : null,
-    routes: cfg.osrmUrl ? createOsrm({ url: cfg.osrmUrl, contact: cfg.contact, cache, log }) : null,
+    routes: cfg.osrmUrl ? createOsrm({ url: cfg.osrmUrl, contact: cfg.contact, cache, log, onWait }) : null,
     pages: createPageMeta({ contact: cfg.contact, imageMaxBytes: cfg.imageMaxBytes }),
     push: await createWebPush(cfg.vapid),
   };
