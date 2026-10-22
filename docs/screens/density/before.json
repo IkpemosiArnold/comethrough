@@ -1,0 +1,242 @@
+{
+ "landing": {
+  "light": {
+   "words": 215,
+   "fold": 107,
+   "minRatio": 5.1,
+   "minBodyRatio": 6.4,
+   "share7": 55,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 215,
+   "fold": 107,
+   "minRatio": 5.5,
+   "minBodyRatio": 8.1,
+   "share7": 84,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "preview": {
+  "light": {
+   "words": 71,
+   "fold": 71,
+   "minRatio": 4.6,
+   "minBodyRatio": 4.6,
+   "share7": 47,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 71,
+   "fold": 71,
+   "minRatio": 5.5,
+   "minBodyRatio": 7.1,
+   "share7": 85,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "invite": {
+  "light": {
+   "words": 46,
+   "fold": 46,
+   "minRatio": 5.4,
+   "minBodyRatio": 5.4,
+   "share7": 33,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 46,
+   "fold": 46,
+   "minRatio": 5.4,
+   "minBodyRatio": 5.4,
+   "share7": 65,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "where": {
+  "light": {
+   "words": 94,
+   "fold": 94,
+   "minRatio": 5.1,
+   "minBodyRatio": 5.2,
+   "share7": 15,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 94,
+   "fold": 94,
+   "minRatio": 6.5,
+   "minBodyRatio": 8.8,
+   "share7": 60,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "crew-home": {
+  "light": {
+   "words": 143,
+   "fold": 72,
+   "minRatio": 5.1,
+   "minBodyRatio": 6.2,
+   "share7": 59,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 143,
+   "fold": 72,
+   "minRatio": 5.7,
+   "minBodyRatio": 5.7,
+   "share7": 82,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "plan": {
+  "light": {
+   "words": 145,
+   "fold": 59,
+   "minRatio": 5.1,
+   "minBodyRatio": 5.4,
+   "share7": 52,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 145,
+   "fold": 59,
+   "minRatio": 5.4,
+   "minBodyRatio": 5.4,
+   "share7": 88,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "add-plan": {
+  "light": {
+   "words": 80,
+   "fold": 80,
+   "minRatio": 4.6,
+   "minBodyRatio": 4.6,
+   "share7": 39,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 80,
+   "fold": 80,
+   "minRatio": 5.9,
+   "minBodyRatio": 7.1,
+   "share7": 66,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "one-tap": {
+  "light": {
+   "words": 32,
+   "fold": 32,
+   "minRatio": 5.1,
+   "minBodyRatio": 8.7,
+   "share7": 57,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 32,
+   "fold": 32,
+   "minRatio": 6.5,
+   "minBodyRatio": 8.7,
+   "share7": 80,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "one-tap-done": {
+  "light": {
+   "words": 118,
+   "fold": 76,
+   "minRatio": 5.1,
+   "minBodyRatio": 5.2,
+   "share7": 67,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 118,
+   "fold": 76,
+   "minRatio": 5.5,
+   "minBodyRatio": 8.8,
+   "share7": 78,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "ideas": {
+  "light": {
+   "words": 113,
+   "fold": 27,
+   "minRatio": 6,
+   "minBodyRatio": 13.4,
+   "share7": 90,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 113,
+   "fold": 27,
+   "minRatio": 7.5,
+   "minBodyRatio": 11.6,
+   "share7": 100,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "status-sheet": {
+  "light": {
+   "words": 34,
+   "fold": 28,
+   "minRatio": 7.5,
+   "minBodyRatio": 7.5,
+   "share7": 100,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 34,
+   "fold": 28,
+   "minRatio": 7.7,
+   "minBodyRatio": 7.7,
+   "share7": 100,
+   "under45": [],
+   "bodySize": 16
+  }
+ },
+ "how": {
+  "light": {
+   "words": 230,
+   "fold": 136,
+   "minRatio": 5.2,
+   "minBodyRatio": 5.2,
+   "share7": 3,
+   "under45": [],
+   "bodySize": 16
+  },
+  "dark": {
+   "words": 230,
+   "fold": 136,
+   "minRatio": 8.8,
+   "minBodyRatio": 8.8,
+   "share7": 100,
+   "under45": [],
+   "bodySize": 16
+  }
+ }
+}

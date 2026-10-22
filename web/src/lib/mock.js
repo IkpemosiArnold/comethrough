@@ -437,7 +437,10 @@ export async function handle(method, path, { body, form, token }) {
     const you = viewer ? db.members.find((x) => x.id === viewer) : null;
     const plans = db.plans.filter((x) => x.status !== 'cancelled').sort((a, b) => a.start.localeCompare(b.start)).map((x) => view(db, x, viewer));
     // The demo crew answers to any slug, so shared demo links never 404.
-    return { crew: { ...db.crew, slug: decodeURIComponent(m[1]) }, members: db.members, plans, you: you ? { id: you.id, name: you.name } : null };
+    // ?data=came: the day after a linkup, so the "We came through" card and its Status sheet show
+    const ritual = db.plans.find((x) => x.kind === 'ritual');
+    const growth = sessionGet('ct.data') === 'came' && ritual ? { recap: { planId: ritual.id, title: ritual.title }, linkups: 4, seen: [], cameThrough: true, discreet: false } : undefined;
+    return { crew: { ...db.crew, slug: decodeURIComponent(m[1]) }, members: db.members, plans, you: you ? { id: you.id, name: you.name } : null, growth };
   }
   if (method === 'POST' && (m = p.match(/^\/api\/crews\/([^/]+)\/members$/))) {
     await wait(800);
