@@ -24,10 +24,10 @@ import { podTrips, podsForPlan } from "../core/pods.mjs";
 import { directionsLinks, ridesForApi } from "../core/rides.mjs";
 import { fallbackInvite, ritualDraft, ritualDue } from "../core/ritual.mjs";
 import {
-  CREW_SCHEMA, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, inviteMessages, localisePrompt, planMessages,
+  CREW_SCHEMA, DEFAULT_WINDOW, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, guessCrew, guessPlan, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
-import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, tasteView } from "../core/taste.mjs";
+import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, tasteView, withVibe } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
 import { isSubscription } from "../adapters/push.mjs";
@@ -42,6 +42,7 @@ import { stopwatch } from "./timing.mjs";
 import { candidateViolations, crewConstraints } from "../core/constraints.mjs";
 import { diffChange, editDoc } from "./writes.mjs";
 import { safePath } from "../adapters/store.mjs";
+import { droppedFields, emptyFields } from "../core/diagnose.mjs";
 
 /** @typedef {import("../core/types.mjs").Crew} Crew */
 /** @typedef {import("../core/types.mjs").Member} Member */
@@ -69,8 +70,15 @@ const SPOT_RADIUS_KM = 15;
  */
 export const DELIVERY = Object.freeze({ leaseMs: 60_000, maxAttempts: 6, backoffMs: [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 3 * 3600_000], ttlMs: 12 * 3600_000, keepMs: 14 * 24 * 3600_000 });
 const iso = (/** @type {number} */ ms) => new Date(ms).toISOString();
+/** What the confirm screens say when the sloth (Gemma) was busy and code made the draft. */
+export const BEST_GUESS = "The sloth was busy, so this is a best guess. Fix anything that's off.";
 export const BUDGETS = { pinMs: 8000, weatherMs: 6000, gemmaMs: 35_000, pickPlacesMs: 8000, pickWeatherMs: 8000, pickWaitMs: 25_000 };
 const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
+
+/** A crew draft's fields, named as Gemma names them, for the logs. */
+const crewFields = (/** @type {any} */ d) => ({ name: d.name, vibe: d.vibe, vibeTags: d.vibeTags, budget: d.budget === "any" ? null : d.budget, rhythm: d.rhythm, areas: d.areaLabels, taste: d.taste });
+/** A plan draft's fields, named as Gemma names them, for the logs. */
+const planFields = (/** @type {any} */ d) => ({ title: d.title, start: d.start, end: d.end, venueName: d.place?.name, address: d.place?.address, priceText: d.price?.text ?? null, bring: d.bring, note: d.note ?? null });
 
 /**
  * @param {object} deps
@@ -236,6 +244,19 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
   }
 
+  /**
+   * One log line after code has read a Gemma answer: which fields the app kept empty, which
+   * fields Gemma filled that code then emptied, and whether code made the draft itself.
+   * Field names only (src/core/diagnose.mjs).
+   * @param {string} task
+   * @param {{ data: any, error: string|null }} g
+   * @param {Record<string, any>} kept  the fields the app kept, named as in Gemma's answer
+   * @param {{ fallback?: boolean }} [opts]
+   */
+  function readLog(task, g, kept, { fallback = false } = {}) {
+    log("gemma_read", { task, ai: !g.error, fallback, empty: emptyFields(kept), dropped: g.data ? droppedFields(g.data, kept) : [] });
+  }
+
   // ------------------------------------------------------------ views
 
   /** The crew as the web app sees it. Its taste (what it is into and needs) only for its members. */
@@ -360,9 +381,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const first = placeOf({ region: localeRegion(hint) });
     // one Gemma call reads everything: the name, rhythm, vibe, areas and the taste
     const g = await sw.time("gemma", gemma("parse-crew", crewSetupMessages(promptFor("parse-crew", first.local), { sentence: s, into: i }), CREW_SCHEMA, { waitMs: budget.gemmaMs }));
-    const r = readCrewSetup(g.data, { sentence: s, into: i }, first.local);
+    // Gemma busy or failing: code's own best guess, every field marked for a check
+    const guessed = !g.data && !!g.error;
+    const r = readCrewSetup(guessed ? guessCrew(s) : g.data, { sentence: s, into: i }, first.local);
     const notes = [...r.notes];
-    if (g.error) notes.unshift(`${g.error} Fill this in yourself.`);
+    if (guessed) notes.unshift(BEST_GUESS);
+    readLog("parse-crew", g, crewFields(r.draft), { fallback: guessed });
     const city = clip(hint?.city, 60) ?? cityIn([s, i].filter(Boolean).join(" "), start.countryCode);
     const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, notes, { city }));
     const region = (await sw.time("region", regionFrom(located.found, start))) ?? start;
@@ -373,7 +397,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // a crew with a regular day gets the sloth's first pick once it is made: look up its
     // places and forecast now, while the organiser reads the draft (cached by tile)
     if (prewarm && r.draft.rhythm && region.center) warmUp(/** @type {{ lat: number, lon: number }} */ (region.center), pack, r.draft.taste, region.timezone);
-    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error, needsLocation: askLocation(located.areas, region, located.suggestions) };
+    return { draft: { ...rest, areas: located.areas, region }, pack: packView(pack, region), taste: tv, confidence: r.confidence, low: r.low, notes, ai: !g.error, guess: guessed, needsLocation: askLocation(located.areas, region, located.suggestions) };
   }
 
   /** The first pick's lookups, in the background: places near the centre and the forecast. Never throws. */
@@ -553,18 +577,20 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       vibeTags: (Array.isArray(c.vibeTags) ? c.vibeTags : []).map((/** @type {any} */ v) => clip(v, 20)?.toLowerCase()).filter(Boolean).slice(0, 8),
       budget: ["free", "cheap", "any"].includes(c.budget) ? c.budget : "any",
       // the edited chips, checked again: vocabularies, limits, and no word for who anyone is
-      taste: cleanTaste(c.taste),
+      // a vibe typed by hand counts when the taste says nothing about what the crew likes
+      taste: withVibe(cleanTaste(c.taste), hasSensitive(c.vibe) ? null : c.vibe),
       rhythm: rhythm ? { ...rhythm, anchor: localParts(t, tz).date } : null,
       areas: /** @type {any} */ (areas),
       tz,
       region,
       createdAt: new Date(t).toISOString(),
       inviteToken: ids.token(),
-      // the sloth's first pick runs after the answer is sent (kickFirstPick); see src/core/firstpick.mjs
-      ...(rhythm ? { firstPick: pendingPick(t) } : {}),
+      // the sloth's first pick runs after the answer is sent (kickFirstPick); see src/core/firstpick.mjs.
+      // A crew with no regular day gets one too, for this weekend, so its page is never empty
+      ...(rhythm || region.center ? { firstPick: pendingPick(t) } : {}),
     };
     await sw.time("store", store.put("crews", crew));
-    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
+    log("crew_created", { crew: crew.id, rhythm: !!crew.rhythm, firstPick: !!crew.firstPick, pack: packFor(region).id, country: region.countryCode, tzSource: region.tzSource, taste: hasTaste(crew.taste) });
     const out = { crew: crewView(crew, "member"), inviteUrl: links.invite(crew), inviteToken: crew.inviteToken, needsLocation: askLocation(/** @type {any} */ (areas), region) };
     if (organiser && typeof organiser === "object" && clip(organiser.name, LIMITS.memberName)) {
       const joined = await sw.time("organiser", addMember(crew, organiser));
@@ -623,6 +649,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const plans = upcoming(all, now());
     // members only: linkups so far, the day-after card, "Got another crew?" (src/core/growth.mjs)
     const extras = member ? await growth.crewExtras({ crew, member, plans: all, tz: regionOf(crew).timezone }) : null;
+    // a crew made before every crew got a first pick, with nothing on: the sloth picks once
+    if (member && !crew.firstPick && !plans.length && regionOf(crew).center) {
+      const set = await store.update("crews", crew.id, { set: { firstPick: pendingPick(now()) } }, { ifMatch: { firstPick: { $exists: false } } });
+      if (set) {
+        crew.firstPick = pendingPick(now());
+        kickFirstPick(crew.id);
+      }
+    }
     return {
       crew: crewView(crew, role),
       members: members.map(memberView),
@@ -785,16 +819,30 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * @returns {Promise<{ planId?: string|null, reason: string }>}
    */
   async function pickNow(crew) {
-    if (!crew.rhythm) return { reason: "no_rhythm" };
     const plans = (await plansOf(crew.id)).filter((p) => !isExpired(p, now()));
     const mine = plans.find((p) => p.kind === "ritual");
     if (mine) return { planId: mine.id, reason: "exists" };
-    const due = ritualDue({ crew, now: now(), plans, lead: { min: 1, max: 31 } });
+    // no regular day: a one-off pick for this weekend; the crew's rhythm stays null, so the
+    // heartbeat makes nothing after it (on 22 Oct 2026 a crew with no day had an empty home)
+    const c = { ...crew, rhythm: pickRhythm(crew) };
+    const due = ritualDue({ crew: c, now: now(), plans, lead: { min: 1, max: 31 } });
     if (!due.due) return { reason: due.reason };
-    const r = await makeRitual(crew, due, plans, watch("first_pick"), { placesBudgetMs: budget.pickPlacesMs, weatherBudgetMs: budget.pickWeatherMs });
+    const r = await makeRitual(c, due, plans, watch("first_pick"), { placesBudgetMs: budget.pickPlacesMs, weatherBudgetMs: budget.pickWeatherMs });
     if (r.made && r.plan) return { planId: r.plan.id, reason: "made" };
     const again = (await plansOf(crew.id)).find((p) => p.kind === "ritual");
     return again ? { planId: again.id, reason: "exists" } : { reason: r.reason || "not_made" };
+  }
+
+  /**
+   * The rhythm the first pick uses: the crew's own, or for a crew with no regular day, this
+   * weekend (Saturday, or Sunday when it is Saturday already) in the default window.
+   * @param {Crew} crew
+   */
+  function pickRhythm(crew) {
+    if (crew.rhythm) return crew.rhythm;
+    const tz = crew.tz || regionOf(crew).timezone;
+    const today = localParts(now(), tz).date;
+    return { every: /** @type {"1w"} */ ("1w"), day: weekdayOf(today) === 6 ? 0 : 6, window: { ...DEFAULT_WINDOW }, anchor: today };
   }
 
   /**
@@ -806,7 +854,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    */
   async function firstPick({ slug, token, waitMs = budget.pickWaitMs }) {
     const { crew, role, member } = await viewerOf(slug, token);
-    if (!crew.rhythm) return { status: "ready", plan: null, reason: "no_rhythm" };
+    if (!crew.firstPick && !regionOf(crew).center) return { status: "ready", plan: null, reason: "no_location" };
     if (!crew.firstPick) await store.update("crews", crew.id, { set: { firstPick: pendingPick(now()) } }, { ifMatch: { firstPick: { $exists: false } } });
     const state = crew.firstPick ?? pendingPick(now());
     if (shouldRun(state, now(), { running: picking.has(crew.id) })) kickFirstPick(crew.id, { force: true });
@@ -888,8 +936,12 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const today = localParts(now(), tz).date;
     const input = { text: t, url: link, pageMeta, image: img, today, tz };
     const g = await sw.time("gemma", gemma("parse-plan", planMessages(promptFor("parse-plan", where.local), input), PLAN_SCHEMA, { waitMs: budget.gemmaMs }));
-    if (g.error) notes.unshift(pageMeta?.event ? `${g.error} Used the page's own event details.` : `${g.error} Fill this in yourself.`);
-    const r = readPlan(g.data, { ...input, member: { id: member.id, name: member.name }, local: where.local });
+    // Gemma busy or failing: the page's own event details, or code's best guess at the
+    // sentence, every field marked for a check; a flyer alone has nothing to guess from
+    const guessed = !g.data && !!g.error && !!t && !pageMeta?.event;
+    if (g.error) notes.unshift(pageMeta?.event ? "The sloth was busy, so this is from the page's own event details." : guessed ? BEST_GUESS : `${g.error} Fill this in yourself.`);
+    const r = readPlan(guessed ? guessPlan(/** @type {string} */ (t)) : g.data, { ...input, member: { id: member.id, name: member.name }, local: where.local });
+    readLog("parse-plan", g, planFields(r.draft), { fallback: guessed });
     const pinned = await sw.time("pin", pinWithin(r.draft.place, where));
     if (pinned.note) notes.push(pinned.note);
     /** @type {Record<string, any>} */
@@ -904,7 +956,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     } else if (typeof pageMeta?.event?.image === "string") source.imageUrl = pageMeta.event.image;
     else if (typeof pageMeta?.image === "string" && pageMeta.image.startsWith("https://")) source.imageUrl = pageMeta.image;
     sw.end({ link: !!link, image: !!image, ai: !g.error });
-    return { draft: { ...r.draft, place: pinned.place, source }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, model: g.model };
+    return { draft: { ...r.draft, place: pinned.place, source }, confidence: r.confidence, low: r.low, notes: [...notes, ...r.notes], ai: !g.error, guess: guessed, model: g.model };
   }
 
   /** Create a plan from a confirmed draft. */

@@ -50,12 +50,14 @@ test("Overpass down: the curated spots carry the ritual, after one try (the hear
   assert.equal(tries, 1, "no wider search after a failure");
 });
 
-test("Gemma down while reading a crew: an empty draft to fill by hand, not an error", async () => {
+test("Gemma down while reading a crew: code's best guess, marked for a check, not an error", async () => {
   const { svc } = make({ ai: { available: true, model: "x", async generate() { throw Object.assign(new Error("busy"), { status: 503, hint: "Gemma is busy right now." }); } } });
   const r = await svc.draftCrew({ sentence: "the uni guys every saturday" });
   assert.equal(r.ai, false);
-  assert.equal(r.draft.name, null);
-  assert.match(r.notes[0], /^Gemma is busy right now\. Fill this in yourself\.$/);
+  assert.equal(r.guess, true);
+  assert.equal(r.draft.name, null, "no comma, so no name is guessed");
+  assert.deepEqual(r.draft.rhythm, { every: "1w", day: 6, window: { from: "15:00", to: "19:00" } }, "the rhythm words are code's own");
+  assert.match(r.notes[0], /best guess/);
 });
 
 test("an Instagram link on its own asks for the flyer picture, without a Gemma call", async () => {
@@ -237,7 +239,15 @@ test("the first pick: asked for, it runs once, and asking again returns the same
   const t = await svc.tick();
   assert.equal(t.rituals, 0, "the heartbeat leaves the first pick be");
   assert.equal(t.firstPicks, 0);
+  // no regular day: still a first pick, for this weekend, and nothing after it (22 Oct 2026:
+  // a crew with no rhythm had an empty home)
   await store.put("crews", { ...CREW, id: "c_norhythm", slug: "no-rhythm", inviteToken: "inv2", rhythm: null });
-  const none = await svc.firstPick({ slug: "no-rhythm", token: "inv2" });
-  assert.deepEqual([none.status, none.reason, none.plan], ["ready", "no_rhythm", null]);
+  const once = await svc.firstPick({ slug: "no-rhythm", token: "inv2" });
+  assert.deepEqual([once.status, once.reason, once.plan?.kind, once.plan?.ritualFor], ["ready", "made", "ritual", "2026-10-24"], "Saturday, from Wednesday 21 Oct");
+  const t2 = await svc.tick();
+  assert.equal(t2.rituals, 0, "a crew with no rhythm gets nothing more from the heartbeat");
+  // with no area on the map there is nothing to pick yet
+  await store.put("crews", { ...CREW, id: "c_nowhere", slug: "nowhere", inviteToken: "inv3", rhythm: null, areas: [{ label: "Somewhere", lat: null, lon: null }], region: { center: null, countryCode: "NG", city: null, timezone: "Africa/Lagos" } });
+  const nowhere = await svc.firstPick({ slug: "nowhere", token: "inv3" });
+  assert.deepEqual([nowhere.status, nowhere.reason, nowhere.plan], ["ready", "no_location", null]);
 });
