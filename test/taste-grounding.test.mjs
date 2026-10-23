@@ -77,3 +77,31 @@ test("a scene the sentence names keeps the model's reading of it; the related-wo
   assert.ok(!/lagos|nigeria|alte|owambe/i.test(JSON.stringify(RELATED)), "the map holds no city's words");
   for (const g of RELATED) assert.ok(!g.related.some((w) => /cocktail|bar|wine|beer/.test(w)) || g.words.some((w) => /drink|cocktail|wine|beer|bar|pub|nightlife|karaoke|singing/.test(w)), `drink words only under drink words: ${g.words}`);
 });
+
+// ---------------------------------------------------------------- never an empty kind list
+// The pinned run of d1770d0: per-item grounding left two crews with no kinds of place at all
+// (one into meetups and hackathons, one after free things only), so a wet Saturday had
+// nothing under a roof to offer, and a family crew lost "community centre".
+
+test("grounding never leaves a crew that says what it is into with no kinds of place", () => {
+  const meetups = cleanTaste({ ...blank, basis: ["meetups", "hackathons"], likes: ["meetups", "hackathons", "tech"], placeKinds: ["community centre", "cafe", "library"], eventKeywords: ["meetup", "hackathon", "tech"] }, { sentence: "Dev friends, meetups and hackathons, every other Saturday around Yaba" });
+  assert.ok(meetups.placeKinds.length > 0, JSON.stringify(meetups));
+  assert.ok(meetups.placeKinds.includes("community centre") && meetups.placeKinds.includes("cafe"), "meetups and hackathons ground their own kinds");
+  const free = cleanTaste({ ...blank, likes: ["free events", "outdoor hangouts"], placeKinds: ["bar", "cinema"], eventKeywords: ["free"], budget: "free" }, { sentence: "Abeg we no get money, free things only, around Ajah" });
+  assert.ok(free.placeKinds.length > 0, JSON.stringify(free));
+  assert.ok(!free.placeKinds.includes("bar") && !free.placeKinds.includes("cinema"), "the model's unrelated kinds stay out");
+  assert.ok(free.placeKinds.includes("park"), "a free crew gets free kinds of place");
+  // a taste word no list knows, and every kind the model gave unrelated: the default kinds
+  const odd = cleanTaste({ ...blank, likes: ["origami"], placeKinds: ["nightclub", "bar"] }, { sentence: "We fold origami, around Yaba" });
+  assert.ok(odd.placeKinds.length > 0 && !odd.placeKinds.includes("bar"), JSON.stringify(odd));
+  assert.ok(odd.placeKinds.some((k) => ["cafe", "museum", "restaurant", "library", "community centre"].includes(k)), "something under a roof for a wet day");
+});
+
+test("a family crew keeps the community centre its group words point to", () => {
+  const t = cleanTaste({ ...blank, likes: ["picnics", "crafts"], placeKinds: ["park", "playground", "community centre"], needs: ["kid-friendly"] }, { sentence: "Families with young kids, into picnics and crafts, every other Saturday around Festac" });
+  assert.ok(t.placeKinds.includes("community centre"), JSON.stringify(t));
+  assert.ok(t.placeKinds.includes("playground") && t.placeKinds.includes("park"));
+  // the art crew is unchanged: one kind, its own
+  const art = cleanTaste({ ...blank, likes: ["art", "cocktails"], placeKinds: ["gallery", "bar"] }, { sentence: "We want art galleries" });
+  assert.deepEqual(art.placeKinds, ["gallery"]);
+});

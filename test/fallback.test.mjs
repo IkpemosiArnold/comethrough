@@ -80,3 +80,16 @@ test("Overpass down after the week's answer expired: the last good answer for th
   const stale = await op.greenNear({ lat: 6.505, lon: 3.365 }, 6000);
   assert.deepEqual(stale.map((c) => c.name), ["Yaba Park"]);
 });
+
+test("rain: a crew whose taste grounding dropped every kind of place still gets a covered option", async () => {
+  // the pinned run of d1770d0: two crews were left with no kinds, and a wet Saturday skipped
+  const free = cleanTaste({ likes: ["free events"], placeKinds: ["bar", "cinema"], budget: "free" }, { sentence: "Abeg we no get money, free things only, around Yaba" });
+  assert.ok(free.placeKinds.length > 0, JSON.stringify(free));
+  const r = await ritualInRain(crewOf(free, "free"), [node("Yaba Library", 6.51, 3.37, { amenity: "library" }), node("Mainland Community Hall", 6.508, 3.366, { amenity: "community_centre" })]);
+  assert.ok(r.made, JSON.stringify({ reason: r.reason }));
+  assert.equal(r.plan?.rainPlan?.kind, "covered");
+  assert.ok(["Yaba Library", "Mainland Community Hall"].includes(String(r.plan?.place.name)));
+  const odd = cleanTaste({ likes: ["origami"], placeKinds: ["nightclub"] }, { sentence: "We fold origami, around Yaba" });
+  const r2 = await ritualInRain(crewOf(odd), [node("Book Cafe", 6.51, 3.37, { amenity: "cafe" })]);
+  assert.equal(r2.plan?.place.name, "Book Cafe");
+});

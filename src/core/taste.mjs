@@ -200,6 +200,8 @@ export const RELATED = Object.freeze([
   { words: ["sport", "football", "basketball", "tennis", "gym", "running", "fitness"], related: ["sports", "sport", "football", "fitness", "running", "gym", "basketball", "tennis", "match"] },
   { words: ["shopping", "mall"], related: ["shopping", "mall", "market"] },
   { words: ["karaoke", "singing"], related: ["karaoke", "singing", "music", "bar"] },
+  { words: ["meetup", "hackathon", "tech", "coding", "startup", "networking", "talks", "workshop"], related: ["meetups", "hackathons", "tech", "talks", "workshops", "networking", "coding", "community centre", "cafe", "library"] },
+  { words: ["craft", "crafts", "diy", "pottery", "sewing"], related: ["crafts", "workshops", "arts centre", "community centre", "market"] },
 ]);
 
 /** Words too general to ground anything by themselves ("live" in live music, "centre" in arts centre). */
@@ -213,22 +215,48 @@ const distinct = (/** @type {string} */ t) => (t.length >= 3 || /\d/.test(t) || 
 const stems = (/** @type {string} */ v) => norm(v).split(" ").filter((t) => t && !STOP.has(t)).map(stem).filter(distinct);
 
 /** RELATED with its words as stems, built once. */
-const RELATED_STEMS = RELATED.map((g) => ({ words: g.words.map((w) => norm(w).split(" ").map(stem).join(" ")), related: g.related.flatMap(stems) }));
+const RELATED_STEMS = RELATED.map((g) => ({ words: g.words.map((w) => norm(w).split(" ").map(stem).join(" ")), related: g.related.flatMap(stems), phrases: g.related.map((r) => `=${norm(r)}`) }));
 
 /**
  * What a sentence grounds, as word stems: its own words, their RELATED words, and what
  * TASTE_WORDS reads from it. An item rests on the sentence when one of its distinctive
- * words is in this set.
+ * words is in this set. Whole related phrases are in it too, marked "=", so a kind whose
+ * words are all general ("community centre") can still be grounded by name.
  * @param {string} src
  */
 function groundOf(src) {
   const toks = norm(src).split(" ").filter(Boolean).map(stem);
   const text = ` ${toks.join(" ")} `;
   const out = new Set(toks.filter(distinct));
-  for (const g of RELATED_STEMS) if (g.words.some((w) => text.includes(` ${w} `))) g.related.forEach((r) => out.add(r));
+  for (const g of RELATED_STEMS) if (g.words.some((w) => text.includes(` ${w} `))) [...g.related, ...g.phrases].forEach((r) => out.add(r));
   for (const e of plainEntries(src)) [...(e.likes || []), ...(e.kinds || []), ...(e.keys || [])].flatMap(stems).forEach((r) => out.add(r));
   return out;
 }
+
+/**
+ * Kinds of place a kind of group points to, by the group words the sentence says. City-free
+ * and explicit, like RELATED; used to ground the model's kinds for who the crew is, and as a
+ * fallback so no crew is left with no kind of place at all.
+ * @type {readonly { re: RegExp, kinds: string[] }[]}
+ */
+export const GROUP_KINDS = Object.freeze([
+  { re: /\b(students?|uni|university|campus|undergrads?)\b/i, kinds: ["cafe", "street food", "park"] },
+  { re: /\b(parents|mums|moms|dads|famil(?:y|ies)|kids|toddlers?|children)\b/i, kinds: ["playground", "park", "zoo", "ice cream", "community centre"] },
+  { re: /\b(colleagues|work friends|workmates|office|corporate|bankers|lawyers)\b/i, kinds: ["restaurant", "cafe"] },
+  { re: /\b(techies|tech bros|developers?|devs?|engineers|startup folks)\b/i, kinds: ["cafe", "community centre", "library"] },
+  { re: /\b(creatives|artists|musicians)\b/i, kinds: ["gallery", "arts centre", "live music", "cafe"] },
+  { re: /\b(gym|runners|footballers?|ballers)\b/i, kinds: ["sports", "park"] },
+  { re: /\b(gamers)\b/i, kinds: ["arcade", "bowling"] },
+  { re: /\b(youth|choir|fellowship)\b/i, kinds: ["community centre", "park", "cafe"] },
+  { re: /\b(retirees?|retired)\b/i, kinds: ["garden", "restaurant", "cafe"] },
+  { re: /\b(alumni|old (?:boys|girls)|class of)\b/i, kinds: ["restaurant", "cafe"] },
+]);
+
+/** Kinds of place a budget points to: free and cheap places. */
+const BUDGET_KINDS = Object.freeze({ free: ["park", "garden", "beach", "library", "community centre"], cheap: ["park", "street food", "market", "cafe"] });
+
+/** The last resort, so no crew that said anything is left with no kind of place: green, and two roofs for a wet day. */
+const DEFAULT_KINDS = Object.freeze(["park", "cafe", "museum"]);
 
 /**
  * Taste words people use, read by code alone: the floor under Gemma's reading, and the whole
@@ -426,13 +454,19 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     // parents, an age, an identity turned into needs) keeps Gemma's reading of that, as before.
     // Needs, energy and things to avoid only narrow the choice, so they stay as read.
     const saysTaste = plain.likes.length > 0 || plain.placeKinds.length > 0 || likes.some((l) => said(l, src)) || eventKeywords.some((k) => said(k, src)) || placeKinds.some((k) => said(k, src));
+    // a kind of group the sentence names grounds the kinds of place GROUP_KINDS lists for it
+    // (a family crew keeps its community centre: the pinned run of d1770d0 lost it)
+    const groupKinds = GROUP_KINDS.filter((g) => g.re.test(src)).flatMap((g) => g.kinds);
+    let dropped = false;
     if (anchored && saysTaste && !scenes.length) {
       const ground = groundOf(src);
-      const fits = (/** @type {string} */ v) => stems(v).some((t) => ground.has(t));
+      const fits = (/** @type {string} */ v) => stems(v).some((t) => ground.has(t)) || ground.has(`=${norm(v)}`);
       const needKinds = new Set(impliedNeeds(src).flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []));
       likes = likes.filter(fits);
       eventKeywords = eventKeywords.filter(fits);
-      placeKinds = placeKinds.filter((k) => fits(k) || plain.placeKinds.includes(k) || needKinds.has(k));
+      const before = placeKinds.length;
+      placeKinds = placeKinds.filter((k) => fits(k) || plain.placeKinds.includes(k) || needKinds.has(k) || groupKinds.includes(k));
+      dropped = placeKinds.length < before;
     }
     if (age && !AGE_WORDS.test(src)) age = null;
     // Gemma's reading is trusted; what the sentence plainly says is never lost: each taste
@@ -456,8 +490,21 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     if (avoid.length) placeKinds = placeKinds.filter((k) => !avoid.some((a) => avoidHits(a, k)));
     // needs add constraints on top of the taste; they never replace it
     needs = [...new Set([...needs, ...impliedNeeds(src)])];
-    // needs imply kinds of place when Gemma named none: a discreet crew still gets somewhere to go
-    if (!placeKinds.length) placeKinds = [...new Set(needs.flatMap((n) => NEED_KINDS[n] || []))].slice(0, 6);
+    const dry = needs.includes("no alcohol") || needs.includes("kid-friendly");
+    if (dry) placeKinds = placeKinds.filter((k) => !PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife);
+    // When Gemma named no kind of place, or grounding left none (or one), the kinds the
+    // crew's needs, group words and budget point to fill in: a discreet crew still gets
+    // somewhere to go, and no crew that said anything is left with no kind of place at all
+    // (the pinned run of d1770d0: a meetups crew and a free-things crew had none, so a wet
+    // Saturday had nothing under a roof). Last of all, a park, a cafe and a museum.
+    if (anchored && (!placeKinds.length || (dropped && placeKinds.length < 2))) {
+      const implied = [...needs.flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []), ...groupKinds, ...(budget === "free" || budget === "cheap" ? BUDGET_KINDS[budget] : [])]
+        .filter((k) => !dry || (!PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife));
+      placeKinds = merge(placeKinds, implied, 6);
+      if (!placeKinds.length) placeKinds = [...DEFAULT_KINDS];
+    } else if (!placeKinds.length) {
+      placeKinds = [...new Set(needs.flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []))].slice(0, 6);
+    }
     // and somewhere under a roof for a wet day, so rain does not send every crew to the same
     // covered spot (the 22 Oct eval: Nike Art Gallery for alte, parents and corporate alike)
     if (placeKinds.length) placeKinds = [...new Set([...placeKinds, ...rainKinds(placeKinds, needs)])].slice(0, 8);
