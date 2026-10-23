@@ -169,6 +169,68 @@ function said(/** @type {string} */ v, /** @type {string} */ source) {
 }
 
 /**
+ * Close relatives of taste words, so a reading of the organiser's words in other words is
+ * kept item by item: "raves" grounds nightlife, dancing, a club and music; "art galleries"
+ * grounds a museum and an exhibition, and not cocktails or a bar (the review of d01a23b:
+ * one grounded word had let every other preference Gemma added through). Small and explicit
+ * on purpose, and city-free: a word not here keeps only what says it, or what TASTE_WORDS
+ * reads from it. Matched by stem, both ways round.
+ * @type {readonly { words: string[], related: string[] }[]}
+ */
+export const RELATED = Object.freeze([
+  { words: ["rave", "raver", "techno", "edm"], related: ["nightlife", "dancing", "club", "nightclub", "music", "party", "dj", "techno", "house music"] },
+  { words: ["party", "club", "clubbing", "dancing", "dance"], related: ["nightlife", "dancing", "club", "nightclub", "music", "party", "dj", "rave"] },
+  { words: ["nightlife", "night out"], related: ["club", "nightclub", "bar", "party", "dancing", "music", "dj", "rave"] },
+  { words: ["music", "concert", "gig", "jazz", "afrobeats", "amapiano", "band"], related: ["live music", "music", "concert", "gig", "band", "jazz", "dj", "open mic", "festival"] },
+  { words: ["art", "arts", "gallery", "exhibition", "artsy"], related: ["art", "gallery", "arts centre", "museum", "exhibition", "painting", "sculpture", "photography", "design", "craft"] },
+  { words: ["museum", "history", "heritage"], related: ["museum", "history", "heritage", "gallery", "exhibition", "art", "culture"] },
+  { words: ["drinks", "cocktail", "wine", "beer", "bar", "pub"], related: ["drinks", "bar", "pub", "cocktail", "wine", "beer", "rooftop", "lounge"] },
+  { words: ["food", "foodie", "eat", "eating", "restaurant", "dinner", "lunch"], related: ["food", "restaurant", "cafe", "brunch", "street food", "dining", "dessert", "ice cream"] },
+  { words: ["brunch", "breakfast", "coffee", "cafe"], related: ["brunch", "cafe", "coffee", "breakfast", "bakery", "restaurant", "food"] },
+  { words: ["chill", "relaxed", "relax", "cosy", "cozy", "low key"], related: ["chill", "cafe", "garden", "park", "lounge", "quiet"] },
+  { words: ["outdoors", "outside", "park", "picnic", "nature", "green"], related: ["outdoors", "park", "garden", "beach", "picnic", "nature", "hiking", "walk"] },
+  { words: ["beach", "seaside"], related: ["beach", "seaside", "swimming", "picnic", "outdoors", "sunset"] },
+  { words: ["hiking", "hike", "walk", "walking", "trail"], related: ["hiking", "nature", "park", "trail", "outdoors", "walk"] },
+  { words: ["games", "gaming", "arcade", "bowling", "quiz", "trivia"], related: ["games", "arcade", "bowling", "board games", "gaming", "quiz", "trivia"] },
+  { words: ["movie", "film", "cinema"], related: ["cinema", "movies", "film", "screening"] },
+  { words: ["comedy", "stand up"], related: ["comedy", "theatre", "open mic", "improv"] },
+  { words: ["theatre", "theater", "plays", "drama"], related: ["theatre", "plays", "drama", "comedy", "musical", "performance"] },
+  { words: ["book", "reading", "bookshop", "poetry"], related: ["books", "bookshop", "library", "reading", "poetry", "spoken word", "open mic"] },
+  { words: ["thrift", "vintage"], related: ["thrift", "vintage", "market", "flea market", "fashion"] },
+  { words: ["sport", "football", "basketball", "tennis", "gym", "running", "fitness"], related: ["sports", "sport", "football", "fitness", "running", "gym", "basketball", "tennis", "match"] },
+  { words: ["shopping", "mall"], related: ["shopping", "mall", "market"] },
+  { words: ["karaoke", "singing"], related: ["karaoke", "singing", "music", "bar"] },
+]);
+
+/** Words too general to ground anything by themselves ("live" in live music, "centre" in arts centre). */
+const GENERIC = new Set(["live", "centre", "center", "street", "theme", "community", "open", "night", "place", "spot", "venue", "thing", "event", "vibe", "good", "fun", "time", "out", "house", "word", "board"].map(stem));
+
+/** Two-letter taste words that still mean something. */
+const SHORT = new Set(["dj", "mc"]);
+
+/** The distinctive word stems of a word or phrase. */
+const distinct = (/** @type {string} */ t) => (t.length >= 3 || /\d/.test(t) || SHORT.has(t)) && !STOP.has(t) && !GENERIC.has(t);
+const stems = (/** @type {string} */ v) => norm(v).split(" ").filter((t) => t && !STOP.has(t)).map(stem).filter(distinct);
+
+/** RELATED with its words as stems, built once. */
+const RELATED_STEMS = RELATED.map((g) => ({ words: g.words.map((w) => norm(w).split(" ").map(stem).join(" ")), related: g.related.flatMap(stems) }));
+
+/**
+ * What a sentence grounds, as word stems: its own words, their RELATED words, and what
+ * TASTE_WORDS reads from it. An item rests on the sentence when one of its distinctive
+ * words is in this set.
+ * @param {string} src
+ */
+function groundOf(src) {
+  const toks = norm(src).split(" ").filter(Boolean).map(stem);
+  const text = ` ${toks.join(" ")} `;
+  const out = new Set(toks.filter(distinct));
+  for (const g of RELATED_STEMS) if (g.words.some((w) => text.includes(` ${w} `))) g.related.forEach((r) => out.add(r));
+  for (const e of plainEntries(src)) [...(e.likes || []), ...(e.kinds || []), ...(e.keys || [])].flatMap(stems).forEach((r) => out.add(r));
+  return out;
+}
+
+/**
  * Taste words people use, read by code alone: the floor under Gemma's reading, and the whole
  * reading when Gemma is busy. Each says what the words are into, which kinds of place suit
  * them (PLACE_KINDS), words to look for in event guides, the vibe words (VIBE_MATCHERS) and
@@ -353,6 +415,24 @@ export function cleanTaste(raw, { sentence = null } = {}) {
       avoid = avoid.filter((a) => said(a, src));
       needs = [];
       energy = null;
+    }
+    // When the sentence says what the crew is into, each item of Gemma's reading must rest on
+    // those words by itself: said in any form, a close relative (RELATED), what TASTE_WORDS
+    // reads from them, or, for a kind of place, what a need the sentence implies points to.
+    // One grounded word no longer lets the rest through (the review of d01a23b: "We want art
+    // galleries" kept the cocktails and the bar Gemma added). A scene the sentence names
+    // keeps Gemma's reading of it whole: what "alte" means is cultural knowledge that no list
+    // in a city-free core holds. A sentence that says only who the crew is (students,
+    // parents, an age, an identity turned into needs) keeps Gemma's reading of that, as before.
+    // Needs, energy and things to avoid only narrow the choice, so they stay as read.
+    const saysTaste = plain.likes.length > 0 || plain.placeKinds.length > 0 || likes.some((l) => said(l, src)) || eventKeywords.some((k) => said(k, src)) || placeKinds.some((k) => said(k, src));
+    if (anchored && saysTaste && !scenes.length) {
+      const ground = groundOf(src);
+      const fits = (/** @type {string} */ v) => stems(v).some((t) => ground.has(t));
+      const needKinds = new Set(impliedNeeds(src).flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []));
+      likes = likes.filter(fits);
+      eventKeywords = eventKeywords.filter(fits);
+      placeKinds = placeKinds.filter((k) => fits(k) || plain.placeKinds.includes(k) || needKinds.has(k));
     }
     if (age && !AGE_WORDS.test(src)) age = null;
     // Gemma's reading is trusted; what the sentence plainly says is never lost: each taste
