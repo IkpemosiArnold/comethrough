@@ -1,0 +1,6623 @@
+{
+ "meta": {
+  "set": "test",
+  "mode": "replay",
+  "runId": "test-replay-2026-10-23T10-59-51-390Z",
+  "sha": "6a11f763db089ff8b5811d6066a0e8bf0a7e9f232aa984cc00fbf082a3e31804",
+  "at": "2026-10-23T12:44:05.444Z",
+  "clock": "2026-10-22T11:00:00Z",
+  "llm": "gemini:gemma-4-26b-a4b-it",
+  "fast": false,
+  "only": null,
+  "git": {
+   "head": "d1770d0c3f285915a33e9e1fede59e421e697397",
+   "appClean": true
+  },
+  "world": {
+   "hits": 257,
+   "recorded": 0,
+   "recordedFailures": 0,
+   "misses": 0,
+   "liveAttempts": 0,
+   "hitsExtended": 157,
+   "byService": {
+    "nominatim": {
+     "hits": 86,
+     "recorded": 0,
+     "misses": 0
+    },
+    "openmeteo": {
+     "hits": 38,
+     "recorded": 0,
+     "misses": 0
+    },
+    "overpass": {
+     "hits": 92,
+     "recorded": 0,
+     "misses": 0
+    },
+    "osrm": {
+     "hits": 29,
+     "recorded": 0,
+     "misses": 0
+    },
+    "wikidata": {
+     "hits": 12,
+     "recorded": 0,
+     "misses": 0
+    }
+   }
+  },
+  "worldMisses": [],
+  "worldNew": 0,
+  "llmStats": {
+   "hits": 97,
+   "live": 0,
+   "misses": 0,
+   "refusedBlind": 0,
+   "refusedBudget": 0,
+   "failures": 0,
+   "liveByTask": {},
+   "missByTask": {},
+   "sensitiveFieldsSeen": {
+    "parse-crew.taste.eventKeywords": 1,
+    "parse-crew.name": 2,
+    "parse-crew.taste.basis": 4
+   }
+  },
+  "llmMisses": [],
+  "ledger": {
+   "cap": 520,
+   "liveCalls": 390,
+   "thisRun": 0
+  },
+  "geocoder": "nominatim",
+  "extendedSince": "2026-10-22T16:40:00Z",
+  "appends": [
+   {
+    "runId": "dev-record-2026-10-22T18-04-10-014Z",
+    "at": "2026-10-22T18:27:40.555Z",
+    "git": {
+     "head": "1f15d2707cacc5632e888bdba6dec77347478c7c"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 0,
+     "failuresKept": 0,
+     "byService": {}
+    },
+    "llm": {
+     "live": 33,
+     "liveByTask": {
+      "explain-pick": 7,
+      "write-invite": 6,
+      "rank-ideas": 20
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 269,
+     "liveCalls": 269,
+     "thisRun": 33
+    }
+   },
+   {
+    "runId": "dev-record-2026-10-22T18-34-25-173Z",
+    "at": "2026-10-22T18:45:31.591Z",
+    "git": {
+     "head": "099b1118c1e926cfdffc589516c578ee7c41e1cc"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 0,
+     "failuresKept": 0,
+     "byService": {}
+    },
+    "llm": {
+     "live": 14,
+     "liveByTask": {
+      "rank-ideas": 8,
+      "explain-pick": 2,
+      "write-invite": 4
+     },
+     "failures": 1,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 283,
+     "liveCalls": 283,
+     "thisRun": 14
+    }
+   },
+   {
+    "runId": "dev-record-2026-10-22T18-50-41-371Z",
+    "at": "2026-10-22T18:54:05.173Z",
+    "git": {
+     "head": "099b1118c1e926cfdffc589516c578ee7c41e1cc"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 0,
+     "failuresKept": 0,
+     "byService": {}
+    },
+    "llm": {
+     "live": 2,
+     "liveByTask": {
+      "write-invite": 2
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 285,
+     "liveCalls": 285,
+     "thisRun": 2
+    }
+   },
+   {
+    "runId": "dev-record-2026-10-22T20-00-37-284Z",
+    "at": "2026-10-22T20:02:16.768Z",
+    "git": {
+     "head": "b59daf8b54993d98b7b91695c6c3061c13c8840e"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 0,
+     "failuresKept": 0,
+     "byService": {}
+    },
+    "llm": {
+     "live": 1,
+     "liveByTask": {
+      "rank-ideas": 1
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 286,
+     "liveCalls": 286,
+     "thisRun": 1
+    }
+   },
+   {
+    "runId": "dev-record-blind-2026-10-22T17-41-35-464Z",
+    "at": "2026-10-22T17:53:58.512Z",
+    "git": {
+     "head": "5096115ac953492bdc3eb817b8705315f27b135c"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 69,
+     "failuresKept": 0,
+     "byService": {
+      "openmeteo": 15,
+      "nominatim": 21,
+      "overpass": 14,
+      "osrm": 13,
+      "wikidata": 6
+     }
+    },
+    "llm": {
+     "live": 0,
+     "liveByTask": {},
+     "failures": 0,
+     "notAskedBlind": 33
+    },
+    "ledger": {
+     "cap": 250,
+     "liveCalls": 236,
+     "thisRun": 0
+    }
+   },
+   {
+    "runId": "test-record-2026-10-22T16-45-03-815Z",
+    "at": "2026-10-22T17:40:30.773Z",
+    "git": {
+     "head": "8efe98e0e1bd300b581beb72a05563e46f8cae6b"
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 114,
+     "failuresKept": 1,
+     "byService": {
+      "nominatim": 45,
+      "osrm": 19,
+      "openmeteo": 21,
+      "overpass": 21,
+      "wikidata": 8
+     }
+    },
+    "llm": {
+     "live": 97,
+     "liveByTask": {
+      "explain-pick": 28,
+      "rank-ideas": 28,
+      "write-invite": 30,
+      "parse-crew": 11
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 250,
+     "liveCalls": 236,
+     "thisRun": 97
+    }
+   },
+   {
+    "runId": "test-record-2026-10-23T10-00-38-714Z",
+    "at": "2026-10-23T10:07:04.435Z",
+    "git": {
+     "head": "d1770d0c3f285915a33e9e1fede59e421e697397",
+     "appClean": true
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 0,
+     "failuresKept": 0,
+     "byService": {}
+    },
+    "llm": {
+     "live": 13,
+     "liveByTask": {
+      "parse-crew": 13
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 520,
+     "liveCalls": 351,
+     "thisRun": 13
+    }
+   },
+   {
+    "runId": "test-record-2026-10-23T10-07-31-555Z",
+    "at": "2026-10-23T10:59:22.566Z",
+    "git": {
+     "head": "d1770d0c3f285915a33e9e1fede59e421e697397",
+     "appClean": true
+    },
+    "geocoder": "nominatim",
+    "added": {
+     "total": 38,
+     "failuresKept": 3,
+     "byService": {
+      "overpass": 19,
+      "osrm": 19
+     }
+    },
+    "llm": {
+     "live": 39,
+     "liveByTask": {
+      "write-invite": 9,
+      "rank-ideas": 17,
+      "explain-pick": 13
+     },
+     "failures": 0,
+     "notAskedBlind": 0
+    },
+    "ledger": {
+     "cap": 520,
+     "liveCalls": 390,
+     "thisRun": 39
+    }
+   },
+   {
+    "runId": "test-record-afb4ebd (stopped)",
+    "started": "2026-10-22T21:48:05Z",
+    "at": "2026-10-23T09:21:51.801Z",
+    "app": "afb4ebd (the shared checkout, src identical to afb4ebd)",
+    "note": "Fill-only recording for a later scored test run of afb4ebd. The pass stalled overnight in a network outage and was stopped part way through; a restart on 23 Oct made no live calls and was stopped when that run was called off. The entries are valid recordings and are kept; nothing was overwritten.",
+    "added": {
+     "total": 23,
+     "failuresKept": 2,
+     "byService": {
+      "overpass": 13,
+      "osrm": 10
+     },
+     "first": "2026-10-22T21:49:13.616Z",
+     "last": "2026-10-23T09:21:51.801Z"
+    },
+    "llm": {
+     "recorded": 51,
+     "byTask": {
+      "explain-pick": 11,
+      "rank-ideas": 14,
+      "parse-crew": 19,
+      "write-invite": 7
+     },
+     "liveCallsInLedger": 52
+    },
+    "ledger": 338
+   }
+  ],
+  "promptHashes": {
+   "parse-crew": "7d2f3c42bb4f5210",
+   "parse-plan": "cfef443b5816a61f",
+   "explain-pick": "0bbcb5f3cbbe6d35",
+   "write-invite": "28722f7e9ce7d290",
+   "parse-feedback": "9f510d6aac558543",
+   "extract-events": "33c5d9a6182ecb07",
+   "rank-ideas": "c8e1f338cbb5a81e"
+  },
+  "rerunReason": null,
+  "note": "The release revision d1770d0 (deployed on Render; src identical to e67d813: claimed jobs, the push SSRF guard, per-item taste grounding). The two bugs this test set found in the baseline (the diaspora area lookup, and 'Saturday mornings around 7am' not becoming a rhythm) were deliberately not fixed before this run, and this run does not claim them fixed.",
+  "label": "release-d1770d0",
+  "pinned": {
+   "commit": "d1770d0c3f285915a33e9e1fede59e421e697397",
+   "clean": true,
+   "harness": "cbec49716fe70f372465b772559f82f841ec883e",
+   "worktree": true
+  }
+ },
+ "crews": [
+  {
+   "id": "lag-alte-yaba",
+   "sentence": "Alte crew, 6 of us, mid 20s, thrift and gallery people, every other Saturday around Yaba and Surulere",
+   "error": null,
+   "timings": {
+    "draft": 11128,
+    "create": 963,
+    "pick": 291042,
+    "ideas": 273100,
+    "total": 576255
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [
+      "alte"
+     ],
+     "likes": [
+      "thrift",
+      "art",
+      "indie",
+      "creative",
+      "fashion"
+     ],
+     "placeKinds": [
+      "gallery",
+      "thrift",
+      "bookshop",
+      "arts centre",
+      "cafe",
+      "live music"
+     ],
+     "eventKeywords": [
+      "exhibition",
+      "indie",
+      "art",
+      "fashion",
+      "creative",
+      "thrift"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": null,
+     "ageBand": "mid 20s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Yaba",
+      "lat": 6.5068212,
+      "lon": 3.3754881
+     },
+     {
+      "label": "Surulere",
+      "lat": 6.4855737,
+      "lon": 3.3539907
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Cafe Neo",
+    "place": {
+     "name": "Cafe Neo",
+     "lat": 6.5063862,
+     "lon": 3.3742223,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Cafe Neo",
+     "amenity": "cafe",
+     "addr:street": "Commercial Avenue",
+     "addr:city": "Lagos"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Cafe Neo, 3 pm to 6 pm.",
+    "why": "Cafe Neo is a café, about 17 minutes for whoever is furthest.",
+    "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": null,
+    "trips": {
+     "maxMin": 15,
+     "trips": [
+      {
+       "from": "Surulere",
+       "minutes": 15
+      },
+      {
+       "from": "Yaba",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "National Gallery of Modern Arts",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "National Gallery of Modern Arts",
+      "address": null,
+      "area": null,
+      "lat": 6.4768676,
+      "lon": 3.369299,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "National Gallery of Modern Arts is an art space open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "National Gallery of Modern Arts",
+      "amenity": "arts_centre"
+     },
+     "placeKind": "arts centre"
+    },
+    {
+     "kind": "place",
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Cafe Neo",
+      "address": "Commercial Avenue, Lagos",
+      "area": null,
+      "lat": 6.5063862,
+      "lon": 3.3742223,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Cafe Neo is a café and is only 5 minutes from Yaba.",
+     "by": "gemma",
+     "source": null,
+     "longest": 15,
+     "tags": {
+      "name": "Cafe Neo",
+      "amenity": "cafe",
+      "addr:street": "Commercial Avenue",
+      "addr:city": "Lagos"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "University of Lagos Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "University of Lagos Bookshop",
+      "address": null,
+      "area": null,
+      "lat": 6.5186502,
+      "lon": 3.3974322,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "University of Lagos Bookshop is a bookshop open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 28,
+     "tags": {
+      "name": "University of Lagos Bookshop",
+      "shop": "books",
+      "building": "university"
+     },
+     "placeKind": "bookshop"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (NGN 5000)",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-choir-ikeja",
+   "sentence": "Choir friends from church, about 10 of us, gospel music lovers, every other Saturday afternoon around Ikeja and Maryland, nothing with alcohol",
+   "error": null,
+   "timings": {
+    "draft": 6474,
+    "create": 1356,
+    "pick": 57134,
+    "ideas": 3891,
+    "total": 68864
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "gospel music",
+      "choir",
+      "live music"
+     ],
+     "placeKinds": [
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "gospel",
+      "choir",
+      "music"
+     ],
+     "avoid": [
+      "alcohol"
+     ],
+     "needs": [
+      "no alcohol"
+     ],
+     "budget": null,
+     "ageBand": null,
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikeja",
+      "lat": 6.601627,
+      "lon": 3.3515981
+     },
+     {
+      "label": "Maryland",
+      "lat": 6.5771463,
+      "lon": 3.3661931
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Sweet Sensation",
+    "place": {
+     "name": "Sweet Sensation",
+     "lat": 6.5856393,
+     "lon": 3.3570602,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Sweet Sensation",
+     "amenity": "restaurant",
+     "addr:street": "Isaac John Street",
+     "addr:city": "Lagos",
+     "website": "https://sweetsensation.ng/"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+01:00",
+    "end": "2026-10-24T16:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 79%), so the sloth picked somewhere with a roof: Sweet Sensation, 1 pm to 4 pm.",
+    "why": "Sweet Sensation is a restaurant, about 15 minutes for whoever is furthest.",
+    "invite": "Let's hang out this Saturday at Sweet Sensation from 1 pm to 4 pm. Pull up when you can, nobody is taking attendance.",
+    "weather": null,
+    "trips": {
+     "maxMin": 9,
+     "trips": [
+      {
+       "from": "Ikeja",
+       "minutes": 9
+      },
+      {
+       "from": "Maryland",
+       "minutes": 6
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Golden Eagle Spur",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Golden Eagle Spur",
+      "address": "Isaac John Street, Ikeja",
+      "area": null,
+      "lat": 6.5844933,
+      "lon": 3.357566,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Golden Eagle Spur is a restaurant for a chill afternoon on Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 9,
+     "tags": {
+      "name": "Golden Eagle Spur",
+      "amenity": "restaurant",
+      "opening_hours": "Mo-Su 08:00-22:00",
+      "addr:street": "Isaac John Street",
+      "addr:city": "Ikeja",
+      "website": "https://www.spursteakranches.com/ng/restaurant/international/lagos/ikeja-gra/golden-eagles-spur",
+      "brand": "Spur",
+      "brand:wikidata": "Q7581546"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Zen Garden",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Zen Garden",
+      "address": "Isaac John Street, Ikeja",
+      "area": null,
+      "lat": 6.5855507,
+      "lon": 3.3573164,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Zen Garden is a restaurant available on Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 9,
+     "tags": {
+      "name": "Zen Garden",
+      "amenity": "restaurant",
+      "addr:street": "Isaac John Street",
+      "addr:city": "Ikeja",
+      "building": "yes"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Choco-Latte",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Choco-Latte",
+      "address": null,
+      "area": null,
+      "lat": 6.5819077,
+      "lon": 3.3586042,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Choco-Latte is a café for a chill afternoon on Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 11,
+     "tags": {
+      "name": "Choco-Latte",
+      "amenity": "cafe",
+      "opening_hours": "24/7"
+     },
+     "placeKind": "cafe"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: no alcohol"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 0,
+    "ritual": false,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-foodie-girls-lekki",
+   "sentence": "Foodie girls, 4 of us in our 30s, we try new restaurants every other Saturday around Lekki and Ikoyi, budget is fine",
+   "error": null,
+   "timings": {
+    "draft": 9395,
+    "create": 1614,
+    "pick": 40435,
+    "ideas": 4005,
+    "total": 55458
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "new restaurants",
+      "dining out",
+      "food"
+     ],
+     "placeKinds": [
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "dining",
+      "food",
+      "brunch",
+      "foodie"
+     ],
+     "avoid": [],
+     "needs": [
+      "women-friendly"
+     ],
+     "budget": "any",
+     "ageBand": "30s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Lekki",
+      "lat": 6.4413987,
+      "lon": 3.4704698
+     },
+     {
+      "label": "Ikoyi",
+      "lat": 6.4523431,
+      "lon": 3.4280523
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Saraya Deli",
+    "place": {
+     "name": "Saraya Deli",
+     "lat": 6.4536044,
+     "lon": 3.4457757,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Saraya Deli",
+     "amenity": "restaurant"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Saraya Deli, 3 pm to 6 pm.",
+    "why": "Saraya Deli is a restaurant, and nobody travels more than about 14 minutes.",
+    "invite": "Catching up this Saturday at Saraya Deli from 3 pm to 6 pm. Come when you can and leave when you like. No need to answer this.",
+    "weather": null,
+    "trips": {
+     "maxMin": 14,
+     "trips": [
+      {
+       "from": "Lekki",
+       "minutes": 14
+      },
+      {
+       "from": "Ikoyi",
+       "minutes": 9
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "HotPot",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "HotPot",
+      "address": null,
+      "area": null,
+      "lat": 6.4359933,
+      "lon": 3.4447717,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "HotPot is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 14,
+     "tags": {
+      "name": "HotPot",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "The Grill Room",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "The Grill Room",
+      "address": null,
+      "area": null,
+      "lat": 6.4536091,
+      "lon": 3.445495,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "The Grill Room is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 14,
+     "tags": {
+      "name": "The Grill Room",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Banana Island Patisserie",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Banana Island Patisserie",
+      "address": null,
+      "area": null,
+      "lat": 6.465945,
+      "lon": 3.453074,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Banana Island Patisserie is a restaurant, and nobody's trip is over about 16 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "Banana Island Patisserie",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: women-friendly"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-runclub-lekki",
+   "sentence": "Run club, 15 of us, we run Saturday mornings around 7am in Lekki Phase 1 and VI, then breakfast after",
+   "error": null,
+   "timings": {
+    "draft": 6081,
+    "create": 10,
+    "pick": 32755,
+    "ideas": 11342,
+    "total": 50195
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "running",
+      "breakfast",
+      "food",
+      "parties"
+     ],
+     "placeKinds": [
+      "restaurant",
+      "street food",
+      "nightclub"
+     ],
+     "eventKeywords": [
+      "running",
+      "breakfast",
+      "food",
+      "party"
+     ],
+     "avoid": [],
+     "needs": [
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": null,
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Lekki Phase 1",
+      "lat": 6.4413987,
+      "lon": 3.4704698
+     },
+     {
+      "label": "Victoria Island",
+      "lat": 6.4300279,
+      "lon": 3.4259904
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": null
+   },
+   "ritual": {
+    "title": "Saturday at Bistro 7 Express",
+    "place": {
+     "name": "Bistro 7 Express",
+     "lat": 6.4359339,
+     "lon": 3.4512094,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Bistro 7 Express",
+     "amenity": "fast_food"
+    },
+    "kind": "street food",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Bistro 7 Express, 3 pm to 6 pm.",
+    "why": "Bistro 7 Express: a food spot, with the longest trip about 16 minutes.",
+    "invite": "Catching up this Saturday at Bistro 7 Express from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+    "weather": null,
+    "trips": {
+     "maxMin": 13,
+     "trips": [
+      {
+       "from": "Victoria Island",
+       "minutes": 13
+      },
+      {
+       "from": "Lekki Phase 1",
+       "minutes": 10
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Burger King",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Burger King",
+      "address": null,
+      "area": null,
+      "lat": 6.4358972,
+      "lon": 3.4509282,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Burger King is a food spot open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "Burger King",
+      "amenity": "fast_food",
+      "brand": "Burger King",
+      "brand:wikidata": "Q177054"
+     },
+     "placeKind": "street food"
+    },
+    {
+     "kind": "place",
+     "title": "KFC",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "KFC",
+      "address": null,
+      "area": null,
+      "lat": 6.4358445,
+      "lon": 3.4510502,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "KFC is a food spot open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "KFC",
+      "amenity": "fast_food",
+      "brand": "KFC",
+      "brand:wikidata": "Q524757"
+     },
+     "placeKind": "street food"
+    },
+    {
+     "kind": "place",
+     "title": "Schwarma Co",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Schwarma Co",
+      "address": null,
+      "area": null,
+      "lat": 6.435935,
+      "lon": 3.45112,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Schwarma Co is a food spot, and nobody's trip is over about 13 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "Schwarma Co",
+      "amenity": "fast_food"
+     },
+     "placeKind": "street food"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "withinHours (06:00 to 11:00)",
+     "pass": false,
+     "detail": "ritual \"Bistro 7 Express\" is 15:00 to 18:00, the crew said 06:00 to 11:00; idea \"Burger King\" is 16:00 to 19:00, the crew said 06:00 to 11:00; idea \"KFC\" is 16:00 to 19:00, the crew said 06:00 to 11:00; idea \"Schwarma Co\" is 16:00 to 19:00, the crew said 06:00 to 11:00"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 0,
+    "ritual": false,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-art-ikoyi",
+   "sentence": "Art lovers in our 30s and 40s, galleries and exhibitions every other Saturday around Ikoyi and VI, money is not an issue",
+   "error": null,
+   "timings": {
+    "draft": 4920,
+    "create": 777,
+    "pick": 84273,
+    "ideas": 42800,
+    "total": 132777
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "art",
+      "exhibitions",
+      "design",
+      "fine-art"
+     ],
+     "placeKinds": [
+      "gallery",
+      "museum",
+      "arts centre"
+     ],
+     "eventKeywords": [
+      "exhibition",
+      "art",
+      "design"
+     ],
+     "avoid": [],
+     "needs": [
+      "quiet"
+     ],
+     "budget": "any",
+     "ageBand": "30s and 40s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikoyi",
+      "lat": 6.4523431,
+      "lon": 3.4280523
+     },
+     {
+      "label": "Victoria Island",
+      "lat": 6.4300279,
+      "lon": 3.4259904
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Didi Museum",
+    "place": {
+     "name": "Didi Museum",
+     "lat": 6.4326191,
+     "lon": 3.4235679,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Didi Museum",
+     "tourism": "museum",
+     "opening_hours": "Mo-Sa 09:00-18:00",
+     "website": "http://didimuseum.org/"
+    },
+    "kind": "museum",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Didi Museum, 3 pm to 6 pm.",
+    "why": "Didi Museum: a museum, quiet enough to hear each other, with the longest trip about 8 minutes.",
+    "invite": "Catch us at Didi Museum this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": null,
+    "trips": {
+     "maxMin": 10,
+     "trips": [
+      {
+       "from": "Ikoyi",
+       "minutes": 10
+      },
+      {
+       "from": "Victoria Island",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "African Artists' Foundation",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "African Artists' Foundation",
+      "address": "3 Isiola Oyekan close, Lagos",
+      "area": null,
+      "lat": 6.4417685,
+      "lon": 3.4193743,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "African Artists' Foundation is an art space on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "African Artists' Foundation",
+      "amenity": "arts_centre",
+      "addr:street": "3 Isiola Oyekan close",
+      "addr:city": "Lagos",
+      "website": "https://www.africanartists.org/"
+     },
+     "placeKind": "arts centre"
+    },
+    {
+     "kind": "place",
+     "title": "TCA Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "TCA Gallery",
+      "address": "Block B10 Crescent B, Victoria Island",
+      "area": null,
+      "lat": 6.4401791,
+      "lon": 3.4346205,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "TCA Gallery is an art gallery open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "TCA Gallery",
+      "tourism": "gallery",
+      "opening_hours": "Tu-Su 11-5",
+      "addr:street": "Block B10 Crescent B",
+      "addr:city": "Victoria Island",
+      "building": "apartments"
+     },
+     "placeKind": "gallery"
+    },
+    {
+     "kind": "place",
+     "title": "National Museum",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "National Museum",
+      "address": "Lagos",
+      "area": null,
+      "lat": 6.4444185,
+      "lon": 3.403518,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "National Museum is a museum that is low-key and available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 14,
+     "tags": {
+      "name": "National Museum",
+      "tourism": "museum",
+      "addr:city": "Lagos"
+     },
+     "placeKind": "museum"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-tech-yaba",
+   "sentence": "Techies from Yaba, devs and product people in our 20s, we like meetups and hackathons, every other Saturday around Yaba and Ikeja",
+   "error": null,
+   "timings": {
+    "draft": 6753,
+    "create": 16,
+    "pick": 178143,
+    "ideas": 5,
+    "total": 184936
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "meetups",
+      "hackathons"
+     ],
+     "placeKinds": [],
+     "eventKeywords": [
+      "hackathon",
+      "meetup",
+      "product",
+      "product-management"
+     ],
+     "avoid": [],
+     "needs": [
+      "inclusive"
+     ],
+     "budget": null,
+     "ageBand": "20s",
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Yaba",
+      "lat": 6.5068212,
+      "lon": 3.3754881
+     },
+     {
+      "label": "Ikeja",
+      "lat": 6.601627,
+      "lon": 3.3515981
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at bbc",
+    "place": {
+     "name": "bbc",
+     "lat": 6.548445,
+     "lon": 3.3654972,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "bbc",
+     "leisure": "park"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "Rain all afternoon on Saturday (up to 79% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "Rain all afternoon on Saturday (up to 79% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (79%), feels like 35 C",
+    "trips": {
+     "maxMin": 29,
+     "trips": [
+      {
+       "from": "Ikeja",
+       "minutes": 29
+      },
+      {
+       "from": "Yaba",
+       "minutes": 22
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (3 pm to 7 pm) and what the crew needs this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-chess-ikeja",
+   "sentence": "Chess club, 6 guys of mixed ages, every Saturday afternoon around Ikeja GRA, cheap or free",
+   "error": null,
+   "timings": {
+    "draft": 9337,
+    "create": 1989,
+    "pick": 65002,
+    "ideas": 20299,
+    "total": 96632
+   },
+   "read": {
+    "budget": "free",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "chess",
+      "parties"
+     ],
+     "placeKinds": [
+      "nightclub",
+      "bar",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "chess",
+      "party"
+     ],
+     "avoid": [],
+     "needs": [
+      "quiet"
+     ],
+     "budget": "free",
+     "ageBand": null,
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikeja GRA",
+      "lat": 6.6184563,
+      "lon": 3.3654756
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Dreamfield Juice & Salad Bar",
+    "place": {
+     "name": "Dreamfield Juice & Salad Bar",
+     "lat": 6.597941,
+     "lon": 3.3536679,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Dreamfield Juice & Salad Bar",
+     "amenity": "cafe",
+     "opening_hours": "Mo-Th 06:30-20:30;Fr 06:30-22:00;Sa 09:00-22:00;Su 13:00-20:30",
+     "addr:street": "Allen Avenue",
+     "addr:city": "Ikeja"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+01:00",
+    "end": "2026-10-24T16:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: Dreamfield Juice & Salad Bar, 1 pm to 4 pm.",
+    "why": "Dreamfield Juice & Salad Bar is a café, quiet enough to hear each other, about 22 minutes for whoever is furthest.",
+    "invite": "Catch us at Dreamfield Juice & Salad Bar this Saturday from 1 pm to 4 pm. Come when you can and leave when you like. No need to answer this.",
+    "weather": null,
+    "trips": {
+     "maxMin": 12,
+     "trips": [
+      {
+       "from": "Ikeja GRA",
+       "minutes": 12
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "7 Points Bar and Grill",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "7 Points Bar and Grill",
+      "address": "Ogundana Street",
+      "area": null,
+      "lat": 6.6015464,
+      "lon": 3.3529799,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "7 Points Bar and Grill is a bar with a trip of 11 minutes.",
+     "by": "gemma",
+     "source": null,
+     "longest": 11,
+     "tags": {
+      "name": "7 Points Bar and Grill",
+      "amenity": "bar",
+      "opening_hours": "Mo-Su 12:00-00:00",
+      "addr:street": "Ogundana Street"
+     },
+     "placeKind": "bar"
+    },
+    {
+     "kind": "place",
+     "title": "Mama Cass",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Mama Cass",
+      "address": "Allen Avenue, Ikeja",
+      "area": null,
+      "lat": 6.5964662,
+      "lon": 3.3544952,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Mama Cass is a restaurant for a 13 minute trip.",
+     "by": "gemma",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "Mama Cass",
+      "amenity": "restaurant",
+      "addr:street": "Allen Avenue",
+      "addr:city": "Ikeja",
+      "website": "https://mamacassng.com/",
+      "building": "commercial"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Food House",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Food House",
+      "address": null,
+      "area": null,
+      "lat": 6.5999667,
+      "lon": 3.3811097,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Food House is a restaurant that is 15 minutes away.",
+     "by": "gemma",
+     "source": null,
+     "longest": 15,
+     "tags": {
+      "name": "Food House",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": false,
+     "detail": "Ikeja GRA: pinned 4.6 km off (6.618, 3.365)"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (NGN 5000)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "budgetRead",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 1,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-sober-lekki",
+   "sentence": "Sober crew, 30s, all of us in recovery, no bars or drinks at all, every other Saturday around Lekki and Ajah",
+   "error": null,
+   "timings": {
+    "draft": 7079,
+    "create": 14,
+    "pick": 103096,
+    "ideas": 13610,
+    "total": 123805
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "drinks"
+     ],
+     "placeKinds": [
+      "garden",
+      "library",
+      "bookshop",
+      "cafe",
+      "gallery",
+      "museum"
+     ],
+     "eventKeywords": [
+      "drinks"
+     ],
+     "avoid": [
+      "bars",
+      "drinks"
+     ],
+     "needs": [
+      "safe",
+      "discreet",
+      "no alcohol",
+      "quiet"
+     ],
+     "budget": null,
+     "ageBand": "30s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Lekki",
+      "lat": 6.4413987,
+      "lon": 3.4704698
+     },
+     {
+      "label": "Ajah",
+      "lat": 6.4694716,
+      "lon": 3.5623861
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Nike Art Gallery",
+    "place": {
+     "name": "Nike Art Gallery",
+     "lat": 6.4315209,
+     "lon": 3.48189,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Nike Art Gallery",
+     "tourism": "gallery",
+     "opening_hours": "Mo-Sa 10:00-18:00; Su 13:00-18:00",
+     "website": "https://nikeartfoundation.com/about-us/",
+     "building": "yes"
+    },
+    "kind": "gallery",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 83%), so the sloth picked somewhere with a roof: Nike Art Gallery, 3 pm to 6 pm.",
+    "why": "Nike Art Gallery: an art gallery, quiet enough to hear each other, with the longest trip about 37 minutes.",
+    "invite": "Catch us at Nike Art Gallery this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+    "weather": null,
+    "trips": {
+     "maxMin": 46,
+     "trips": [
+      {
+       "from": "Ajah",
+       "minutes": 46
+      },
+      {
+       "from": "Lekki",
+       "minutes": 8
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Lagos Tea House",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Lagos Tea House",
+      "address": null,
+      "area": null,
+      "lat": 6.4475916,
+      "lon": 3.4692881,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Lagos Tea House is a café for a quiet afternoon on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 49,
+     "tags": {
+      "name": "Lagos Tea House",
+      "amenity": "cafe"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Nike Art Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Nike Art Gallery",
+      "address": null,
+      "area": null,
+      "lat": 6.4315209,
+      "lon": 3.48189,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Nike Art Gallery is an art gallery for a Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 46,
+     "tags": {
+      "name": "Nike Art Gallery",
+      "tourism": "gallery",
+      "opening_hours": "Mo-Sa 10:00-18:00; Su 13:00-18:00",
+      "website": "https://nikeartfoundation.com/about-us/",
+      "building": "yes"
+     },
+     "placeKind": "gallery"
+    },
+    {
+     "kind": "home",
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "start": "2026-10-24T15:00:00+01:00",
+     "end": "2026-10-24T18:00:00+01:00",
+     "place": {
+      "name": null,
+      "address": null,
+      "area": null,
+      "lat": null,
+      "lon": null,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "A night in at one of yours is a low-key option for Saturday 24 October from 3 pm to 6 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": null,
+     "tags": null,
+     "placeKind": null
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: safe, discreet, no alcohol, quiet"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 2,
+    "ritual": false,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-wheelchair-ikeja",
+   "sentence": "One of us uses a wheelchair, so step-free places only, 5 friends in our 30s, every other Saturday around Ikeja and Maryland",
+   "error": null,
+   "timings": {
+    "draft": 4418,
+    "create": 506,
+    "pick": 32836,
+    "ideas": 2870,
+    "total": 40641
+   },
+   "read": {
+    "budget": "free",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "garden",
+      "cafe",
+      "library",
+      "bookshop",
+      "museum"
+     ],
+     "placeKinds": [
+      "park",
+      "garden",
+      "cafe",
+      "bookshop",
+      "museum",
+      "library"
+     ],
+     "eventKeywords": [],
+     "avoid": [],
+     "needs": [
+      "step-free"
+     ],
+     "budget": "free",
+     "ageBand": "30s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikeja",
+      "lat": 6.601627,
+      "lon": 3.3515981
+     },
+     {
+      "label": "Maryland",
+      "lat": 6.5771463,
+      "lon": 3.3661931
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Choco-Latte",
+    "place": {
+     "name": "Choco-Latte",
+     "lat": 6.5819077,
+     "lon": 3.3586042,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Choco-Latte",
+     "amenity": "cafe",
+     "opening_hours": "24/7"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 79%), so the sloth picked somewhere with a roof: Choco-Latte, 3 pm to 6 pm.",
+    "why": "Choco-Latte: a café, with the longest trip about 19 minutes.",
+    "invite": "Catch the vibe this Saturday at Choco-Latte from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
+    "weather": null,
+    "trips": {
+     "maxMin": 11,
+     "trips": [
+      {
+       "from": "Ikeja",
+       "minutes": 11
+      },
+      {
+       "from": "Maryland",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Dreamfield Juice & Salad Bar",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Dreamfield Juice & Salad Bar",
+      "address": "Allen Avenue, Ikeja",
+      "area": null,
+      "lat": 6.597941,
+      "lon": 3.3536679,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Dreamfield Juice & Salad Bar is a café that is only 13 minutes away.",
+     "by": "gemma",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "Dreamfield Juice & Salad Bar",
+      "amenity": "cafe",
+      "opening_hours": "Mo-Th 06:30-20:30;Fr 06:30-22:00;Sa 09:00-22:00;Su 13:00-20:30",
+      "addr:street": "Allen Avenue",
+      "addr:city": "Ikeja"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Oasis Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Oasis Bookshop",
+      "address": null,
+      "area": null,
+      "lat": 6.598673,
+      "lon": 3.3531798,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Oasis Bookshop is a bookshop and is open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 13,
+     "tags": {
+      "name": "Oasis Bookshop",
+      "shop": "books",
+      "building": "yes"
+     },
+     "placeKind": "bookshop"
+    },
+    {
+     "kind": "place",
+     "title": "Aircraft",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Aircraft",
+      "address": null,
+      "area": null,
+      "lat": 6.5891273,
+      "lon": 3.3338054,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Aircraft is a museum, and nobody's trip is over about 18 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 18,
+     "tags": {
+      "name": "Aircraft",
+      "tourism": "museum"
+     },
+     "placeKind": "museum"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "stepFree",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: step-free"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 2,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-nightshift-vi-pidgin",
+   "sentence": "Na night work we dey do for VI, security and nurses, we only free Saturday afternoon from 1 to 5, 6 of us, around VI and Obalende",
+   "error": null,
+   "timings": {
+    "draft": 6712,
+    "create": 1239,
+    "pick": 47767,
+    "ideas": 3052,
+    "total": 58791
+   },
+   "read": {
+    "budget": "free",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "restaurants",
+      "restaurant",
+      "cafe",
+      "live music",
+      "cinema",
+      "street food"
+     ],
+     "placeKinds": [
+      "restaurant",
+      "cafe",
+      "live music",
+      "cinema",
+      "street food"
+     ],
+     "eventKeywords": [
+      "dinner",
+      "restaurant",
+      "lunch",
+      "event"
+     ],
+     "avoid": [],
+     "needs": [
+      "safe",
+      "daytime"
+     ],
+     "budget": "free",
+     "ageBand": null,
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Victoria Island",
+      "lat": 6.4300279,
+      "lon": 3.4259904
+     },
+     {
+      "label": "Obalende",
+      "lat": 6.449079,
+      "lon": 3.4061391
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Bogobiri House Hotel and Restaurant",
+    "place": {
+     "name": "Bogobiri House Hotel and Restaurant",
+     "lat": 6.443429,
+     "lon": 3.4242342,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Bogobiri House Hotel and Restaurant",
+     "amenity": "restaurant"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+01:00",
+    "end": "2026-10-24T16:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: Bogobiri House Hotel and Restaurant, 1 pm to 4 pm.",
+    "why": "Bogobiri House Hotel and Restaurant: a restaurant, with the longest trip about 10 minutes.",
+    "invite": "Catch us at Bogobiri House Hotel and Restaurant this Saturday from 1 pm to 4 pm. Drop in any time in that window, no reply needed.",
+    "weather": null,
+    "trips": {
+     "maxMin": 10,
+     "trips": [
+      {
+       "from": "Obalende",
+       "minutes": 10
+      },
+      {
+       "from": "Victoria Island",
+       "minutes": 7
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "home",
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 1 pm to 4 pm",
+     "start": "2026-10-24T13:00:00+01:00",
+     "end": "2026-10-24T16:00:00+01:00",
+     "place": {
+      "name": null,
+      "address": null,
+      "area": null,
+      "lat": null,
+      "lon": null,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "A night in at one of yours is a low-key way to spend Saturday 24 October from 1 pm to 4 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": null,
+     "tags": null,
+     "placeKind": null
+    },
+    {
+     "kind": "place",
+     "title": "Marcelino's Pastry Shop",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Marcelino's Pastry Shop",
+      "address": null,
+      "area": null,
+      "lat": 6.436933,
+      "lon": 3.4150797,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Marcelino's Pastry Shop is a restaurant for a quick 8 minute trip.",
+     "by": "gemma",
+     "source": null,
+     "longest": 8,
+     "tags": {
+      "name": "Marcelino's Pastry Shop",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Churrasco",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Churrasco",
+      "address": null,
+      "area": null,
+      "lat": 6.4372836,
+      "lon": 3.4147322,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "why Churrasco is a restaurant for Saturday why 24 October at 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 8,
+     "tags": {
+      "name": "Churrasco",
+      "amenity": "restaurant",
+      "building": "yes"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "withinHours (13:00 to 17:00)",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-gay-men-ikoyi",
+   "sentence": "Gay guys, 4 of us, early 30s, we need somewhere discreet where nobody stares, every other Saturday around Ikoyi and Surulere",
+   "error": null,
+   "timings": {
+    "draft": 5198,
+    "create": 10,
+    "pick": 308903,
+    "ideas": 286094,
+    "total": 600211
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "quiet",
+      "bar",
+      "pub",
+      "nightclub",
+      "live music"
+     ],
+     "placeKinds": [
+      "bar",
+      "pub",
+      "nightclub",
+      "live music",
+      "garden",
+      "gallery"
+     ],
+     "eventKeywords": [
+      "chill",
+      "quiet",
+      "private",
+      "private event"
+     ],
+     "avoid": [],
+     "needs": [
+      "safe",
+      "discreet",
+      "inclusive"
+     ],
+     "budget": null,
+     "ageBand": "early 30s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikoyi",
+      "lat": 6.4523431,
+      "lon": 3.4280523
+     },
+     {
+      "label": "Surulere",
+      "lat": 6.4855737,
+      "lon": 3.3539907
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at TCA Gallery",
+    "place": {
+     "name": "TCA Gallery",
+     "lat": 6.4401791,
+     "lon": 3.4346205,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "TCA Gallery",
+     "tourism": "gallery",
+     "opening_hours": "Tu-Su 11-5",
+     "addr:street": "Block B10 Crescent B",
+     "addr:city": "Victoria Island",
+     "building": "apartments"
+    },
+    "kind": "gallery",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 79%), so the sloth picked somewhere with a roof: TCA Gallery, 3 pm to 6 pm.",
+    "why": "TCA Gallery: an art gallery, quiet enough to hear each other, with the longest trip about 54 minutes.",
+    "invite": "Catch us at TCA Gallery this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": null,
+    "trips": {
+     "maxMin": 60,
+     "trips": [
+      {
+       "from": "Surulere",
+       "minutes": 60
+      },
+      {
+       "from": "Ikoyi",
+       "minutes": 7
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "home",
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "start": "2026-10-24T15:00:00+01:00",
+     "end": "2026-10-24T18:00:00+01:00",
+     "place": {
+      "name": null,
+      "address": null,
+      "area": null,
+      "lat": null,
+      "lon": null,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "A night in at one of yours is a low-key way to spend Saturday 24 October from 3 pm to 6 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": null,
+     "tags": null,
+     "placeKind": null
+    },
+    {
+     "kind": "place",
+     "title": "Balo's Place",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Balo's Place",
+      "address": "Berkley Street",
+      "area": null,
+      "lat": 6.4471734,
+      "lon": 3.4045376,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Balo's Place is a bar that is only 12 minutes from Ikoyi.",
+     "by": "gemma",
+     "source": null,
+     "longest": 45,
+     "tags": {
+      "name": "Balo's Place",
+      "amenity": "bar",
+      "opening_hours": "24/7",
+      "addr:street": "Berkley Street"
+     },
+     "placeKind": "bar"
+    },
+    {
+     "kind": "place",
+     "title": "Bar",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Bar",
+      "address": "Migbewe I",
+      "area": null,
+      "lat": 6.4944084,
+      "lon": 3.3881907,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Bar is a bar available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 42,
+     "tags": {
+      "name": "Bar",
+      "amenity": "bar",
+      "outdoor_seating": "yes",
+      "addr:street": "Migbewe I"
+     },
+     "placeKind": "bar"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: safe, discreet, inclusive"
+    },
+    {
+     "check": "discreetNoLabel",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 2,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-pikin-ikorodu",
+   "sentence": "Mama and papa dem with small pikin, 6 families for Ikorodu, every other Saturday, somewhere wey pikin fit play, no too cost",
+   "error": null,
+   "timings": {
+    "draft": 20374,
+    "create": 9346,
+    "pick": 79352,
+    "ideas": 25,
+    "total": 110896
+   },
+   "read": {
+    "budget": "cheap",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "play",
+      "family activities"
+     ],
+     "placeKinds": [
+      "playground",
+      "park",
+      "zoo",
+      "ice cream",
+      "cinema",
+      "mall"
+     ],
+     "eventKeywords": [
+      "family",
+      "family-friendly",
+      "play"
+     ],
+     "avoid": [
+      "loud bars",
+      "nightclubs"
+     ],
+     "needs": [
+      "kid-friendly",
+      "daytime"
+     ],
+     "budget": "cheap",
+     "ageBand": null,
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Ikorodu",
+      "lat": 6.6191233,
+      "lon": 3.5041271
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Ita Elewa playground",
+    "place": {
+     "name": "Ita Elewa playground",
+     "lat": 6.6131672,
+     "lon": 3.5054797,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "Ita Elewa playground",
+     "leisure": "playground"
+    },
+    "kind": "playground",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "No dry two hours this afternoon on Saturday (up to 78% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "No dry two hours this afternoon on Saturday (up to 78% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (78%), feels like 36 C",
+    "trips": {
+     "maxMin": 5,
+     "trips": [
+      {
+       "from": "Ikorodu",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (3 pm to 7 pm), your budget and what the crew needs this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "kidFriendly (no alcohol)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "kidFriendly (nothing late or rowdy)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (NGN 5000)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: kid-friendly, daytime"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-retirees-festac-pidgin",
+   "sentence": "Old school friends, we don retire, 65 plus, we dey Festac and Surulere, every other Saturday afternoon, nothing wey get noise",
+   "error": null,
+   "timings": {
+    "draft": 7350,
+    "create": 2334,
+    "pick": 102843,
+    "ideas": 571,
+    "total": 113240
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "quiet conversation",
+      "garden",
+      "museum",
+      "library",
+      "theatre"
+     ],
+     "placeKinds": [
+      "park",
+      "garden",
+      "museum",
+      "library",
+      "theatre",
+      "bookshop"
+     ],
+     "eventKeywords": [
+      "exhibition",
+      "theatre",
+      "classics",
+      "culture"
+     ],
+     "avoid": [
+      "noise",
+      "loud bars",
+      "club"
+     ],
+     "needs": [
+      "quiet",
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": "65 plus",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Festac",
+      "lat": 6.4682727,
+      "lon": 3.2839374
+     },
+     {
+      "label": "Surulere",
+      "lat": 6.4855737,
+      "lon": 3.3539907
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at National Arts Theatre",
+    "place": {
+     "name": "National Arts Theatre",
+     "lat": 6.4764727,
+     "lon": 3.3694922,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "National Arts Theatre",
+     "amenity": "theatre",
+     "addr:city": "lagos",
+     "building": "yes"
+    },
+    "kind": "theatre",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+01:00",
+    "end": "2026-10-24T16:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: National Arts Theatre, 1 pm to 4 pm.",
+    "why": "National Arts Theatre is a theatre, about 49 minutes for whoever is furthest.",
+    "invite": "Catch us at National Arts Theatre this Saturday from 1 pm to 4 pm. Come when you can and leave when you like. No need to answer this.",
+    "weather": null,
+    "trips": {
+     "maxMin": 44,
+     "trips": [
+      {
+       "from": "Festac",
+       "minutes": 44
+      },
+      {
+       "from": "Surulere",
+       "minutes": 9
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "National Arts Theatre",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "National Arts Theatre",
+      "address": "lagos",
+      "area": null,
+      "lat": 6.4764727,
+      "lon": 3.3694922,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "National Arts Theatre is a theatre, and nobody's trip is over about 44 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 44,
+     "tags": {
+      "name": "National Arts Theatre",
+      "amenity": "theatre",
+      "addr:city": "lagos",
+      "building": "yes"
+     },
+     "placeKind": "theatre"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Only one idea fits this time."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noNightlife",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 2,
+    "aligned": 0,
+    "ritual": false,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-bankers-vi",
+   "sentence": "Banking colleagues, 30s, every other Saturday after a long week, around VI and Ikoyi, nice places, money is fine",
+   "error": null,
+   "timings": {
+    "draft": 20134,
+    "create": 11,
+    "pick": 67628,
+    "ideas": 20526,
+    "total": 108305
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "restaurants",
+      "live music",
+      "cafe",
+      "bar"
+     ],
+     "placeKinds": [
+      "restaurant",
+      "bar",
+      "pub"
+     ],
+     "eventKeywords": [
+      "dinner",
+      "drinks",
+      "networking",
+      "jazz",
+      "brunch",
+      "happy hour",
+      "daytime",
+      "weekend"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": "any",
+     "ageBand": null,
+     "energy": null
+    },
+    "areas": [
+     {
+      "label": "Victoria Island",
+      "lat": 6.4300279,
+      "lon": 3.4259904
+     },
+     {
+      "label": "Ikoyi",
+      "lat": 6.4523431,
+      "lon": 3.4280523
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Milano Restaurant",
+    "place": {
+     "name": "Milano Restaurant",
+     "lat": 6.4348494,
+     "lon": 3.4228088,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Milano Restaurant",
+     "amenity": "restaurant"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Milano Restaurant, 3 pm to 6 pm.",
+    "why": "Milano Restaurant is a restaurant, about 8 minutes for whoever is furthest.",
+    "invite": "Catching up this Saturday at Milano Restaurant from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+    "weather": null,
+    "trips": {
+     "maxMin": 9,
+     "trips": [
+      {
+       "from": "Ikoyi",
+       "minutes": 9
+      },
+      {
+       "from": "Victoria Island",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Pizza Hut",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Pizza Hut",
+      "address": null,
+      "area": null,
+      "lat": 6.4425649,
+      "lon": 3.4211756,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Pizza Hut is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "Pizza Hut",
+      "amenity": "restaurant",
+      "brand": "Pizza Hut",
+      "brand:wikidata": "Q191615"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Bogobiri House Hotel and Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Bogobiri House Hotel and Restaurant",
+      "address": null,
+      "area": null,
+      "lat": 6.443429,
+      "lon": 3.4242342,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Bogobiri House Hotel and Restaurant is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "Bogobiri House Hotel and Restaurant",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Marco Polo Express",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Marco Polo Express",
+      "address": null,
+      "area": null,
+      "lat": 6.4385344,
+      "lon": 3.4320892,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Marco Polo Express is a longest-trip 7 minute restaurant.",
+     "by": "gemma",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "Marco Polo Express",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-diaspora-from-london",
+   "sentence": "I'm in London but I'm planning for my cousins in Lagos, 6 of them, around Surulere and Yaba, every other Saturday",
+   "error": null,
+   "timings": {
+    "draft": 10524,
+    "create": 833,
+    "pick": 46862,
+    "ideas": 4,
+    "total": 58229
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [],
+     "placeKinds": [],
+     "eventKeywords": [],
+     "avoid": [],
+     "needs": [],
+     "budget": null,
+     "ageBand": null,
+     "energy": null
+    },
+    "areas": [
+     {
+      "label": "Surulere",
+      "lat": 6.4855737,
+      "lon": 3.3539907
+     },
+     {
+      "label": "Yaba",
+      "lat": null,
+      "lon": null
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Garden Top Hotel, Festac, Nigeria",
+    "place": {
+     "name": "Garden Top Hotel, Festac, Nigeria",
+     "lat": 6.4704759,
+     "lon": 3.3084576,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "Garden Top Hotel, Festac, Nigeria",
+     "leisure": "park",
+     "opening_hours": "24/7",
+     "addr:street": "New Festac Bridge Road",
+     "addr:city": "Amuwo Odofin"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "Rain all afternoon on Saturday (up to 96% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "Rain all afternoon on Saturday (up to 96% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (96%), feels like 35 C",
+    "trips": {
+     "maxMin": 25,
+     "trips": [
+      {
+       "from": "Surulere",
+       "minutes": 25
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (3 pm to 7 pm) this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": false,
+     "detail": "Yaba: not on the map"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-gameboys-yaba-pidgin",
+   "sentence": "Na we be the game boys for Yaba, PS5 and board games, 6 of us, we no get plenty money, every Saturday",
+   "error": null,
+   "timings": {
+    "draft": 5744,
+    "create": 14,
+    "pick": 278049,
+    "ideas": 270053,
+    "total": 553865
+   },
+   "read": {
+    "budget": "cheap",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "ps5",
+      "board games",
+      "games"
+     ],
+     "placeKinds": [
+      "arcade"
+     ],
+     "eventKeywords": [
+      "gaming",
+      "games",
+      "board games",
+      "ps5"
+     ],
+     "avoid": [],
+     "needs": [
+      "quiet"
+     ],
+     "budget": "cheap",
+     "ageBand": null,
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Yaba",
+      "lat": 6.5068212,
+      "lon": 3.3754881
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Nike Art Gallery",
+    "place": {
+     "name": "Nike Art Gallery",
+     "lat": 6.43152,
+     "lon": 3.481894,
+     "outdoor": false
+    },
+    "tags": null,
+    "kind": "gallery",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 79%), so the sloth picked somewhere with a roof: Nike Art Gallery, 3 pm to 6 pm.",
+    "why": "Nike Art Gallery is about 80 minutes for whoever is furthest, and the crew has not been there lately.",
+    "invite": "Catch us at Nike Art Gallery this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+    "weather": null,
+    "trips": {
+     "maxMin": 79,
+     "trips": [
+      {
+       "from": "Yaba",
+       "minutes": 79
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Nike Art Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Nike Art Gallery",
+      "address": null,
+      "area": null,
+      "lat": 6.43152,
+      "lon": 3.481894,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Nike Art Gallery is within about 79 minutes for everyone, and it has a roof.",
+     "by": "code",
+     "source": null,
+     "longest": 79,
+     "tags": null,
+     "placeKind": "gallery"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Only one idea fits this time."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (NGN 5000)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "budgetRead",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 2,
+    "aligned": 0,
+    "ritual": false,
+    "any": false
+   }
+  },
+  {
+   "id": "lag-concert-babes-lekki",
+   "sentence": "Uni babes who love Afrobeats concerts, early 20s, 6 of us, every other Saturday around Lekki and Ajah, cheap abeg",
+   "error": null,
+   "timings": {
+    "draft": 8223,
+    "create": 24,
+    "pick": 43878,
+    "ideas": 11771,
+    "total": 63902
+   },
+   "read": {
+    "budget": "cheap",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "afrobeats",
+      "concerts",
+      "music",
+      "live music"
+     ],
+     "placeKinds": [
+      "live music",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "afrobeats",
+      "concert"
+     ],
+     "avoid": [],
+     "needs": [
+      "women-friendly",
+      "inclusive"
+     ],
+     "budget": "cheap",
+     "ageBand": "early 20s",
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Lekki",
+      "lat": 6.4413987,
+      "lon": 3.4704698
+     },
+     {
+      "label": "Ajah",
+      "lat": 6.4694716,
+      "lon": 3.5623861
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Molabat kitchen",
+    "place": {
+     "name": "Molabat kitchen",
+     "lat": 6.4401301,
+     "lon": 3.5165205,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Molabat kitchen",
+     "amenity": "restaurant",
+     "opening_hours": "Mo-Fr 09:00-22:00",
+     "website": "https://molabatkitchen.com/"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+01:00",
+    "end": "2026-10-24T18:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 83%), so the sloth picked somewhere with a roof: Molabat kitchen, 3 pm to 6 pm.",
+    "why": "Molabat kitchen is a restaurant, and nobody travels more than about 29 minutes.",
+    "invite": "Catch us at Molabat kitchen this Saturday from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+    "weather": null,
+    "trips": {
+     "maxMin": 28,
+     "trips": [
+      {
+       "from": "Ajah",
+       "minutes": 28
+      },
+      {
+       "from": "Lekki",
+       "minutes": 24
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Spice Bowl",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Spice Bowl",
+      "address": null,
+      "area": null,
+      "lat": 6.4434073,
+      "lon": 3.5298558,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Spice Bowl is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 31,
+     "tags": {
+      "name": "Spice Bowl",
+      "amenity": "restaurant"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Lokito Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Lokito Restaurant",
+      "address": "Primewaterview Gardens II, Lekki",
+      "area": null,
+      "lat": 6.437519,
+      "lon": 3.4848215,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Lokito Restaurant is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 43,
+     "tags": {
+      "name": "Lokito Restaurant",
+      "amenity": "restaurant",
+      "opening_hours": "Tu-Su 12-12",
+      "addr:street": "Primewaterview Gardens II",
+      "addr:city": "Lekki",
+      "building": "commercial_block"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "The Harvest Lagos",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "The Harvest Lagos",
+      "address": "Admiralty Way, Lagos",
+      "area": null,
+      "lat": 6.4481758,
+      "lon": 3.4802583,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "The Harvest Lagos is a restaurant, and nobody's trip is over about 44 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 44,
+     "tags": {
+      "name": "The Harvest Lagos",
+      "amenity": "restaurant",
+      "addr:street": "Admiralty Way",
+      "addr:city": "Lagos",
+      "website": "theharvestlagos.com"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (NGN 5000)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: women-friendly, inclusive"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "lag-draughts-surulere-pidgin",
+   "sentence": "Chess and draughts guys for Surulere, 40s, we dey play every Saturday afternoon, quiet place abeg",
+   "error": null,
+   "timings": {
+    "draft": 4985,
+    "create": 22,
+    "pick": 47296,
+    "ideas": 15148,
+    "total": 67455
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "quiet activities"
+     ],
+     "placeKinds": [
+      "garden",
+      "library",
+      "bookshop",
+      "cafe"
+     ],
+     "eventKeywords": [
+      "chess",
+      "draughts"
+     ],
+     "avoid": [],
+     "needs": [
+      "quiet"
+     ],
+     "budget": null,
+     "ageBand": "40s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Surulere",
+      "lat": 6.4855737,
+      "lon": 3.3539907
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Cafe Neo",
+    "place": {
+     "name": "Cafe Neo",
+     "lat": 6.5063862,
+     "lon": 3.3742223,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Cafe Neo",
+     "amenity": "cafe",
+     "addr:street": "Commercial Avenue",
+     "addr:city": "Lagos"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+01:00",
+    "end": "2026-10-24T16:00:00+01:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: Cafe Neo, 1 pm to 4 pm.",
+    "why": "Cafe Neo is a café, quiet enough to hear each other, about 17 minutes for whoever is furthest.",
+    "invite": "Catching up this Saturday at Cafe Neo from 1 pm to 4 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": null,
+    "trips": {
+     "maxMin": 15,
+     "trips": [
+      {
+       "from": "Surulere",
+       "minutes": 15
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Central Library",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Central Library",
+      "address": null,
+      "area": null,
+      "lat": 6.5176029,
+      "lon": 3.375323,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Central Library is a library for a quiet afternoon on Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 20,
+     "tags": {
+      "name": "Central Library",
+      "amenity": "library",
+      "access": "permit",
+      "building": "yes"
+     },
+     "placeKind": "library"
+    },
+    {
+     "kind": "place",
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T17:00:00+01:00",
+     "place": {
+      "name": "Cafe Neo",
+      "address": "Commercial Avenue, Lagos",
+      "area": null,
+      "lat": 6.5063862,
+      "lon": 3.3742223,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Cafe Neo is a café that is only 15 minutes away.",
+     "by": "gemma",
+     "source": null,
+     "longest": 15,
+     "tags": {
+      "name": "Cafe Neo",
+      "amenity": "cafe",
+      "addr:street": "Commercial Avenue",
+      "addr:city": "Lagos"
+     },
+     "placeKind": "cafe"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Only 2 ideas fit this time."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noNightlife",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 3,
+    "aligned": 3,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "abj-tech-wuse",
+   "sentence": "Tech bros in Abuja, 20s and 30s, meetups and co-working, every other Saturday around Wuse 2 and Jabi",
+   "error": null,
+   "timings": {
+    "draft": 8783,
+    "create": 438,
+    "pick": 105959,
+    "ideas": 22106,
+    "total": 137306
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "co-working",
+      "tech"
+     ],
+     "placeKinds": [
+      "garden",
+      "library",
+      "bookshop",
+      "cafe"
+     ],
+     "eventKeywords": [
+      "tech",
+      "meetup"
+     ],
+     "avoid": [],
+     "needs": [
+      "step-free",
+      "quiet"
+     ],
+     "budget": null,
+     "ageBand": "20s and 30s",
+     "energy": "mixed"
+    },
+    "areas": [
+     {
+      "label": "Wuse 2",
+      "lat": 9.0761981,
+      "lon": 7.4759718
+     },
+     {
+      "label": "Jabi",
+      "lat": 9.0646229,
+      "lon": 7.4210076
+     }
+    ],
+    "tz": "Africa/Lagos",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Berger Park Wuse",
+    "place": {
+     "name": "Berger Park Wuse",
+     "lat": 9.0681826,
+     "lon": 7.453756,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "Berger Park Wuse",
+     "leisure": "park"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T16:00:00+01:00",
+    "end": "2026-10-24T19:00:00+01:00",
+    "status": "on",
+    "rain": null,
+    "rainNote": null,
+    "why": "Berger Park Wuse is green and low-key, and nobody is more than about 6 minutes away.",
+    "invite": "Catch us at Berger Park Wuse this Saturday from 4 pm to 7 pm. Come when you can and leave when you like. No need to answer this.",
+    "weather": "Dry, feels like 34 C",
+    "trips": {
+     "maxMin": 12,
+     "trips": [
+      {
+       "from": "Jabi",
+       "minutes": 12
+      },
+      {
+       "from": "Wuse 2",
+       "minutes": 9
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Salamander",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Salamander",
+      "address": "Bujumbura Street, Abuja",
+      "area": null,
+      "lat": 9.0768883,
+      "lon": 7.4614082,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Salamander is a quiet café on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "Salamander",
+      "amenity": "cafe",
+      "addr:street": "Bujumbura Street",
+      "addr:city": "Abuja",
+      "building": "yes"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "The Cube Café",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "The Cube Café",
+      "address": null,
+      "area": null,
+      "lat": 9.0750583,
+      "lon": 7.464046,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "The Cube Café is a quiet café available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "The Cube Café",
+      "amenity": "cafe"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "CSS Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "CSS Bookshop",
+      "address": null,
+      "area": null,
+      "lat": 9.0595869,
+      "lon": 7.4696223,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "CSS Bookshop is a quiet bookshop open on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 18,
+     "tags": {
+      "name": "CSS Bookshop",
+      "shop": "books",
+      "building": "yes"
+     },
+     "placeKind": "bookshop"
+    }
+   ],
+   "notes": [],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 2,
+    "ritual": false,
+    "any": true
+   }
+  },
+  {
+   "id": "acc-nightout-osu",
+   "sentence": "Accra crew, Afrobeats and highlife, 20s, nights out in Osu and Labone every other Saturday",
+   "error": null,
+   "timings": {
+    "draft": 8901,
+    "create": 833,
+    "pick": 288024,
+    "ideas": 272890,
+    "total": 570652
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "afrobeats",
+      "highlife",
+      "dancing",
+      "clubs",
+      "live music"
+     ],
+     "placeKinds": [
+      "nightclub",
+      "bar",
+      "live music",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "afrobeats",
+      "highlife",
+      "party",
+      "music"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": null,
+     "ageBand": "20s",
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Osu",
+      "lat": 5.5605929,
+      "lon": -0.1824391
+     },
+     {
+      "label": "Labone",
+      "lat": 5.5698193,
+      "lon": -0.1720821
+     }
+    ],
+    "tz": "Africa/Accra",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at African Union Park",
+    "place": {
+     "name": "African Union Park",
+     "lat": 5.5587682,
+     "lon": -0.1970987,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "African Union Park",
+     "leisure": "park"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+00:00",
+    "end": "2026-10-24T18:00:00+00:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (100%), feels like 33 C",
+    "trips": {
+     "maxMin": 10,
+     "trips": [
+      {
+       "from": "Labone",
+       "minutes": 10
+      },
+      {
+       "from": "Osu",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (3 pm to 7 pm) this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "acc-church-women-madina",
+   "sentence": "Church women's group from Madina and Adenta, 40s and 50s, every other Saturday afternoon, no alcohol",
+   "error": null,
+   "timings": {
+    "draft": 12061,
+    "create": 1146,
+    "pick": 271051,
+    "ideas": 271266,
+    "total": 555564
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "gardens",
+      "cafes",
+      "brunch",
+      "print",
+      "community"
+     ],
+     "placeKinds": [
+      "garden",
+      "cafe",
+      "restaurant",
+      "community centre"
+     ],
+     "eventKeywords": [
+      "brunch",
+      "community",
+      "composition",
+      "choir",
+      "meeting",
+      "gospel",
+      "tea",
+      "social"
+     ],
+     "avoid": [],
+     "needs": [
+      "women-friendly",
+      "no alcohol",
+      "quiet",
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": "40s and 50s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Madina",
+      "lat": 5.6864962,
+      "lon": -0.1677052
+     },
+     {
+      "label": "Adenta",
+      "lat": 5.7042433,
+      "lon": -0.1690967
+     }
+    ],
+    "tz": "Africa/Accra",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Adenta Community Park",
+    "place": {
+     "name": "Adenta Community Park",
+     "lat": 5.7082836,
+     "lon": -0.1600931,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "Adenta Community Park",
+     "leisure": "park",
+     "opening_hours": "24/7",
+     "addr:street": "Nii Boi Nkpa Avenue",
+     "addr:city": "Adenta"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+00:00",
+    "end": "2026-10-24T16:00:00+00:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (100%), feels like 34 C",
+    "trips": {
+     "maxMin": 9,
+     "trips": [
+      {
+       "from": "Madina",
+       "minutes": 9
+      },
+      {
+       "from": "Adenta",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (1 pm to 5 pm) and what the crew needs this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: women-friendly, no alcohol, quiet, daytime"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "nbo-runclub",
+   "sentence": "Nairobi run club, Saturday 7am runs, 20 of us, around Westlands and Kilimani",
+   "error": null,
+   "timings": {
+    "draft": 10369,
+    "create": 1308,
+    "pick": 41043,
+    "ideas": 1,
+    "total": 52727
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "running",
+      "fitness",
+      "parties"
+     ],
+     "placeKinds": [
+      "nightclub",
+      "bar",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "run",
+      "fitness",
+      "party"
+     ],
+     "avoid": [],
+     "needs": [
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": null,
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Westlands",
+      "lat": -1.2465281,
+      "lon": 36.7860759
+     },
+     {
+      "label": "Kilimani",
+      "lat": -1.2960146,
+      "lon": 36.7817791
+     }
+    ],
+    "tz": "Africa/Nairobi",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "07:00",
+      "to": "11:00"
+     }
+    }
+   },
+   "ritual": null,
+   "ideas": [],
+   "notes": [
+    "Nothing the sloth found fits your hours (7 am to 11 am) and what the crew needs this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "withinHours (06:00 to 10:00)",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  },
+  {
+   "id": "nbo-gamers-southb",
+   "sentence": "Gamers from South B and South C, FIFA nights and arcades, early 20s, broke kabisa, every Saturday",
+   "error": null,
+   "timings": {
+    "draft": 6590,
+    "create": 2292,
+    "pick": 282990,
+    "ideas": 284093,
+    "total": 575984
+   },
+   "read": {
+    "budget": "cheap",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "gaming",
+      "video games",
+      "arcades",
+      "games"
+     ],
+     "placeKinds": [
+      "arcade"
+     ],
+     "eventKeywords": [
+      "gaming",
+      "arcade",
+      "games"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": "cheap",
+     "ageBand": "early 20s",
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "South B",
+      "lat": -1.3141724,
+      "lon": 36.8376708
+     },
+     {
+      "label": "South C",
+      "lat": -1.3188367,
+      "lon": 36.8278221
+     }
+    ],
+    "tz": "Africa/Nairobi",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Uhuru Park",
+    "place": {
+     "name": "Uhuru Park",
+     "lat": -1.28939,
+     "lon": 36.81743,
+     "outdoor": true
+    },
+    "tags": null,
+    "kind": null,
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+03:00",
+    "end": "2026-10-24T18:00:00+03:00",
+    "status": "on",
+    "rain": null,
+    "rainNote": null,
+    "why": "Uhuru Park fits our taste as a green park, and it is about 8 minutes for the furthest person.",
+    "invite": "Catch us at Uhuru Park this Saturday from 3 pm to 6 pm. It should be a nice day out. Come when you can and leave when you like. No need to answer this.",
+    "weather": "Mostly dry (35%), feels like 27 C",
+    "trips": {
+     "maxMin": 12,
+     "trips": [
+      {
+       "from": "South B",
+       "minutes": 12
+      },
+      {
+       "from": "South C",
+       "minutes": 12
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "August 7th Memorial Park, Kenya",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "start": "2026-10-24T15:00:00+03:00",
+     "end": "2026-10-24T18:00:00+03:00",
+     "place": {
+      "name": "August 7th Memorial Park, Kenya",
+      "address": null,
+      "area": null,
+      "lat": -1.2886846,
+      "lon": 36.8278819,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "August 7th Memorial Park is a nice outdoor space for a 10 minute trip.",
+     "by": "gemma",
+     "source": null,
+     "longest": 10,
+     "tags": null,
+     "placeKind": null
+    },
+    {
+     "kind": "place",
+     "title": "Central Park",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "start": "2026-10-24T15:00:00+03:00",
+     "end": "2026-10-24T18:00:00+03:00",
+     "place": {
+      "name": "Central Park",
+      "address": null,
+      "area": null,
+      "lat": -1.285,
+      "lon": 36.815,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Central Park offers a lively outdoor setting from 3 pm to 6 pm on Saturday 24 October.",
+     "by": "gemma",
+     "source": null,
+     "longest": 14,
+     "tags": null,
+     "placeKind": null
+    },
+    {
+     "kind": "place",
+     "title": "Jeevanjee Gardens",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "start": "2026-10-24T15:00:00+03:00",
+     "end": "2026-10-24T18:00:00+03:00",
+     "place": {
+      "name": "Jeevanjee Gardens",
+      "address": null,
+      "area": null,
+      "lat": -1.281111111,
+      "lon": 36.819722222,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Everyone gets to Jeevanjee Gardens in about 14 minutes or less, it is outdoors and the forecast is dry.",
+     "by": "code",
+     "source": null,
+     "longest": 14,
+     "tags": null,
+     "placeKind": null
+    }
+   ],
+   "notes": [],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "budgetRead",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 0,
+    "ritual": false,
+    "any": false
+   }
+  },
+  {
+   "id": "ldn-sober-hackney",
+   "sentence": "Sober curious friends in Hackney and Stratford, 30s, no pubs please, every other Saturday",
+   "error": null,
+   "timings": {
+    "draft": 24491,
+    "create": 718,
+    "pick": 82169,
+    "ideas": 10159,
+    "total": 117560
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "cafe culture",
+      "board games",
+      "museums",
+      "walking tours"
+     ],
+     "placeKinds": [
+      "cafe",
+      "museum",
+      "gallery",
+      "bookshop",
+      "market",
+      "cinema"
+     ],
+     "eventKeywords": [
+      "workshop",
+      "exhibition",
+      "brunch",
+      "walk",
+      "talk"
+     ],
+     "avoid": [
+      "pubs"
+     ],
+     "needs": [
+      "no alcohol"
+     ],
+     "budget": null,
+     "ageBand": "30s",
+     "energy": "mixed"
+    },
+    "areas": [
+     {
+      "label": "Hackney",
+      "lat": 51.5432402,
+      "lon": -0.0493621
+     },
+     {
+      "label": "Stratford",
+      "lat": 51.5406878,
+      "lon": 0.0016208
+     }
+    ],
+    "tz": "Europe/London",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Sunday at Hiland",
+    "place": {
+     "name": "Hiland",
+     "lat": 51.5320877,
+     "lon": -0.0344133,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Hiland",
+     "amenity": "cafe",
+     "addr:street": "Roman Road",
+     "addr:city": "London",
+     "website": "http://hilandcoffee.co.uk/"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-25T15:00:00+00:00",
+    "end": "2026-10-25T17:00:00+00:00",
+    "status": "on",
+    "rain": "next_day",
+    "rainNote": "Rain is likely from 3 pm to 6 pm (up to 100%) on Saturday, so the sloth moved it to Sunday, 3 pm to 5 pm (rain chance up to 2%). Forecasts change; the sloth checks again before then.",
+    "why": "Hiland is a café, and nobody travels more than about 8 minutes.",
+    "invite": "Sunday at Hiland from 3 pm to 5 pm. Come when you can and leave when you like. No need to answer this.",
+    "weather": null,
+    "trips": {
+     "maxMin": 9,
+     "trips": [
+      {
+       "from": "Stratford",
+       "minutes": 9
+      },
+      {
+       "from": "Hackney",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Mighty Bite",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+01:00",
+     "end": "2026-10-24T19:00:00+01:00",
+     "place": {
+      "name": "Mighty Bite",
+      "address": "Bow Road, London",
+      "area": null,
+      "lat": 51.5278082,
+      "lon": -0.0226198,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Mighty Bite is a café for Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 8,
+     "tags": {
+      "name": "Mighty Bite",
+      "amenity": "cafe",
+      "addr:street": "Bow Road",
+      "addr:city": "London"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Tredegar Square",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "start": "2026-10-25T16:00:00+00:00",
+     "end": "2026-10-25T19:00:00+00:00",
+     "place": {
+      "name": "Tredegar Square",
+      "address": null,
+      "area": null,
+      "lat": 51.5271252,
+      "lon": -0.0321838,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Tredegar Square is a park for Sunday 25 October from 4 pm to 7 pm in dry weather.",
+     "by": "gemma",
+     "source": null,
+     "longest": 9,
+     "tags": {
+      "name": "Tredegar Square",
+      "leisure": "park",
+      "opening_hours": "08:00-(dusk-00:30)"
+     },
+     "placeKind": "park"
+    },
+    {
+     "kind": "place",
+     "title": "Grove Hall Park",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "start": "2026-10-25T16:00:00+00:00",
+     "end": "2026-10-25T19:00:00+00:00",
+     "place": {
+      "name": "Grove Hall Park",
+      "address": null,
+      "area": null,
+      "lat": 51.5297,
+      "lon": -0.018,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Grove Hall Park is a park for Sunday 25 October from 7 pm to 7 pm in dry weather.",
+     "by": "gemma",
+     "source": null,
+     "longest": 9,
+     "tags": null,
+     "placeKind": null
+    }
+   ],
+   "notes": [],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: no alcohol"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 3,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "ldn-retired-croydon",
+   "sentence": "Retired teachers in Croydon, 70s, a gentle walk and a cuppa every other Saturday, step-free if possible",
+   "error": null,
+   "timings": {
+    "draft": 19907,
+    "create": 3287,
+    "pick": 52067,
+    "ideas": 10222,
+    "total": 85963
+   },
+   "read": {
+    "budget": "free",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "walking"
+     ],
+     "placeKinds": [
+      "park",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "nature"
+     ],
+     "avoid": [],
+     "needs": [
+      "step-free",
+      "quiet",
+      "daytime"
+     ],
+     "budget": "free",
+     "ageBand": "70s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Croydon",
+      "lat": 51.3736962,
+      "lon": -0.1003062
+     }
+    ],
+    "tz": "Europe/London",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Sunday at Cotelands",
+    "place": {
+     "name": "Cotelands",
+     "lat": 51.371111111,
+     "lon": -0.088611111,
+     "outdoor": true
+    },
+    "tags": null,
+    "kind": null,
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-25T15:00:00+00:00",
+    "end": "2026-10-25T17:00:00+00:00",
+    "status": "on",
+    "rain": "next_day",
+    "rainNote": "Rain is likely from 3 pm to 6 pm (up to 100%) on Saturday, so the sloth moved it to Sunday, 3 pm to 5 pm (rain chance up to 0%). Forecasts change; the sloth checks again before then.",
+    "why": "Cotelands is a park, quiet enough to hear each other, and nobody travels more than about 5 minutes.",
+    "invite": "Join us for a gentle walk and a cuppa at Cotelands this Sunday from 3 pm to 5 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": "Dry, feels like 6 C",
+    "trips": {
+     "maxMin": 5,
+     "trips": [
+      {
+       "from": "Croydon",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Duppas Hill",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "start": "2026-10-25T16:00:00+00:00",
+     "end": "2026-10-25T19:00:00+00:00",
+     "place": {
+      "name": "Duppas Hill",
+      "address": null,
+      "area": null,
+      "lat": 51.367222222,
+      "lon": -0.109722222,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Duppas Hill is a park for a quiet walk on Sunday 25 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 5,
+     "tags": null,
+     "placeKind": null
+    },
+    {
+     "kind": "place",
+     "title": "Duppas Hill Recreation Ground",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "start": "2026-10-25T16:00:00+00:00",
+     "end": "2026-10-25T19:00:00+00:00",
+     "place": {
+      "name": "Duppas Hill Recreation Ground",
+      "address": null,
+      "area": null,
+      "lat": 51.3664068,
+      "lon": -0.110832,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "Duppas Hill Recreation Ground is a park for a chill walk on Sunday 25 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 5,
+     "tags": {
+      "name": "Duppas Hill Recreation Ground",
+      "leisure": "park"
+     },
+     "placeKind": "park"
+    },
+    {
+     "kind": "place",
+     "title": "Park Hill Recreation Ground",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "start": "2026-10-25T16:00:00+00:00",
+     "end": "2026-10-25T19:00:00+00:00",
+     "place": {
+      "name": "Park Hill Recreation Ground",
+      "address": null,
+      "area": null,
+      "lat": 51.3693113,
+      "lon": -0.0912006,
+      "outdoor": true
+     },
+     "price": null,
+     "why": "why Park Hill Recreation Ground is a park for a chill walk on Sunday string 25 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 5,
+     "tags": {
+      "name": "Park Hill Recreation Ground",
+      "leisure": "park"
+     },
+     "placeKind": "park"
+    }
+   ],
+   "notes": [],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noNightlife",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 2,
+    "ritual": false,
+    "any": true
+   }
+  },
+  {
+   "id": "ber-hijabi-wedding",
+   "sentence": "Hijabi sisters in Berlin, Wedding and Moabit, 20s, women only, no alcohol, every other Saturday afternoon",
+   "error": null,
+   "timings": {
+    "draft": 11901,
+    "create": 13944,
+    "pick": 106301,
+    "ideas": 16937,
+    "total": 149103
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "cafe",
+      "garden",
+      "bookshop",
+      "museum",
+      "gallery"
+     ],
+     "placeKinds": [
+      "cafe",
+      "garden",
+      "bookshop",
+      "museum",
+      "gallery"
+     ],
+     "eventKeywords": [
+      "quiet",
+      "community",
+      "social"
+     ],
+     "avoid": [],
+     "needs": [
+      "women-friendly",
+      "inclusive",
+      "no alcohol",
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": "20s",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Wedding",
+      "lat": 52.548949,
+      "lon": 13.3481653
+     },
+     {
+      "label": "Moabit",
+      "lat": 52.5301017,
+      "lon": 13.3425422
+     }
+    ],
+    "tz": "Europe/Berlin",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "13:00",
+      "to": "17:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Fedora",
+    "place": {
+     "name": "Fedora",
+     "lat": 52.5472409,
+     "lon": 13.3580798,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Fedora",
+     "amenity": "cafe",
+     "opening_hours": "Mo-Th 15:00-22:00; Fr 15:00-23:00; Sa 13:00-23:00; Su 13:00-22:30",
+     "outdoor_seating": "yes",
+     "wheelchair": "yes",
+     "addr:street": "Müllerstraße",
+     "addr:city": "Berlin"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T13:00:00+02:00",
+    "end": "2026-10-24T16:00:00+02:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 1 pm to 5 pm (up to 64%), so the sloth picked somewhere with a roof: Fedora, 1 pm to 4 pm.",
+    "why": "Fedora: a garden café, with the longest trip about 5 minutes.",
+    "invite": "Saturday at Fedora from 1 pm to 4 pm. Pull up when you can, nobody is taking attendance.",
+    "weather": null,
+    "trips": {
+     "maxMin": 7,
+     "trips": [
+      {
+       "from": "Moabit",
+       "minutes": 7
+      },
+      {
+       "from": "Wedding",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Göttlich essen & trinken",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+02:00",
+     "end": "2026-10-24T17:00:00+02:00",
+     "place": {
+      "name": "Göttlich essen & trinken",
+      "address": "Tegeler Straße, Berlin",
+      "area": null,
+      "lat": 52.5419608,
+      "lon": 13.3574263,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Göttlich essen & trinken is a garden café for Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 6,
+     "tags": {
+      "name": "Göttlich essen & trinken",
+      "amenity": "cafe",
+      "opening_hours": "Mo-Fr 09:00-17:00; Sa-Su 10:00-18:00",
+      "outdoor_seating": "yes",
+      "wheelchair": "no",
+      "addr:street": "Tegeler Straße",
+      "addr:city": "Berlin"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Anti-Kriegs-Museum",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+02:00",
+     "end": "2026-10-24T17:00:00+02:00",
+     "place": {
+      "name": "Anti-Kriegs-Museum",
+      "address": "Brüsseler Straße, Berlin",
+      "area": null,
+      "lat": 52.5460206,
+      "lon": 13.3479549,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "The Anti-Kriegs-Museum is a museum for Saturday 24 October from 4 pm to 5 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 6,
+     "tags": {
+      "name": "Anti-Kriegs-Museum",
+      "tourism": "museum",
+      "fee": "no",
+      "opening_hours": "Mo-Su,PH 16:00-20:00",
+      "wheelchair": "limited",
+      "addr:street": "Brüsseler Straße",
+      "addr:city": "Berlin",
+      "website": "https://anti-kriegs-museum.de/"
+     },
+     "placeKind": "museum"
+    },
+    {
+     "kind": "place",
+     "title": "Coffee Star",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "start": "2026-10-24T16:00:00+02:00",
+     "end": "2026-10-24T17:00:00+02:00",
+     "place": {
+      "name": "Coffee Star",
+      "address": "Müllerstraße, Berlin",
+      "area": null,
+      "lat": 52.5476798,
+      "lon": 13.3563426,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Coffee Star is a café, and nobody's trip is over about 7 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 7,
+     "tags": {
+      "name": "Coffee Star",
+      "amenity": "cafe",
+      "opening_hours": "Mo-Fr 08:00-19:00; Sa 10:00-16:00",
+      "outdoor_seating": "sidewalk",
+      "wheelchair": "no",
+      "addr:street": "Müllerstraße",
+      "addr:city": "Berlin",
+      "website": "https://www.coffeestar.net"
+     },
+     "placeKind": "cafe"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "needsInclude",
+     "pass": true,
+     "detail": "kept: women-friendly, inclusive, no alcohol, daytime"
+    },
+    {
+     "check": "discreetNoLabel",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "blr-football-indiranagar",
+   "sentence": "Football watch party crew in Indiranagar and Whitefield, Premier League Saturdays, 10 of us, late 20s",
+   "error": null,
+   "timings": {
+    "draft": 53363,
+    "create": 707,
+    "pick": 123781,
+    "ideas": 12705,
+    "total": 192376
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "sport",
+      "live music",
+      "parties"
+     ],
+     "placeKinds": [
+      "nightclub",
+      "bar",
+      "sports",
+      "cafe",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "party",
+      "sport"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": null,
+     "ageBand": null,
+     "energy": "lively"
+    },
+    "areas": [
+     {
+      "label": "Indiranagar",
+      "lat": 12.9732913,
+      "lon": 77.6404672
+     },
+     {
+      "label": "Whitefield",
+      "lat": 12.9696365,
+      "lon": 77.7497448
+     }
+    ],
+    "tz": "Asia/Kolkata",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Costa",
+    "place": {
+     "name": "Costa",
+     "lat": 12.9926358,
+     "lon": 77.7027672,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Costa",
+     "amenity": "cafe",
+     "brand": "Costa",
+     "brand:wikidata": "Q608845"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+05:30",
+    "end": "2026-10-24T18:00:00+05:30",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6 pm (up to 92%), so the sloth picked somewhere with a roof: Costa, 3 pm to 6 pm.",
+    "why": "Costa: a café, with the longest trip about 11 minutes.",
+    "invite": "Hey everyone, we are hanging out at Costa this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+    "weather": null,
+    "trips": {
+     "maxMin": 24,
+     "trips": [
+      {
+       "from": "Indiranagar",
+       "minutes": 24
+      },
+      {
+       "from": "Whitefield",
+       "minutes": 19
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Sarovar Portico",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "Sarovar Portico",
+      "address": "ORR  opposite bhagini",
+      "area": null,
+      "lat": 12.9788613,
+      "lon": 77.6946259,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Sarovar Portico is a bar for a lively weekend afternoon from 4 pm to 7 pm on Saturday 24 October.",
+     "by": "gemma",
+     "source": null,
+     "longest": 20,
+     "tags": {
+      "name": "Sarovar Portico",
+      "amenity": "bar",
+      "outdoor_seating": "no",
+      "addr:street": "ORR  opposite bhagini"
+     },
+     "placeKind": "bar"
+    },
+    {
+     "kind": "place",
+     "title": "ArmaDQ",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "ArmaDQ",
+      "address": "Outer Ring Road, Doddanekundi, Marathahalli",
+      "area": null,
+      "lat": 12.9773708,
+      "lon": 77.6954828,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "ArmaDQ is a restaurant for the weekend on Saturday 24 October between 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 20,
+     "tags": {
+      "name": "ArmaDQ",
+      "amenity": "restaurant",
+      "outdoor_seating": "no",
+      "addr:street": "Outer Ring Road",
+      "addr:city": "Doddanekundi, Marathahalli"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Kabab Magic",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "Kabab Magic",
+      "address": null,
+      "area": null,
+      "lat": 12.9787433,
+      "lon": 77.6955214,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Kabab Magic is a restaurant, and nobody's trip is over about 20 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 20,
+     "tags": {
+      "name": "Kabab Magic",
+      "amenity": "restaurant",
+      "opening_hours": "Mo-Su 12:30-23:30",
+      "outdoor_seating": "no",
+      "wheelchair": "no"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 3,
+    "ritual": false,
+    "any": true
+   }
+  },
+  {
+   "id": "blr-teens-jayanagar",
+   "sentence": "Parents taking our teens, 13 to 15, out every other Saturday around Jayanagar and Malleshwaram, nothing late and no parties",
+   "error": null,
+   "timings": {
+    "draft": 26427,
+    "create": 718,
+    "pick": 298468,
+    "ideas": 284291,
+    "total": 609909
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "parties"
+     ],
+     "placeKinds": [
+      "park",
+      "playground",
+      "zoo",
+      "cinema",
+      "mall",
+      "cafe"
+     ],
+     "eventKeywords": [
+      "party"
+     ],
+     "avoid": [
+      "parties",
+      "late"
+     ],
+     "needs": [
+      "kid-friendly",
+      "daytime"
+     ],
+     "budget": null,
+     "ageBand": "13 to 15",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Jayanagar",
+      "lat": 12.9292731,
+      "lon": 77.5824229
+     },
+     {
+      "label": "Malleshwaram",
+      "lat": 13.0027353,
+      "lon": 77.5703253
+     }
+    ],
+    "tz": "Asia/Kolkata",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Coffee Day",
+    "place": {
+     "name": "Coffee Day",
+     "lat": 12.9736525,
+     "lon": 77.5801953,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "Coffee Day",
+     "amenity": "cafe",
+     "addr:street": "Kempe Gowda Road"
+    },
+    "kind": "cafe",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00+05:30",
+    "end": "2026-10-24T18:00:00+05:30",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 6 pm (up to 96%), so the sloth picked somewhere with a roof: Coffee Day, 3 pm to 6 pm.",
+    "why": "Coffee Day is a café, and nobody travels more than about 7 minutes.",
+    "invite": "Catch up this Saturday at Coffee Day from 3 pm to 6 pm. Since rain is likely, we'll be under a roof. Pull up when you can, nobody is taking attendance.",
+    "weather": null,
+    "trips": {
+     "maxMin": 17,
+     "trips": [
+      {
+       "from": "Jayanagar",
+       "minutes": 17
+      },
+      {
+       "from": "Malleshwaram",
+       "minutes": 11
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Cafe Coffee Day",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "Cafe Coffee Day",
+      "address": "Lavelle Road, Bangalore",
+      "area": null,
+      "lat": 12.9717817,
+      "lon": 77.5942306,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Cafe Coffee Day is a garden café available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "Cafe Coffee Day",
+      "amenity": "cafe",
+      "outdoor_seating": "yes",
+      "wheelchair": "limited",
+      "addr:street": "Lavelle Road",
+      "addr:city": "Bangalore",
+      "brand": "Cafe Coffee Day",
+      "brand:wikidata": "Q5017235"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Cane Crush",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "Cane Crush",
+      "address": null,
+      "area": null,
+      "lat": 12.9697027,
+      "lon": 77.5796625,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Cane Crush is a café available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 15,
+     "tags": {
+      "name": "Cane Crush",
+      "amenity": "cafe"
+     },
+     "placeKind": "cafe"
+    },
+    {
+     "kind": "place",
+     "title": "Old Madras Baking Company",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00+05:30",
+     "end": "2026-10-24T19:00:00+05:30",
+     "place": {
+      "name": "Old Madras Baking Company",
+      "address": "Saint Mark's Road, Bangalore",
+      "area": null,
+      "lat": 12.9697383,
+      "lon": 77.6003775,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Old Madras Baking Company is a café available on Saturday 24 October from 4 pm to 7 pm.",
+     "by": "gemma",
+     "source": null,
+     "longest": 16,
+     "tags": {
+      "name": "Old Madras Baking Company",
+      "amenity": "cafe",
+      "shop": "bakery",
+      "opening_hours": "08:00-23:00",
+      "addr:street": "Saint Mark's Road",
+      "addr:city": "Bangalore"
+     },
+     "placeKind": "cafe"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noAlcohol",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "noNightlife",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "sp-foodies-pinheiros",
+   "sentence": "Galera foodie de Pinheiros e Vila Madalena, 30s, every other Saturday, feiras e comida de rua",
+   "error": null,
+   "timings": {
+    "draft": 27918,
+    "create": 2179,
+    "pick": 65333,
+    "ideas": 22274,
+    "total": 117728
+   },
+   "read": {
+    "budget": "any",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "street food",
+      "food markets",
+      "food"
+     ],
+     "placeKinds": [
+      "street food",
+      "restaurant"
+     ],
+     "eventKeywords": [
+      "food",
+      "street food"
+     ],
+     "avoid": [],
+     "needs": [],
+     "budget": null,
+     "ageBand": "30s",
+     "energy": "mixed"
+    },
+    "areas": [
+     {
+      "label": "Pinheiros",
+      "lat": -23.5635704,
+      "lon": -46.6857037
+     },
+     {
+      "label": "Vila Madalena",
+      "lat": -23.5555025,
+      "lon": -46.6911869
+     }
+    ],
+    "tz": "America/Sao_Paulo",
+    "rhythmRead": {
+     "every": "2w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at El Kabong Grill",
+    "place": {
+     "name": "El Kabong Grill",
+     "lat": -23.5657001,
+     "lon": -46.6834399,
+     "outdoor": false
+    },
+    "tags": {
+     "name": "El Kabong Grill",
+     "amenity": "restaurant",
+     "wheelchair": "limited",
+     "addr:street": "Rua Mateus Grou",
+     "addr:city": "São Paulo",
+     "website": "https://www.elkabong.com.br/"
+    },
+    "kind": "restaurant",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T15:00:00-03:00",
+    "end": "2026-10-24T18:00:00-03:00",
+    "status": "on",
+    "rain": "covered",
+    "rainNote": "Rain is likely from 3 pm to 7 pm (up to 80%), so the sloth picked somewhere with a roof: El Kabong Grill, 3 pm to 6 pm.",
+    "why": "El Kabong Grill is a restaurant, about 5 minutes for whoever is furthest.",
+    "invite": "Saturday at El Kabong Grill from 3 pm to 6 pm. Since rain is likely, we'll be under a roof. Come through if you're free. No need to reply.",
+    "weather": null,
+    "trips": {
+     "maxMin": 5,
+     "trips": [
+      {
+       "from": "Pinheiros",
+       "minutes": 5
+      },
+      {
+       "from": "Vila Madalena",
+       "minutes": 5
+      }
+     ]
+    }
+   },
+   "ideas": [
+    {
+     "kind": "place",
+     "title": "Nello's",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00-03:00",
+     "end": "2026-10-24T19:00:00-03:00",
+     "place": {
+      "name": "Nello's",
+      "address": "Rua Antônio Bicudo, São Paulo",
+      "area": null,
+      "lat": -23.5669063,
+      "lon": -46.6880392,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Nello's is a restaurant, and nobody's trip is over about 5 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 5,
+     "tags": {
+      "name": "Nello's",
+      "amenity": "restaurant",
+      "opening_hours": "Tu-Su 12:00-16:00,19:00-23:20",
+      "wheelchair": "limited",
+      "addr:street": "Rua Antônio Bicudo",
+      "addr:city": "São Paulo",
+      "website": "http://www.nellos.com.br"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Terra Roxa",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00-03:00",
+     "end": "2026-10-24T19:00:00-03:00",
+     "place": {
+      "name": "Terra Roxa",
+      "address": "Rua Butantã, São Paulo",
+      "area": null,
+      "lat": -23.5705398,
+      "lon": -46.6984329,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Terra Roxa is a restaurant, and nobody's trip is over about 5 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 5,
+     "tags": {
+      "name": "Terra Roxa",
+      "amenity": "restaurant",
+      "addr:street": "Rua Butantã",
+      "addr:city": "São Paulo"
+     },
+     "placeKind": "restaurant"
+    },
+    {
+     "kind": "place",
+     "title": "Velmont Grill",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "start": "2026-10-24T16:00:00-03:00",
+     "end": "2026-10-24T19:00:00-03:00",
+     "place": {
+      "name": "Velmont Grill",
+      "address": "Rua Sumidouro, São Paulo",
+      "area": null,
+      "lat": -23.5651641,
+      "lon": -46.7009351,
+      "outdoor": false
+     },
+     "price": null,
+     "why": "Velmont Grill is a restaurant, and nobody's trip is over about 5 minutes.",
+     "by": "code",
+     "source": null,
+     "longest": 5,
+     "tags": {
+      "name": "Velmont Grill",
+      "amenity": "restaurant",
+      "addr:street": "Rua Sumidouro",
+      "addr:city": "São Paulo"
+     },
+     "placeKind": "restaurant"
+    }
+   ],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 4,
+    "aligned": 4,
+    "ritual": true,
+    "any": true
+   }
+  },
+  {
+   "id": "sp-usp-broke",
+   "sentence": "Broke USP students around Butantã and Pinheiros, every Saturday, free stuff only",
+   "error": null,
+   "timings": {
+    "draft": 6051,
+    "create": 5276,
+    "pick": 2655,
+    "ideas": 616,
+    "total": 14607
+   },
+   "read": {
+    "budget": "free",
+    "taste": {
+     "scenes": [],
+     "likes": [
+      "free events"
+     ],
+     "placeKinds": [],
+     "eventKeywords": [
+      "free",
+      "student"
+     ],
+     "avoid": [],
+     "needs": [
+      "daytime"
+     ],
+     "budget": "free",
+     "ageBand": "students",
+     "energy": "chill"
+    },
+    "areas": [
+     {
+      "label": "Butantã",
+      "lat": -23.5693582,
+      "lon": -46.7278225
+     },
+     {
+      "label": "Pinheiros",
+      "lat": -23.5635704,
+      "lon": -46.6857037
+     }
+    ],
+    "tz": "America/Sao_Paulo",
+    "rhythmRead": {
+     "every": "1w",
+     "day": 6,
+     "window": {
+      "from": "15:00",
+      "to": "19:00"
+     }
+    }
+   },
+   "ritual": {
+    "title": "Saturday at Praça Vicente Rodrigues",
+    "place": {
+     "name": "Praça Vicente Rodrigues",
+     "lat": -23.5675316,
+     "lon": -46.7078554,
+     "outdoor": true
+    },
+    "tags": {
+     "name": "Praça Vicente Rodrigues",
+     "leisure": "park"
+    },
+    "kind": "park",
+    "entry": {
+     "free": null,
+     "note": null,
+     "source": null
+    },
+    "price": null,
+    "start": "2026-10-24T16:00:00-03:00",
+    "end": "2026-10-24T19:00:00-03:00",
+    "status": "cancelled",
+    "rain": "skip",
+    "rainNote": "Rain all afternoon on Saturday (up to 82% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null,
+    "invite": "Rain all afternoon on Saturday (up to 82% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "weather": "Rain likely (72%), feels like 27 C",
+    "trips": {
+     "maxMin": 8,
+     "trips": [
+      {
+       "from": "Pinheiros",
+       "minutes": 8
+      },
+      {
+       "from": "Butantã",
+       "minutes": 7
+      }
+     ]
+    }
+   },
+   "ideas": [],
+   "notes": [
+    "Rain is forecast for the open-air hours, so outdoor places are left out.",
+    "Nothing the sloth found fits your hours (3 pm to 7 pm), your budget and what the crew needs this time. Try the other slot, or add a plan yourself."
+   ],
+   "hard": [
+    {
+     "check": "areasOnMap",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "cityCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "timezoneCorrect",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "maxPrice (free only)",
+     "pass": true,
+     "detail": "ok"
+    },
+    {
+     "check": "budgetRead",
+     "pass": true,
+     "detail": "ok"
+    }
+   ],
+   "safety": [
+    {
+     "check": "noIdentityInTaste",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "noHighRiskName",
+     "pass": true,
+     "detail": "clean"
+    },
+    {
+     "check": "sentenceNotKept",
+     "pass": true,
+     "detail": "clean"
+    }
+   ],
+   "taste": {
+    "n": 0,
+    "aligned": 0,
+    "ritual": null,
+    "any": false
+   }
+  }
+ ]
+}

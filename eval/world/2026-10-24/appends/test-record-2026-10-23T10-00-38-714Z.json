@@ -1,0 +1,27 @@
+{
+ "runId": "test-record-2026-10-23T10-00-38-714Z",
+ "at": "2026-10-23T10:07:04.435Z",
+ "git": {
+  "head": "d1770d0c3f285915a33e9e1fede59e421e697397",
+  "appClean": true
+ },
+ "geocoder": "nominatim",
+ "added": {
+  "total": 0,
+  "failuresKept": 0,
+  "byService": {}
+ },
+ "llm": {
+  "live": 13,
+  "liveByTask": {
+   "parse-crew": 13
+  },
+  "failures": 0,
+  "notAskedBlind": 0
+ },
+ "ledger": {
+  "cap": 520,
+  "liveCalls": 351,
+  "thisRun": 13
+ }
+}

@@ -1,0 +1,571 @@
+{
+ "set": "test",
+ "at": "2026-10-23T12:44:05.444Z",
+ "crews": [
+  {
+   "n": 1,
+   "key": "3fb9afb44b",
+   "sentence": "Art lovers in our 30s and 40s, galleries and exhibitions every other Saturday around Ikoyi and VI, money is not an issue",
+   "ritual": {
+    "place": "Didi Museum",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Didi Museum: a museum, quiet enough to hear each other, with the longest trip about 8 minutes."
+   },
+   "invite": "Catch us at Didi Museum this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "African Artists' Foundation",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "African Artists' Foundation is an art space on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "TCA Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "TCA Gallery is an art gallery open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "National Museum",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "National Museum is a museum that is low-key and available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "key": "562c5c57fc",
+   "sentence": "Foodie girls, 4 of us in our 30s, we try new restaurants every other Saturday around Lekki and Ikoyi, budget is fine",
+   "ritual": {
+    "place": "Saraya Deli",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Saraya Deli is a restaurant, and nobody travels more than about 14 minutes."
+   },
+   "invite": "Catching up this Saturday at Saraya Deli from 3 pm to 6 pm. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "HotPot",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "HotPot is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "The Grill Room",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Grill Room is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Banana Island Patisserie",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Banana Island Patisserie is a restaurant, and nobody's trip is over about 16 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "key": "24e2c979ba",
+   "sentence": "Parents taking our teens, 13 to 15, out every other Saturday around Jayanagar and Malleshwaram, nothing late and no parties",
+   "ritual": {
+    "place": "Coffee Day",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Coffee Day is a café, and nobody travels more than about 7 minutes."
+   },
+   "invite": "Catch up this Saturday at Coffee Day from 3 pm to 6 pm. Since rain is likely, we'll be under a roof. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Cafe Coffee Day",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cafe Coffee Day is a garden café available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Cane Crush",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cane Crush is a café available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Old Madras Baking Company",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Old Madras Baking Company is a café available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "key": "9054c20c17",
+   "sentence": "Choir friends from church, about 10 of us, gospel music lovers, every other Saturday afternoon around Ikeja and Maryland, nothing with alcohol",
+   "ritual": {
+    "place": "Sweet Sensation",
+    "when": "Saturday 24 October, 1 pm to 4 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Sweet Sensation is a restaurant, about 15 minutes for whoever is furthest."
+   },
+   "invite": "Let's hang out this Saturday at Sweet Sensation from 1 pm to 4 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Golden Eagle Spur",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Golden Eagle Spur is a restaurant for a chill afternoon on Saturday 24 October from 4 pm to 5 pm.",
+     "price": null
+    },
+    {
+     "title": "Zen Garden",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Zen Garden is a restaurant available on Saturday 24 October from 4 pm to 5 pm.",
+     "price": null
+    },
+    {
+     "title": "Choco-Latte",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Choco-Latte is a café for a chill afternoon on Saturday 24 October from 4 pm to 5 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "key": "6f41623e24",
+   "sentence": "Accra crew, Afrobeats and highlife, 20s, nights out in Osu and Labone every other Saturday",
+   "ritual": {
+    "place": "African Union Park",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": true,
+    "note": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 6,
+   "key": "43e31fdf97",
+   "sentence": "Uni babes who love Afrobeats concerts, early 20s, 6 of us, every other Saturday around Lekki and Ajah, cheap abeg",
+   "ritual": {
+    "place": "Molabat kitchen",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Molabat kitchen is a restaurant, and nobody travels more than about 29 minutes."
+   },
+   "invite": "Catch us at Molabat kitchen this Saturday from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Spice Bowl",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Spice Bowl is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Lokito Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Lokito Restaurant is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "The Harvest Lagos",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Harvest Lagos is a restaurant, and nobody's trip is over about 44 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "key": "53345fe3ab",
+   "sentence": "Church women's group from Madina and Adenta, 40s and 50s, every other Saturday afternoon, no alcohol",
+   "ritual": {
+    "place": "Adenta Community Park",
+    "when": "Saturday 24 October, 1 pm to 4 pm",
+    "skipped": true,
+    "note": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "No dry two hours this afternoon on Saturday (up to 100% between 11 am and 6 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 8,
+   "key": "e65e73ada7",
+   "sentence": "Alte crew, 6 of us, mid 20s, thrift and gallery people, every other Saturday around Yaba and Surulere",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café, about 17 minutes for whoever is furthest."
+   },
+   "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "National Gallery of Modern Arts",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "National Gallery of Modern Arts is an art space open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cafe Neo is a café and is only 5 minutes from Yaba.",
+     "price": null
+    },
+    {
+     "title": "University of Lagos Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "University of Lagos Bookshop is a bookshop open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "key": "195ca0ca91",
+   "sentence": "Gamers from South B and South C, FIFA nights and arcades, early 20s, broke kabisa, every Saturday",
+   "ritual": {
+    "place": "Uhuru Park",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Uhuru Park fits our taste as a green park, and it is about 8 minutes for the furthest person."
+   },
+   "invite": "Catch us at Uhuru Park this Saturday from 3 pm to 6 pm. It should be a nice day out. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "August 7th Memorial Park, Kenya",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "August 7th Memorial Park is a nice outdoor space for a 10 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Central Park",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "Central Park offers a lively outdoor setting from 3 pm to 6 pm on Saturday 24 October.",
+     "price": null
+    },
+    {
+     "title": "Jeevanjee Gardens",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "Everyone gets to Jeevanjee Gardens in about 14 minutes or less, it is outdoors and the forecast is dry.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "key": "34c40dbdfe",
+   "sentence": "Techies from Yaba, devs and product people in our 20s, we like meetups and hackathons, every other Saturday around Yaba and Ikeja",
+   "ritual": {
+    "place": "bbc",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": true,
+    "note": "Rain all afternoon on Saturday (up to 79% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "Rain all afternoon on Saturday (up to 79% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 11,
+   "key": "bf74ef2e2d",
+   "sentence": "Banking colleagues, 30s, every other Saturday after a long week, around VI and Ikoyi, nice places, money is fine",
+   "ritual": {
+    "place": "Milano Restaurant",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Milano Restaurant is a restaurant, about 8 minutes for whoever is furthest."
+   },
+   "invite": "Catching up this Saturday at Milano Restaurant from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Pizza Hut",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Pizza Hut is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Bogobiri House Hotel and Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Bogobiri House Hotel and Restaurant is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Marco Polo Express",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Marco Polo Express is a longest-trip 7 minute restaurant.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "key": "099e42f75d",
+   "sentence": "Chess club, 6 guys of mixed ages, every Saturday afternoon around Ikeja GRA, cheap or free",
+   "ritual": {
+    "place": "Dreamfield Juice & Salad Bar",
+    "when": "Saturday 24 October, 1 pm to 4 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Dreamfield Juice & Salad Bar is a café, quiet enough to hear each other, about 22 minutes for whoever is furthest."
+   },
+   "invite": "Catch us at Dreamfield Juice & Salad Bar this Saturday from 1 pm to 4 pm. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "7 Points Bar and Grill",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "7 Points Bar and Grill is a bar with a trip of 11 minutes.",
+     "price": null
+    },
+    {
+     "title": "Mama Cass",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Mama Cass is a restaurant for a 13 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Food House",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Food House is a restaurant that is 15 minutes away.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "key": "a7cbe87dce",
+   "sentence": "Broke USP students around Butantã and Pinheiros, every Saturday, free stuff only",
+   "ritual": {
+    "place": "Praça Vicente Rodrigues",
+    "when": "Saturday 24 October, 4 pm to 7 pm",
+    "skipped": true,
+    "note": "Rain all afternoon on Saturday (up to 82% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "Rain all afternoon on Saturday (up to 82% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 14,
+   "key": "3fec114e18",
+   "sentence": "Mama and papa dem with small pikin, 6 families for Ikorodu, every other Saturday, somewhere wey pikin fit play, no too cost",
+   "ritual": {
+    "place": "Ita Elewa playground",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": true,
+    "note": "No dry two hours this afternoon on Saturday (up to 78% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "No dry two hours this afternoon on Saturday (up to 78% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 15,
+   "key": "034710aec0",
+   "sentence": "Run club, 15 of us, we run Saturday mornings around 7am in Lekki Phase 1 and VI, then breakfast after",
+   "ritual": {
+    "place": "Bistro 7 Express",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Bistro 7 Express: a food spot, with the longest trip about 16 minutes."
+   },
+   "invite": "Catching up this Saturday at Bistro 7 Express from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Burger King",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Burger King is a food spot open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "KFC",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "KFC is a food spot open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Schwarma Co",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Schwarma Co is a food spot, and nobody's trip is over about 13 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "key": "ee7ef15741",
+   "sentence": "Retired teachers in Croydon, 70s, a gentle walk and a cuppa every other Saturday, step-free if possible",
+   "ritual": {
+    "place": "Cotelands",
+    "when": "Sunday 25 October, 3 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cotelands is a park, quiet enough to hear each other, and nobody travels more than about 5 minutes."
+   },
+   "invite": "Join us for a gentle walk and a cuppa at Cotelands this Sunday from 3 pm to 5 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Duppas Hill",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Duppas Hill is a park for a quiet walk on Sunday 25 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Duppas Hill Recreation Ground",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Duppas Hill Recreation Ground is a park for a chill walk on Sunday 25 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Park Hill Recreation Ground",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "why Park Hill Recreation Ground is a park for a chill walk on Sunday string 25 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "key": "8c6ea2bf59",
+   "sentence": "Tech bros in Abuja, 20s and 30s, meetups and co-working, every other Saturday around Wuse 2 and Jabi",
+   "ritual": {
+    "place": "Berger Park Wuse",
+    "when": "Saturday 24 October, 4 pm to 7 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Berger Park Wuse is green and low-key, and nobody is more than about 6 minutes away."
+   },
+   "invite": "Catch us at Berger Park Wuse this Saturday from 4 pm to 7 pm. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "Salamander",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Salamander is a quiet café on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "The Cube Café",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Cube Café is a quiet café available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "CSS Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "CSS Bookshop is a quiet bookshop open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "key": "51ef493441",
+   "sentence": "Sober crew, 30s, all of us in recovery, no bars or drinks at all, every other Saturday around Lekki and Ajah",
+   "ritual": {
+    "place": "Nike Art Gallery",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Nike Art Gallery: an art gallery, quiet enough to hear each other, with the longest trip about 37 minutes."
+   },
+   "invite": "Catch us at Nike Art Gallery this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Lagos Tea House",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Lagos Tea House is a café for a quiet afternoon on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Nike Art Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Nike Art Gallery is an art gallery for a Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "A night in at one of yours is a low-key option for Saturday 24 October from 3 pm to 6 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "key": "437a1ebc25",
+   "sentence": "Na night work we dey do for VI, security and nurses, we only free Saturday afternoon from 1 to 5, 6 of us, around VI and Obalende",
+   "ritual": {
+    "place": "Bogobiri House Hotel and Restaurant",
+    "when": "Saturday 24 October, 1 pm to 4 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Bogobiri House Hotel and Restaurant: a restaurant, with the longest trip about 10 minutes."
+   },
+   "invite": "Catch us at Bogobiri House Hotel and Restaurant this Saturday from 1 pm to 4 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 1 pm to 4 pm",
+     "why": "A night in at one of yours is a low-key way to spend Saturday 24 October from 1 pm to 4 pm.",
+     "price": null
+    },
+    {
+     "title": "Marcelino's Pastry Shop",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "Marcelino's Pastry Shop is a restaurant for a quick 8 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Churrasco",
+     "when": "Saturday 24 October, 4 pm to 5 pm",
+     "why": "why Churrasco is a restaurant for Saturday why 24 October at 4 pm to 5 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "key": "94ac74f4bc",
+   "sentence": "Gay guys, 4 of us, early 30s, we need somewhere discreet where nobody stares, every other Saturday around Ikoyi and Surulere",
+   "ritual": {
+    "place": "TCA Gallery",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "TCA Gallery: an art gallery, quiet enough to hear each other, with the longest trip about 54 minutes."
+   },
+   "invite": "Catch us at TCA Gallery this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "A night in at one of yours is a low-key way to spend Saturday 24 October from 3 pm to 6 pm.",
+     "price": null
+    },
+    {
+     "title": "Balo's Place",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Balo's Place is a bar that is only 12 minutes from Ikoyi.",
+     "price": null
+    },
+    {
+     "title": "Bar",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Bar is a bar available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  }
+ ]
+}

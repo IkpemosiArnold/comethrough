@@ -1,0 +1,32 @@
+{
+ "runId": "test-record-2026-10-23T10-07-31-555Z",
+ "at": "2026-10-23T10:59:22.566Z",
+ "git": {
+  "head": "d1770d0c3f285915a33e9e1fede59e421e697397",
+  "appClean": true
+ },
+ "geocoder": "nominatim",
+ "added": {
+  "total": 38,
+  "failuresKept": 3,
+  "byService": {
+   "overpass": 19,
+   "osrm": 19
+  }
+ },
+ "llm": {
+  "live": 39,
+  "liveByTask": {
+   "write-invite": 9,
+   "rank-ideas": 17,
+   "explain-pick": 13
+  },
+  "failures": 0,
+  "notAskedBlind": 0
+ },
+ "ledger": {
+  "cap": 520,
+  "liveCalls": 390,
+  "thisRun": 39
+ }
+}
