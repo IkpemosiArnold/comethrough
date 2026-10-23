@@ -29,7 +29,8 @@ import {
 } from "../core/tasks.mjs";
 import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, tasteView, withVibe } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
-import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, weatherForPlan } from "../core/weather.mjs";
+import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, socialWindow, weatherForPlan } from "../core/weather.mjs";
+import { crewHours, mayOffer, needsDaylight, outdoorInLight, timeSaid, within as inside } from "../core/hours.mjs";
 import { isSubscription } from "../adapters/push.mjs";
 import { inBackground, within } from "../adapters/lanes.mjs";
 import { beginPick, finishPick, pendingPick, pickView, shouldRun } from "../core/firstpick.mjs";
@@ -649,7 +650,10 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       errors.push({ field: "rhythm.window", message: "The time window has to end after it starts." });
       return null;
     }
-    return { every: r.every, day: r.day, window: { from, to } };
+    // said: the crew gave its own time (the reading found it in the sentence, or the
+    // organiser picked the hours, which the confirm screen marks), and its window then wins
+    // over the social hours; a client that sends no mark: any window but the default
+    return { every: r.every, day: r.day, window: { from, to }, said: r.said === true || (r.said !== false && !(from === "15:00" && to === "19:00")) };
   }
 
   /**
@@ -892,7 +896,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (crew.rhythm) return crew.rhythm;
     const tz = crew.tz || regionOf(crew).timezone;
     const today = localParts(now(), tz).date;
-    return { every: /** @type {"1w"} */ ("1w"), day: weekdayOf(today) === 6 ? 0 : 6, window: { ...DEFAULT_WINDOW }, anchor: today };
+    return { every: /** @type {"1w"} */ ("1w"), day: weekdayOf(today) === 6 ? 0 : 6, window: { ...DEFAULT_WINDOW }, anchor: today, said: false };
   }
 
   /**
@@ -1528,14 +1532,21 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     // hours only narrow; its budget; nobody travelling more than MAX_TRIP_MIN; its needs
     const k = crewConstraints({ ...crew, rhythm: { ...crew.rhythm, window: due.window } }, { cheapMax: pack.cheapMax ?? null });
     const span = Math.min(3, Math.max(1, (minutesOfDay(due.window.to) - minutesOfDay(due.window.from)) / 60));
-    const outdoorHours = clipToSocial(due.date, due.window, { social: pack.social });
-    const coveredHours = clipToSocial(due.date, due.window, { outdoor: false, social: pack.social });
+    // a crew that said when it meets is planned in its own window; the social hours apply
+    // only when it gave no time (src/core/hours.mjs). Outdoors in a stated window keeps to
+    // daylight by the forecast's is_day; a crew with a safety need is never outdoors in the dark
+    const stated = timeSaid(crew.rhythm);
+    const social = crewHours(pack.social, due.window, stated);
+    const outdoorClip = clipToSocial(due.date, due.window, { social });
+    const outdoorHours = outdoorClip && stated ? outdoorInLight(outdoorClip, { hours, date: due.date, daylight: needsDaylight(taste), usual: socialWindow(due.date, { social: pack.social }) }) : outdoorClip;
+    const coveredHours = clipToSocial(due.date, due.window, { outdoor: false, social });
     if (!outdoorHours && !coveredHours) return { made: false, reason: "no_window" };
     const cut = (/** @type {{ from: string, to: string }} */ w) => ({ from: w.from, to: hhmm(Math.min(minutesOfDay(w.to), minutesOfDay(w.from) + span * 60)) });
     // the crew's window (inside the social hours) when it is dry; when it is wet, a dry
     // stretch in that window that day or the next, else a covered place, else the sloth
     // skips this one (core/weather.mjs, ritualWindow)
-    const rw = hours && outdoorHours ? ritualWindow(hours, { date: due.date, from: due.window.from, to: due.window.to, hours: span }, pack.social) : null;
+    const lightWindow = stated && outdoorHours ? outdoorHours : due.window;
+    const rw = hours && outdoorHours ? ritualWindow(hours, { date: due.date, from: lightWindow.from, to: lightWindow.to, hours: Math.min(span, (minutesOfDay(lightWindow.to) - minutesOfDay(lightWindow.from)) / 60) }, crewHours(pack.social, lightWindow, stated)) : null;
     let win = rw?.win ?? null;
     let date = rw?.date ?? due.date;
     /** @type {{ from: string, to: string }|null} */
@@ -1560,10 +1571,24 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         win = null;
       }
     }
+    const outdoorPool = pool === open;
+    // opening hours: never a place whose hours say it is closed then; outside the usual hours
+    // (a stated 7 am, a 10 pm) a roofed place only when its hours say it is open, while an
+    // outdoor spot needs none (src/core/hours.mjs, mayOffer)
+    if (window && pool.length) {
+      const w = window;
+      const d = date;
+      const usual = inside(w, socialWindow(d, { outdoor: outdoorPool, social: pack.social }));
+      pool = pool.filter((c) => mayOffer({ tags: c.osm?.tags || c.tags || {}, outdoor: c.indoor !== true && c.covered !== true }, d, w, { usual }));
+      if (!pool.length) {
+        log("ritual_not_made", { crew: crew.id, reason: "nothing_open", from: w.from });
+        return { made: false, reason: "nothing_open" };
+      }
+    }
     if (!window || !pool.length) return { made: false, reason: outdoorHours ? "no_places" : "no_window" };
-    if (!pool.some((c) => c.covered !== true) && pool === open) return { made: false, reason: "no_places" };
+    if (!pool.some((c) => c.covered !== true) && outdoorPool) return { made: false, reason: "no_places" };
     const at = zonedToMs(date, window.from, tz);
-    let outdoor = pool === open;
+    let outdoor = outdoorPool;
     // the fairest few by straight line go to OSRM (its table takes 100 points at most)
     if (pool.length > 40) pool = scorePlaces({ members: points, candidates: pool, at, tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor, recent: recentPlaces(plans, now()), now: now(), model: pack.travel, taste }).ranked.slice(0, 40).map((r) => r.candidate);
     // road distances from every member's area to every candidate, in one OSRM table request
@@ -1743,10 +1768,13 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 }
 
 /** Where to read the weather for a place: its pin, or the neighbourhood it is near. */
-/** True when a place's OpenStreetMap tags say it is a kind that is under a roof (a gallery, a museum, a cinema). */
+/**
+ * True when a place's OpenStreetMap tags say it is a kind that is under a roof (a gallery, a
+ * museum, a cinema), or a bar, pub or club, which a crew into them goes to after dark.
+ */
 function kindIndoor(/** @type {any} */ c) {
   const tags = c?.osm?.tags || c?.tags || {};
-  return Object.values(PLACE_KINDS).some((k) => k.indoor && k.tags.some(([key, v]) => tags[key] === v));
+  return Object.values(PLACE_KINDS).some((k) => (k.indoor || k.nightlife || k.alcohol) && k.tags.some(([key, v]) => tags[key] === v));
 }
 
 function weatherSpot(place) {

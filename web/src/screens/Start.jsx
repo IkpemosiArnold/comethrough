@@ -399,8 +399,9 @@ function Preview({ draft, setDraft, busy, error, onBack, onCreate, onInto }) {
                   {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
                 </select>
               </label>
-              <TimeSelect label="From" value={r.window?.from || '15:00'} onChange={(v) => set({ rhythm: { ...r, window: { ...r.window, from: v } } })} />
-              <TimeSelect label="To" value={r.window?.to || '19:00'} onChange={(v) => set({ rhythm: { ...r, window: { ...r.window, to: v } } })} />
+              {/* hours the organiser picks are the crew's own: they win over the usual hours */}
+              <TimeSelect label="From" value={r.window?.from || '15:00'} onChange={(v) => set({ rhythm: { ...r, window: { ...r.window, from: v }, said: true } })} />
+              <TimeSelect label="To" value={r.window?.to || '19:00'} onChange={(v) => set({ rhythm: { ...r, window: { ...r.window, to: v }, said: true } })} />
             </div>
           )}
           {r && <p class="hint">On a {DAYS[r.day]} with nothing planned, the sloth picks a spot.</p>}

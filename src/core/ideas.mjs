@@ -24,6 +24,7 @@ import { FREE_FLOW, haversineKm, travelEstimate } from "./geo.mjs";
 import { placeKey, placeKind, scorePlaces } from "./places.mjs";
 import { DAY_NAMES, addDays, daysBetween, localParts, minutesOfDay, hhmm, parseInstant, toIsoLocal, zonedToMs } from "./time.mjs";
 import { GENERIC_SOCIAL_HOURS, RAIN_OK, bestWindow, clockWords, isWeekend, socialWindow } from "./weather.mjs";
+import { mayOffer, within } from "./hours.mjs";
 import { LEAKED_FIELDS, fill, noDashes, numbersGrounded, unsafeText, variant } from "./tasks.mjs";
 import { PLACE_KINDS, eventFit, hasTaste, kindOfTags, overBudget } from "./taste.mjs";
 import { upcomingDates } from "./feeds.mjs";
@@ -54,7 +55,10 @@ export const RANK_MAX_TOKENS = 500;
  * @property {TimeWindow|null} outdoor  when an outdoor idea may happen that day (null: none)
  * @property {TimeWindow|null} covered  when an indoor or covered idea may happen
  */
-/** @typedef {{ when: "tonight"|"weekend", today: string, nowTime: string, tz: string, days: SlotDay[] }} Slot */
+/**
+ * @typedef {{ when: "tonight"|"weekend", today: string, nowTime: string, tz: string, days: SlotDay[], stated?: boolean, usual?: import("./weather.mjs").SocialHours }} Slot
+ *   stated: the crew said when it meets, so its own window made the days (src/core/hours.mjs); usual: the pack's social hours
+ */
 
 const later = (/** @type {string} */ a, /** @type {string} */ b) => (a > b ? a : b);
 const roundUp = (/** @type {string} */ t, step = 30) => hhmm(Math.ceil(minutesOfDay(t) / step) * step);
@@ -71,9 +75,10 @@ const roundUp = (/** @type {string} */ t, step = 30) => hhmm(Math.ceil(minutesOf
  * @param {string} tz
  * @param {import("./weather.mjs").SocialHours} [social]
  * @param {TimeWindow|null} [crewWindow]
+ * @param {{ stated?: boolean, usual?: import("./weather.mjs").SocialHours }} [opts]  stated: `social` is the crew's own window (src/core/hours.mjs, crewHours); usual: the pack's social hours
  * @returns {Slot}
  */
-export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS, crewWindow = null) {
+export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS, crewWindow = null, { stated = false, usual = social } = {}) {
   const { date: today, time: nowTime, weekday } = localParts(nowMs, tz);
   const earliest = roundUp(nowTime);
   /** @type {string[]} */
@@ -102,7 +107,7 @@ export function slotFor(when, nowMs, tz, social = GENERIC_SOCIAL_HOURS, crewWind
       covered: clip(date, evening ? { from: later(c.from, "17:00"), to: c.to } : c),
     };
   }).filter((d) => d.outdoor || d.covered);
-  return { when, today, nowTime, tz, days };
+  return { when, today, nowTime, tz, days, ...(stated ? { stated: true, usual } : {}) };
 }
 
 /** "Saturday 24 October" */
@@ -262,7 +267,7 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
     const b = windowWeather(hours, d.date, d.outdoor, Math.max(1, span));
     if (!b) {
       // no forecast that far ahead: the afternoon, and the weather unknown
-      const from = isWeekend(d.date) ? later(d.outdoor.from, "15:00") : d.outdoor.from;
+      const from = isWeekend(d.date) && !slot.stated ? later(d.outdoor.from, "15:00") : d.outdoor.from;
       const to = hhmm(Math.min(minutesOfDay(d.outdoor.to), minutesOfDay(from) + Math.max(1, span) * 60));
       if (minutesOfDay(to) - minutesOfDay(from) >= 60) {
         dry = { date: d.date, time: { from, to }, weather: null };
@@ -279,7 +284,7 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
   const coveredDay = preferredDays(slot).find((d) => d.covered);
   const coveredTime = coveredDay?.covered
     ? (() => {
-      const from = isWeekend(coveredDay.date) && slot.when === "weekend" ? later(coveredDay.covered.from, "16:00") : coveredDay.covered.from;
+      const from = isWeekend(coveredDay.date) && slot.when === "weekend" && !slot.stated ? later(coveredDay.covered.from, "16:00") : coveredDay.covered.from;
       return { from, to: hhmm(Math.min(minutesOfDay(coveredDay.covered.to), minutesOfDay(from) + 180)) };
     })()
     : null;
@@ -291,8 +296,14 @@ export function placeCandidates(places, { slot, center, points, hours, crew, rec
   ];
   for (const g of groups) {
     if (!g.when || !g.list.length) continue;
+    // opening hours: never a place whose hours say it is closed then; outside the usual hours
+    // (a crew's own 7 am or 10 pm) a roofed place only when its hours say it is open
+    const when = g.when;
+    const usual = !slot.stated || within(when.time, socialWindow(when.date, { outdoor: g.outdoor, social: slot.usual ?? GENERIC_SOCIAL_HOURS }));
+    const list = g.list.filter((p) => mayOffer({ tags: p.osm?.tags || p.tags || {}, outdoor: g.outdoor }, when.date, when.time, { usual }));
+    if (!list.length) continue;
     const at = zonedToMs(g.when.date, g.when.time.from, slot.tz);
-    const scored = scorePlaces({ members: points, candidates: g.list, at, tz: slot.tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: g.outdoor, recent, now, model, taste: crew.taste ?? null });
+    const scored = scorePlaces({ members: points, candidates: list, at, tz: slot.tz, vibeTags: crew.vibeTags || [], budget: crew.budget || "any", outdoor: g.outdoor, recent, now, model, taste: crew.taste ?? null });
     for (const r of scored.ranked) {
       if (r.maxMin > MAX_TRIP_MIN) continue;
       const c = r.candidate;

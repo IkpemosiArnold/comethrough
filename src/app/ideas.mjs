@@ -20,6 +20,8 @@ import { centroid, haversineKm, isLatLon } from "../core/geo.mjs";
 import { EVENTS_MAX_TOKENS, EVENTS_SCHEMA, eventsMessages, freshItems, postText, readEvents } from "../core/feeds.mjs";
 import { IDEAS_TTL_MS, RANK_MAX_TOKENS, RANK_SCHEMA, crewFactsOf, eventCandidates, homeCandidate, ideaView, placeCandidates, pool, rankMessages, readRanking, slotFor, usualCandidates } from "../core/ideas.mjs";
 import { tasteKey } from "../core/taste.mjs";
+import { crewHours, needsDaylight, outdoorInLight, timeSaid, within } from "../core/hours.mjs";
+import { clockWords, socialWindow } from "../core/weather.mjs";
 import { candidateViolations, crewConstraints, nothingFits } from "../core/constraints.mjs";
 import { recentPlaces } from "../core/plans.mjs";
 import { localisePrompt } from "../core/tasks.mjs";
@@ -224,7 +226,10 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     // the crew's hard constraints: its own hours bound the slot (the social hours only narrow
     // them), and budget, trips and needs filter every candidate before ranking and again after
     const k = crewConstraints(crew, { cheapMax: pack.cheapMax ?? null });
-    const slot = slotFor(when, t, tz, pack.social, k.window);
+    // a crew that said when it meets gets ideas in its own window; the social hours apply
+    // only when it gave no time (src/core/hours.mjs)
+    const stated = timeSaid(crew.rhythm);
+    const slot = slotFor(when, t, tz, crewHours(pack.social, k.window, stated), k.window, { stated, usual: pack.social });
     /** @type {string[]} */
     const notes = [];
     const base = { when, generatedAt: new Date(t).toISOString(), validUntil: new Date(t + IDEAS_TTL_MS).toISOString(), slot: slot.days };
@@ -260,6 +265,13 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     if (partial) notes.push("Still reading this week's guides. Ask again in a few minutes for their events.");
     const events = (await Promise.all(guides.map(eventsFrom))).flat();
 
+    // outdoors in a stated window keeps to daylight (the forecast's is_day); a crew with a
+    // safety need is never sent outdoors in the dark
+    if (stated) {
+      slot.days = slot.days
+        .map((d) => ({ ...d, outdoor: d.outdoor ? outdoorInLight(d.outdoor, { hours, date: d.date, daylight: needsDaylight(crew.taste), usual: socialWindow(d.date, { social: pack.social }) }) : null }))
+        .filter((d) => d.outdoor || d.covered);
+    }
     const ctx = { slot, center, points, hours, model: pack.travel };
     // the crew's taste: events its needs rule out are dropped, its keywords rank higher, and
     // a cheap crew is not offered tickets over the pack's ceiling for "cheap"
@@ -267,6 +279,10 @@ export function createIdeas({ store, cache, ai, feeds, weather, geocoder, candid
     const pl = placeCandidates(/** @type {any[]} */ (places || []), { ...ctx, crew, recent: recentPlaces(plans, t), now: t });
     const us = usualCandidates(plans, { ...ctx, now: t });
     if (pl.wet) notes.push("Rain is forecast for the open-air hours, so outdoor places are left out.");
+    // a crew's own hours outside the usual ones (7 am, 10 pm): say so when no roofed place
+    // nearby says it is open then, rather than offering one that may be shut
+    const offHours = stated ? slot.days.find((d) => d.covered && !within(d.covered, socialWindow(d.date, { outdoor: false, social: pack.social }))) : null;
+    if (offHours?.covered && !pl.candidates.some((c) => !c.place?.outdoor)) notes.push(`No place nearby says it is open at ${clockWords(offHours.covered.from)}, so only open-air spots are offered then.`);
     // filter first, rank second
     const fits = (/** @type {any} */ c) => c && !candidateViolations(c, k).length;
     const home = homeCandidate(slot, crew.taste);

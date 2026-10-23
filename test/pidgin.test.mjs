@@ -43,7 +43,7 @@ test("rhythm words in English and Pidgin are read by code too", () => {
   assert.deepEqual(everyIn("we fit meet any weekend"), { every: null, day: null });
   // Gemma said nothing about "every"; the sentence did
   const r = readCrewSetup({ name: "Gym padi dem", every: null, day: "Saturday", from: "morning", areas: ["Lekki Phase 1"], vibeTags: ["food"], confidence: {} }, { sentence: "Gym padi dem: every Saturday morning for Lekki Phase 1, after training we go chop together" });
-  assert.deepEqual(r.draft.rhythm, { every: "1w", day: 6, window: { from: "09:00", to: "12:00" } });
+  assert.deepEqual(r.draft.rhythm, { every: "1w", day: 6, window: { from: "09:00", to: "12:00" }, said: true });
 });
 
 test("money words in Pidgin mean cheap; VI is Victoria Island; after work is the evening", () => {

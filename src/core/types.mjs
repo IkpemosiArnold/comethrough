@@ -10,7 +10,7 @@
  * @typedef {{ label: string, lat: number, lon: number }} Area
  * @typedef {"1w"|"2w"|"4w"} Every
  * @typedef {{ from: string, to: string }} TimeWindow  "HH:MM" local times
- * @typedef {{ every: Every|null, day: number, window: TimeWindow, anchor?: string }} Rhythm
+ * @typedef {{ every: Every|null, day: number, window: TimeWindow, anchor?: string, said?: boolean }} Rhythm  said: the crew gave its own time (src/core/hours.mjs, timeSaid)
  *   day: 0 (Sunday) to 6; anchor: an optional "YYYY-MM-DD" that fixes which weeks count for 2w and 4w
  */
 

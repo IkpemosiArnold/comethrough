@@ -13,7 +13,7 @@ const rhythmOf = (/** @type {any} */ data, /** @type {string} */ sentence) => re
 
 test("Saturday mornings around 7am: every week, Saturday, from 7 in the morning", () => {
   const s = "Early birds, Saturday mornings around 7am, around Yaba";
-  const want = { every: "1w", day: 6, window: { from: "07:00", to: "11:00" } };
+  const want = { every: "1w", day: 6, window: { from: "07:00", to: "11:00" }, said: true };
   // Gemma left every out, as it does for a sentence with no "every"
   assert.deepEqual(rhythmOf(gemma({ day: "Saturday", from: "7am" }), s), want);
   // Gemma gave the day part, or the time with "around", or nothing at all
@@ -28,19 +28,19 @@ test("Saturday mornings around 7am: every week, Saturday, from 7 in the morning"
 test("other time-of-day phrasings", () => {
   /** @type {[string, any][]} */
   const cases = [
-    ["The guys, Sunday afternoons, around Yaba", { every: "1w", day: 0, window: { from: "13:00", to: "17:00" } }],
-    ["The guys, Friday nights, around Yaba", { every: "1w", day: 5, window: { from: "19:00", to: "23:00" } }],
-    ["The guys, Saturdays at 10am, around Yaba", { every: "1w", day: 6, window: { from: "10:00", to: "14:00" } }],
-    ["The guys, Sat mornings 8am, around Yaba", { every: "1w", day: 6, window: { from: "08:00", to: "12:00" } }],
-    ["The guys, every Saturday 7.30am, around Yaba", { every: "1w", day: 6, window: { from: "07:30", to: "11:30" } }],
-    ["The guys, every other Saturday from 4pm to 8pm, around Yaba", { every: "2w", day: 6, window: { from: "16:00", to: "20:00" } }],
-    ["The guys, every Saturday morning, around Yaba", { every: "1w", day: 6, window: { from: "09:00", to: "12:00" } }],
-    ["The guys, Saturday afternoons between 2 and 6, around Yaba", { every: "1w", day: 6, window: { from: "14:00", to: "18:00" } }],
+    ["The guys, Sunday afternoons, around Yaba", { every: "1w", day: 0, window: { from: "13:00", to: "17:00" }, said: true }],
+    ["The guys, Friday nights, around Yaba", { every: "1w", day: 5, window: { from: "19:00", to: "23:00" }, said: true }],
+    ["The guys, Saturdays at 10am, around Yaba", { every: "1w", day: 6, window: { from: "10:00", to: "14:00" }, said: true }],
+    ["The guys, Sat mornings 8am, around Yaba", { every: "1w", day: 6, window: { from: "08:00", to: "12:00" }, said: true }],
+    ["The guys, every Saturday 7.30am, around Yaba", { every: "1w", day: 6, window: { from: "07:30", to: "11:30" }, said: true }],
+    ["The guys, every other Saturday from 4pm to 8pm, around Yaba", { every: "2w", day: 6, window: { from: "16:00", to: "20:00" }, said: true }],
+    ["The guys, every Saturday morning, around Yaba", { every: "1w", day: 6, window: { from: "09:00", to: "12:00" }, said: true }],
+    ["The guys, Saturday afternoons between 2 and 6, around Yaba", { every: "1w", day: 6, window: { from: "14:00", to: "18:00" }, said: true }],
   ];
   for (const [s, want] of cases) assert.deepEqual(rhythmOf(guessCrew(s), s), want, s);
   // a night shift is not when they meet
   const shift = "We work night shift, Saturday afternoons, around Ikeja";
-  assert.deepEqual(rhythmOf(gemma({ day: "Saturday" }), shift), { every: "1w", day: 6, window: { from: "13:00", to: "17:00" } });
+  assert.deepEqual(rhythmOf(gemma({ day: "Saturday" }), shift), { every: "1w", day: 6, window: { from: "13:00", to: "17:00" }, said: true });
   // what is not a rhythm stays one: a single Saturday morning, or no one day
   assert.equal(rhythmOf(guessCrew("The guys, this Saturday morning, around Yaba"), "The guys, this Saturday morning, around Yaba"), null);
   assert.equal(everyIn("weekend mornings around Yaba").every, null);

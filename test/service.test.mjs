@@ -56,7 +56,7 @@ test("Gemma down while reading a crew: code's best guess, marked for a check, no
   assert.equal(r.ai, false);
   assert.equal(r.guess, true);
   assert.equal(r.draft.name, null, "no comma, so no name is guessed");
-  assert.deepEqual(r.draft.rhythm, { every: "1w", day: 6, window: { from: "15:00", to: "19:00" } }, "the rhythm words are code's own");
+  assert.deepEqual(r.draft.rhythm, { every: "1w", day: 6, window: { from: "15:00", to: "19:00" }, said: false }, "the rhythm words are code's own");
   assert.match(r.notes[0], /best guess/);
 });
 

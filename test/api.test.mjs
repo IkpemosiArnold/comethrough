@@ -84,7 +84,7 @@ const S = /** @type {any} */ ({});
 test("start a crew: Gemma's draft, then confirm with the organiser joining", async () => {
   const d = await call("POST", "/api/crews", { body: { sentence: "the uni guys, every other Saturday, somewhere outside and cheap, around Yaba and Lekki" } });
   assert.equal(d.status, 200);
-  assert.deepEqual(d.json.draft.rhythm, { every: "2w", day: 6, window: { from: "15:00", to: "19:00" } });
+  assert.deepEqual(d.json.draft.rhythm, { every: "2w", day: 6, window: { from: "15:00", to: "19:00" }, said: false });
   assert.deepEqual(d.json.draft.areas.map((/** @type {any} */ a) => a.label), ["Yaba", "Lekki"]);
   assert.ok(d.json.draft.areas.every((/** @type {any} */ a) => typeof a.lat === "number"));
   const c = await call("POST", "/api/crews", { body: { confirm: d.json.draft, organiser: { name: "Tolu", area: "Yaba" } } });

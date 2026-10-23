@@ -307,7 +307,11 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
       filled.push("rhythm.window");
       notes.push(local.windowNote || "No time was given, so the window is 3 pm to 7 pm.");
     }
-    rhythm = { every, day: dayIdx, window: { from, to } };
+    // said: the crew gave its own time, which then wins over the social hours (src/core/hours.mjs)
+    // only a time the sentence itself says counts: a clock time, a day part, or the model's
+    // time words found in it (a "3pm" the model added is not the crew's)
+    const inSentence = (/** @type {any} */ w) => typeof w === "string" && !!norm(w) && ` ${norm(sentence)} `.includes(` ${norm(w).replace(/^(?:around|about|at|from|by) /, "")} `);
+    rhythm = { every, day: dayIdx, window: { from, to }, said: !filled.includes("rhythm.window") && (!!clock || !!spoken || inSentence(d.from)) };
   } else if (every || d.day) {
     notes.push("The rhythm needs both how often and which day.");
   }
