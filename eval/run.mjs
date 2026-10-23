@@ -57,7 +57,7 @@ const labelArg = () => {
 const label = labelArg();
 const TEST_MARKER = path.join(RESULTS, `.v2-test-scored${label && label !== "baseline" ? `-${label}` : ""}.json`);
 const PINNED = process.env.EVAL_PINNED || null;
-/** Live Gemma calls across both sets: 250 by default; raised with approval to at most 370 for the dev after-run, then 420 for the after-fix test run (Gemma on the Gemini API is free; calls stay 4.5 s apart). */
+/** Live Gemma calls across both sets: 250 by default; raised with approval to at most 370 for the dev after-run, then 420, then 520 for the pinned scored runs (Gemma on the Gemini API is free; calls stay 4.5 s apart). */
 const LLM_CAP_DEFAULT = 250;
 const BIG = 600_000;
 
@@ -109,7 +109,7 @@ if (scoredTest) {
   if (fs.existsSync(TEST_MARKER) && !opt("--rerun-reason")) die(`The test set was already scored (${fs.readFileSync(TEST_MARKER, "utf8").trim()}). A second scored run needs --rerun-reason "...", which goes at the top of the report.`);
 }
 const writesResults = mode === "replay";
-const LLM_CAP = Math.min(420, Number(opt("--llm-cap") || LLM_CAP_DEFAULT));
+const LLM_CAP = Math.min(520, Number(opt("--llm-cap") || LLM_CAP_DEFAULT));
 
 // ---------------------------------------------------------------- the clock, the world, the ports
 
