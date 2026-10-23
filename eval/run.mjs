@@ -90,22 +90,26 @@ const file = JSON.parse(raw);
 let personas = file.personas.filter((/** @type {any} */ p) => p.split === set);
 if (only) personas = personas.filter((/** @type {any} */ p) => only.includes(p.id));
 const scoredTest = set === "test" && mode === "replay";
+// pinned runs (eval/scored.mjs): the app is one commit, checked out in a clean worktree; this
+// checks it from the inside, for recording passes and scored runs alike
+const pinnedTo = process.env.EVAL_PINNED || null;
+if (pinnedTo) {
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+  const dirty = execFileSync("git", ["status", "--porcelain", "--", ".", ":(exclude)eval", ":(exclude)node_modules", ":(exclude).env"], { cwd: ROOT, encoding: "utf8" }).trim();
+  if (head !== pinnedTo || dirty) die(`Refusing to run pinned: the app tree is ${head !== pinnedTo ? `at ${head}, not the pinned ${pinnedTo}` : `dirty:\n${dirty}`}.`);
+  if (flag("--check-pin")) {
+    // a dry run of the pinning: nothing is recorded or scored, no Gemma call, no marker
+    console.error(`pin ok (${mode}): HEAD ${head}, clean outside eval/; app modules load from ${ROOT}`);
+    process.exit(0);
+  }
+}
 if (scoredTest) {
   if (!flag("--scored")) die("The test set is scored once, after the freeze: add --scored when that is what this is.");
   if (only) die("The scored test run takes the whole set.");
   if (!label || !/^[a-z0-9][a-z0-9-]{0,40}$/.test(label)) die("Label the scored test run: --label baseline, or a short label of your own (a-z, 0-9, dashes).");
   if (label !== "baseline" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("A later scored run compares with the baseline: score --label baseline first.");
   // pinned and clean: only eval/scored.mjs starts a scored run, in a worktree at one commit
-  const pinned = process.env.EVAL_PINNED;
-  if (!pinned) die("Scored runs are pinned to a commit in a clean worktree: run node eval/scored.mjs --commit <sha> --label <label>.");
-  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
-  const dirty = execFileSync("git", ["status", "--porcelain", "--", ".", ":(exclude)eval", ":(exclude)node_modules", ":(exclude).env"], { cwd: ROOT, encoding: "utf8" }).trim();
-  if (head !== pinned || dirty) die(`Refusing to score: the app tree is ${head !== pinned ? `at ${head}, not the pinned ${pinned}` : `dirty:\n${dirty}`}.`);
-  if (flag("--check-pin")) {
-    // a dry run of the pinning: nothing is scored and no marker is written
-    console.error(`pin ok: HEAD ${head}, clean outside eval/; app modules load from ${ROOT}`);
-    process.exit(0);
-  }
+  if (!pinnedTo) die("Scored runs are pinned to a commit in a clean worktree: run node eval/scored.mjs --commit <sha> --label <label>.");
   if (fs.existsSync(TEST_MARKER) && !opt("--rerun-reason")) die(`The test set was already scored (${fs.readFileSync(TEST_MARKER, "utf8").trim()}). A second scored run needs --rerun-reason "...", which goes at the top of the report.`);
 }
 const writesResults = mode === "replay";

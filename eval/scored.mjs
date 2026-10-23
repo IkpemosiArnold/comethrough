@@ -4,6 +4,9 @@
 //
 //   node eval/scored.mjs --commit <sha> --label <label> [--note "..."] [--fast]
 //   node eval/scored.mjs --commit <sha> --label <label> --check-pin   (a dry run: pin, verify, stop)
+//   node eval/scored.mjs --commit <sha> --record [--set test|dev] [--llm-cap N]
+//        a fill-only recording pass against the same pinned commit (no scoring, no label);
+//        add --check-pin for a dry run with no Gemma call
 //
 // It checks out <sha> into a clean, detached git worktree (outside the repo), so the app
 // under test is exactly that commit's src/, data/ and package.json, whatever is in anyone's
@@ -34,8 +37,9 @@ const git = (/** @type {string[]} */ args, cwd = ROOT) => execFileSync("git", ar
 
 const commitArg = opt("--commit");
 const label = opt("--label");
+const recording = argv.includes("--record");
 if (!commitArg) die("Pin the app: --commit <sha>.");
-if (!label) die("Label the scored run: --label <label>.");
+if (!recording && !label) die("Label the scored run: --label <label>.");
 let sha;
 try {
   sha = git(["rev-parse", "--verify", `${commitArg}^{commit}`]);
@@ -67,8 +71,12 @@ try {
     fs.symlinkSync(path.join(ROOT, "eval", shared), path.join(ev, shared));
   }
   for (const shared of ["node_modules", ".env"]) if (fs.existsSync(path.join(ROOT, shared))) fs.symlinkSync(path.join(ROOT, shared), path.join(wt, shared));
-  const args = [path.join(ev, "run.mjs"), "--set", "test", "--replay", "--scored", ...argv.filter((a, i) => !["--commit"].includes(a) && argv[i - 1] !== "--commit")];
-  console.error(`scoring the held-out set against ${sha} (clean worktree ${wt}), harness ${harness.slice(0, 7)}`);
+  // everything but --commit, --set and --record passes through
+  const rest = argv.filter((a, i) => !["--commit", "--set", "--record"].includes(a) && !["--commit", "--set"].includes(argv[i - 1]));
+  const args = recording
+    ? [path.join(ev, "run.mjs"), "--set", opt("--set") || "test", "--record", ...rest]
+    : [path.join(ev, "run.mjs"), "--set", "test", "--replay", "--scored", ...rest];
+  console.error(`${recording ? `recording (fill only) the ${opt("--set") || "test"} set` : "scoring the held-out set"} against ${sha} (clean worktree ${wt}), harness ${harness.slice(0, 7)}`);
   const r = spawnSync(process.execPath, args, { cwd: wt, stdio: "inherit", env: { ...process.env, EVAL_PINNED: sha, EVAL_HARNESS: harness } });
   code = r.status ?? 1;
 } finally {
