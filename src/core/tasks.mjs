@@ -292,9 +292,15 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
   if (dayIdx < 0 && plain.day != null) dayIdx = plain.day;
   let rhythm = null;
   if (every && dayIdx >= 0) {
-    const part = (/** @type {any} */ w) => (typeof w === "string" ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (w.toLowerCase().trim())] : null);
-    let from = part(d.from)?.[0] ?? resolveTimeWords(d.from);
-    let to = part(d.from)?.[1] ?? resolveTimeWords(d.to);
+    // a clock time the sentence says is the window's start, whatever word the model gave
+    // ("Saturday mornings around 7am": Gemma's "morning" would be 9 to 12); then the model's
+    // time or day part ("mornings" as "morning"); then a day part the sentence says
+    const clock = clockIn(sentence);
+    const part = (/** @type {any} */ w) => (typeof w === "string" ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (w.toLowerCase().trim().replace(/^(?:in the|on|every|around|about)\s+/, "").replace(/s$/, ""))] ?? null : null);
+    const time = (/** @type {any} */ w) => (typeof w === "string" ? resolveTimeWords(w.trim().replace(/^(?:around|about|at|from|by|approx\.?|~)\s*/i, "")) : null);
+    const spoken = dayPartIn(sentence);
+    let from = clock?.from ?? part(d.from)?.[0] ?? time(d.from) ?? spoken?.[0] ?? null;
+    let to = clock ? clock.to ?? (time(d.to) && minutesOfDay(/** @type {string} */ (time(d.to))) > minutesOfDay(clock.from) ? time(d.to) : null) : part(d.from)?.[1] ?? time(d.to) ?? (from === spoken?.[0] ? spoken?.[1] ?? null : null);
     if (from && !to) to = addHours(from, 4);
     if (!from || !to || minutesOfDay(to) <= minutesOfDay(from)) {
       ({ from, to } = DEFAULT_WINDOW);
@@ -353,7 +359,10 @@ export function guessCrew(sentence) {
   // the vibe is the chunk with taste words in it, minus anything that says who people are
   const vibeChunk = parts.find((p) => p !== name && tasty(p) && !AREA_LEAD.test(p) && !RHYTHM.test(p)) ?? null;
   const vibe = vibeChunk ? scrubSensitive(vibeChunk).replace(/^(?:we |who )?(?:love|like|are into|into|enjoy)\s+/i, "").trim() || null : null;
-  const time = s.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i)?.[1] ?? s.match(/\b(morning|afternoon|evening|night|after work|after church)\b/i)?.[1] ?? null;
+  // the clock time or day part as said ("Saturday mornings around 7am"); readCrewSetup reads
+  // the clock from the sentence itself, so this is what the confirm screen shows
+  const clock = clockIn(s);
+  const time = clock?.from ?? s.match(/\b(morning|afternoon|evening|night|after work|after church)s?\b/i)?.[1] ?? null;
   return {
     name,
     vibe,
@@ -362,7 +371,7 @@ export function guessCrew(sentence) {
     every: null,
     day: null,
     from: time,
-    to: null,
+    to: clock?.to ?? null,
     areas: [...new Set(areas)].slice(0, 6),
     taste: {},
     confidence: { name: name ? 0.4 : 0, vibe: vibe ? 0.4 : 0, rhythm: 0.4, areas: areas.length ? 0.4 : 0 },
@@ -381,12 +390,59 @@ export const CHEAP_WORDS = /\b(cheap|broke|budget|low.?key|no (?:get|too get|get
 export function everyIn(sentence) {
   const t = ` ${String(sentence).toLowerCase()} `;
   const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  const named = days.map((d, i) => (new RegExp(`\\b${d}(day|s|urday|nesday|sday|rsday|r)?\\b`).test(t) ? i : -1)).filter((i) => i >= 0);
+  const named = days.map((d, i) => (new RegExp(`\\b${d}(days?|s|urdays?|nesdays?|sdays?|rsdays?|rs|r)?\\b`).test(t) ? i : -1)).filter((i) => i >= 0);
   const day = named.length === 1 ? named[0] : null;
   if (/\bevery other\b|\bfortnight|\bevery two weeks\b|\bevery 2 weeks\b/.test(t)) return { every: "2w", day };
   if (/\bonce a month\b|\bmonthly\b|\bevery month\b|\bonce every month\b/.test(t)) return { every: "4w", day };
   if (/\bevery (sun|mon|tue|wed|thu|fri|sat)|\bweekly\b|\bevery week\b|\bevery weekend\b/.test(t)) return { every: "1w", day };
+  // a plural day or day part is a habit, so every week: "Saturdays", "Saturday mornings
+  // around 7am" (the held-out eval of 22 Oct read no rhythm in it), "Sunday afternoons"
+  if (day != null && (/\b(sun|mon|tues|wednes|thurs|fri|satur)days\b/.test(t) || /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+(mornings|afternoons|evenings|nights)\b/.test(t))) return { every: "1w", day };
   return { every: null, day };
+}
+
+/** The day part a sentence says ("mornings", "after work"), as a window, or null. */
+export function dayPartIn(/** @type {string} */ sentence) {
+  const m = String(sentence ?? "").toLowerCase().match(/\b(morning|afternoon|evening|night|after work|after church|daytime)s?\b/);
+  return m ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (m[1])] : null;
+}
+
+/**
+ * A clock time or range the sentence says, as 24-hour "HH:MM": "around 7am", "7.30am",
+ * "from 4pm to 8pm", "2-6pm", "between 2 and 6". A bare hour counts only in a range led by
+ * "between" or "from", or after "at" or "around" next to a day part, read in that day part
+ * ("mornings ... at 7" is 07:00); otherwise a bare number is an age or a head count ("13 to
+ * 16", "8 of us") and is never read as a time. Null when there is none.
+ * @param {string} sentence
+ * @returns {{ from: string, to: string|null }|null}
+ */
+export function clockIn(sentence) {
+  const t = String(sentence ?? "").toLowerCase().replace(/a\.m\./g, "am").replace(/p\.m\./g, "pm");
+  const part = dayPartIn(t);
+  const lean = part ? (Number(part[0].slice(0, 2)) < 12 ? "am" : "pm") : "";
+  const at = (/** @type {string} */ h, /** @type {string|undefined} */ m, /** @type {string} */ ap) => resolveTimeWords(`${h}${m ? `:${m}` : ""}${ap}`);
+  const notTime = String.raw`(?!\s*(?:years?|yrs?|y\/?o|of us|people|members|guys|kids|families|couples|\+|s\b))`;
+  const T = String.raw`(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?`;
+  const range = t.match(new RegExp(String.raw`(?:\b(between|from)\s+)?\b${T}\s*(?:-|–|to|and|till|until)\s*${T}${notTime}(?![\w])`));
+  if (range && (range[1] || range[4] || range[7])) {
+    const [, , h1, m1, ap1, h2, m2, ap2] = range;
+    const end = ap2 || lean;
+    const start = ap1 || (ap2 && Number(h1) <= Number(h2) ? ap2 : lean);
+    const from = at(h1, m1, start);
+    const to = at(h2, m2, end);
+    if (from && to && minutesOfDay(to) > minutesOfDay(from)) return { from, to };
+  }
+  const one = t.match(new RegExp(String.raw`\b(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)\b`));
+  if (one) {
+    const from = at(one[1], one[2], one[3]);
+    if (from) return { from, to: null };
+  }
+  const bare = lean ? t.match(new RegExp(String.raw`\b(?:at|around|by|about)\s+(\d{1,2})(?:[:.](\d{2}))?${notTime}(?![\w:.])`)) : null;
+  if (bare) {
+    const from = at(bare[1], bare[2], lean);
+    if (from) return { from, to: null };
+  }
+  return null;
 }
 
 const addHours = (/** @type {string} */ t, /** @type {number} */ h) => {
