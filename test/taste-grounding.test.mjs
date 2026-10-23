@@ -87,7 +87,7 @@ test("grounding never leaves a crew that says what it is into with no kinds of p
   const meetups = cleanTaste({ ...blank, basis: ["meetups", "hackathons"], likes: ["meetups", "hackathons", "tech"], placeKinds: ["community centre", "cafe", "library"], eventKeywords: ["meetup", "hackathon", "tech"] }, { sentence: "Dev friends, meetups and hackathons, every other Saturday around Yaba" });
   assert.ok(meetups.placeKinds.length > 0, JSON.stringify(meetups));
   assert.ok(meetups.placeKinds.includes("community centre") && meetups.placeKinds.includes("cafe"), "meetups and hackathons ground their own kinds");
-  const free = cleanTaste({ ...blank, likes: ["free events", "outdoor hangouts"], placeKinds: ["bar", "cinema"], eventKeywords: ["free"], budget: "free" }, { sentence: "Abeg we no get money, free things only, around Ajah" });
+  const free = cleanTaste({ ...blank, likes: ["origami", "free events"], placeKinds: ["bar", "cinema"], eventKeywords: ["free", "origami"], budget: "free" }, { sentence: "Free things only, we fold origami, around Ajah" });
   assert.ok(free.placeKinds.length > 0, JSON.stringify(free));
   assert.ok(!free.placeKinds.includes("bar") && !free.placeKinds.includes("cinema"), "the model's unrelated kinds stay out");
   assert.ok(free.placeKinds.includes("park"), "a free crew gets free kinds of place");
@@ -95,6 +95,21 @@ test("grounding never leaves a crew that says what it is into with no kinds of p
   const odd = cleanTaste({ ...blank, likes: ["origami"], placeKinds: ["nightclub", "bar"] }, { sentence: "We fold origami, around Yaba" });
   assert.ok(odd.placeKinds.length > 0 && !odd.placeKinds.includes("bar"), JSON.stringify(odd));
   assert.ok(odd.placeKinds.some((k) => ["cafe", "museum", "restaurant", "library", "community centre"].includes(k)), "something under a roof for a wet day");
+});
+
+test("dev set, 23 Oct: who a crew is and what it can spend are not taste words; a book club is not clubbing", () => {
+  // Gemma's answers for three dev crews (eval personas, dev split), read again by code
+  const church = cleanTaste({ basis: ["youth", "teens and early 20s"], scenes: [], likes: ["gospel music", "games", "cinema", "bowling", "park"], placeKinds: ["park", "playground", "community centre", "cinema", "bowling", "arcade"], eventKeywords: ["gospel", "youth", "games", "community", "fun"], avoid: ["alcohol", "nightclubs", "bars"], needs: ["no alcohol", "daytime"], ageBand: "teens and early 20s", energy: "chill" }, { sentence: "Our church youth fellowship, teens and early 20s, 15 of us, every other Saturday around Festac and Satellite Town, no alcohol and nothing late" });
+  for (const k of ["bowling", "arcade", "cinema", "community centre"]) assert.ok(church.placeKinds.includes(k), `${k}: ${JSON.stringify(church.placeKinds)}`);
+  const free = cleanTaste({ basis: [], scenes: [], likes: ["street food", "park", "library", "community centre"], placeKinds: ["park", "library", "community centre", "street food"], eventKeywords: ["free", "community", "outdoor"], avoid: [], needs: ["quiet", "daytime"], ageBand: null, energy: "chill", budget: "free" }, { sentence: "Abeg we no get money o, na free things only, 5 of us for Ajah, every other Saturday, anything wey no cost" });
+  assert.deepEqual(free.placeKinds.slice(0, 4), ["park", "library", "community centre", "street food"]);
+  const books = cleanTaste({ basis: ["Book club"], scenes: [], likes: ["reading", "coffee", "conversation", "books"], placeKinds: ["bookshop", "cafe", "gallery", "museum"], eventKeywords: ["book", "reading", "pop-up", "book-club", "discussion"], avoid: [], needs: ["quiet"], ageBand: "late 20s to 30s", energy: "chill" }, { sentence: "Book club, 7 of us, late 20s to 30s, we meet every other Saturday around Yaba and Gbagada, quiet places please" });
+  assert.ok(!books.placeKinds.includes("nightclub") && !books.placeKinds.includes("bar"), JSON.stringify(books.placeKinds));
+  assert.ok(books.placeKinds.includes("bookshop") && books.placeKinds.includes("cafe"), JSON.stringify(books.placeKinds));
+  // one kind left (Gemma repeated "gallery" six times): students and a cheap budget top it up
+  const art = cleanTaste({ basis: ["art students"], scenes: [], likes: ["sketching", "art", "exhibitions"], placeKinds: ["gallery", "gallery", "gallery"], eventKeywords: ["exhibition", "sketching", "art"], avoid: [], needs: ["daytime"], ageBand: "19 to 23", energy: "chill", budget: "cheap" }, { sentence: "Art students from Yaba Tech, 19 to 23, sketching and exhibitions, every other Saturday around Yaba and Surulere, very cheap" });
+  assert.equal(art.placeKinds[0], "gallery");
+  assert.ok(art.placeKinds.length >= 3 && art.placeKinds.includes("cafe"), JSON.stringify(art.placeKinds));
 });
 
 test("a family crew keeps the community centre its group words point to", () => {

@@ -83,7 +83,7 @@ test("Overpass down after the week's answer expired: the last good answer for th
 
 test("rain: a crew whose taste grounding dropped every kind of place still gets a covered option", async () => {
   // the pinned run of d1770d0: two crews were left with no kinds, and a wet Saturday skipped
-  const free = cleanTaste({ likes: ["free events"], placeKinds: ["bar", "cinema"], budget: "free" }, { sentence: "Abeg we no get money, free things only, around Yaba" });
+  const free = cleanTaste({ likes: ["origami", "free events"], placeKinds: ["bar", "cinema"], budget: "free" }, { sentence: "Free things only, we fold origami, around Yaba" });
   assert.ok(free.placeKinds.length > 0, JSON.stringify(free));
   const r = await ritualInRain(crewOf(free, "free"), [node("Yaba Library", 6.51, 3.37, { amenity: "library" }), node("Mainland Community Hall", 6.508, 3.366, { amenity: "community_centre" })]);
   assert.ok(r.made, JSON.stringify({ reason: r.reason }));

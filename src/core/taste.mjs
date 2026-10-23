@@ -267,7 +267,7 @@ const DEFAULT_KINDS = Object.freeze(["park", "cafe", "museum"]);
  */
 export const TASTE_WORDS = Object.freeze([
   { re: /\b(raves?|raving|ravers?)\b/i, likes: ["raves"], kinds: ["nightclub", "live music"], keys: ["rave", "party", "dj"], tags: ["party", "music"], energy: "lively" },
-  { re: /\b(part(?:y|ies)|turn ?up|owambe|clubbing|clubs?|nightlife|night ?out)\b/i, likes: ["parties"], kinds: ["nightclub", "bar"], keys: ["party"], tags: ["party"], energy: "lively" },
+  { re: /\b(part(?:y|ies)|turn ?up|owambe|clubbing|(?<!\b(?:book|chess|reading|running|run|walking|hiking|film|movie|supper|social|football|golf|cycling|photo|photography|art|poetry|knitting)\s)clubs?|nightlife|night ?out)\b/i, likes: ["parties"], kinds: ["nightclub", "bar"], keys: ["party"], tags: ["party"], energy: "lively" },
   { re: /\b(danc(?:e|es|ing))\b/i, likes: ["dancing"], kinds: ["nightclub"], keys: ["dance"], tags: ["party"], energy: "lively" },
   { re: /\b(live music|concerts?|gigs?|afrobeats?|amapiano|jazz|highlife|music)\b/i, likes: ["live music"], kinds: ["live music"], keys: ["music", "concert", "live"], tags: ["music"] },
   { re: /\b(karaoke)\b/i, likes: ["karaoke"], kinds: ["bar"], keys: ["karaoke"], tags: ["music"], energy: "lively" },
@@ -453,20 +453,22 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     // in a city-free core holds. A sentence that says only who the crew is (students,
     // parents, an age, an identity turned into needs) keeps Gemma's reading of that, as before.
     // Needs, energy and things to avoid only narrow the choice, so they stay as read.
-    const saysTaste = plain.likes.length > 0 || plain.placeKinds.length > 0 || likes.some((l) => said(l, src)) || eventKeywords.some((k) => said(k, src)) || placeKinds.some((k) => said(k, src));
+    // what the crew is into, not who it is or what it can spend: a keyword "youth" for a
+    // church youth fellowship, or "free" for a crew after free things, says no taste, and the
+    // model's reading of such a sentence is kept as it is (the dev set, 23 Oct)
+    const tasteSrc = src.replace(new RegExp(GROUP_WORDS.source, "gi"), " ").replace(new RegExp(AGE_WORDS.source, "gi"), " ").replace(/\b(free|cheap|broke|budget|money|cost|costs|naira|cheaply)\b/gi, " ");
+    const saysTaste = plain.likes.length > 0 || plain.placeKinds.length > 0 || likes.some((l) => said(l, tasteSrc)) || eventKeywords.some((k) => said(k, tasteSrc)) || placeKinds.some((k) => said(k, tasteSrc));
     // a kind of group the sentence names grounds the kinds of place GROUP_KINDS lists for it
     // (a family crew keeps its community centre: the pinned run of d1770d0 lost it)
     const groupKinds = GROUP_KINDS.filter((g) => g.re.test(src)).flatMap((g) => g.kinds);
-    let dropped = false;
     if (anchored && saysTaste && !scenes.length) {
       const ground = groundOf(src);
       const fits = (/** @type {string} */ v) => stems(v).some((t) => ground.has(t)) || ground.has(`=${norm(v)}`);
-      const needKinds = new Set(impliedNeeds(src).flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []));
+      // the crew's needs as read (a "quiet places please" book club keeps its cafe) and as code reads them
+      const needKinds = new Set([...needs, ...impliedNeeds(src)].flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []));
       likes = likes.filter(fits);
       eventKeywords = eventKeywords.filter(fits);
-      const before = placeKinds.length;
       placeKinds = placeKinds.filter((k) => fits(k) || plain.placeKinds.includes(k) || needKinds.has(k) || groupKinds.includes(k));
-      dropped = placeKinds.length < before;
     }
     if (age && !AGE_WORDS.test(src)) age = null;
     // Gemma's reading is trusted; what the sentence plainly says is never lost: each taste
@@ -497,7 +499,7 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     // somewhere to go, and no crew that said anything is left with no kind of place at all
     // (the pinned run of d1770d0: a meetups crew and a free-things crew had none, so a wet
     // Saturday had nothing under a roof). Last of all, a park, a cafe and a museum.
-    if (anchored && (!placeKinds.length || (dropped && placeKinds.length < 2))) {
+    if (anchored && placeKinds.length < 2) {
       const implied = [...needs.flatMap((n) => NEED_KINDS[/** @type {keyof typeof NEED_KINDS} */ (n)] || []), ...groupKinds, ...(budget === "free" || budget === "cheap" ? BUDGET_KINDS[budget] : [])]
         .filter((k) => !dry || (!PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife));
       placeKinds = merge(placeKinds, implied, 6);
