@@ -269,7 +269,7 @@ for (const [n, p] of personas.entries()) {
     }
     r.timings.create = ms(t);
     const crew = await store.findOne("crews", { slug: made.crew.slug });
-    await service.subscribePush({ memberId: made.member.id, token: made.memberToken, body: { subscription: { endpoint: `https://push.eval.test/crew-${n + 1}`, keys: { p256dh: "eval-p256dh", auth: "eval-auth" } } } });
+    await service.subscribePush({ memberId: made.member.id, token: made.memberToken, body: { subscription: { endpoint: `https://fcm.googleapis.com/fcm/send/eval-crew-${n + 1}`, keys: { p256dh: "eval-p256dh", auth: "eval-auth" } } } });
     t = performance.now();
     if (typeof service.kickFirstPick === "function") await service.kickFirstPick(crew.id, { force: true });
     const pick = await service.firstPick({ slug: made.crew.slug, token: made.memberToken, waitMs: BIG });
