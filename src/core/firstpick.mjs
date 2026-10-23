@@ -18,7 +18,7 @@
 // the plan already made is "ready" with that plan. A pending job whose start is older than
 // STALE_MS and is not running in this process was cut off by a restart, and runs again.
 
-/** @typedef {{ status: "pending"|"ready"|"failed", planId?: string|null, reason?: string|null, attempts: number, startedAt?: string|null, updatedAt: string, nextTryAt?: string|null }} FirstPick */
+/** @typedef {{ status: "pending"|"ready"|"failed", planId?: string|null, reason?: string|null, attempts: number, startedAt?: string|null, updatedAt: string, nextTryAt?: string|null, claim?: string|null }} FirstPick */
 
 export const FIRST_PICK = Object.freeze({
   /** starts before giving up (the heartbeat's own ritual still comes 3 days ahead) */

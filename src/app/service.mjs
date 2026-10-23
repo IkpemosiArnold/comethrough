@@ -41,6 +41,7 @@ import { endpointId, safeEqual, slugify } from "./ids.mjs";
 import { stopwatch } from "./timing.mjs";
 import { candidateViolations, crewConstraints } from "../core/constraints.mjs";
 import { diffChange, editDoc } from "./writes.mjs";
+import { claimedJobs } from "./claims.mjs";
 import { safePath } from "../adapters/store.mjs";
 import { droppedFields, emptyFields } from "../core/diagnose.mjs";
 
@@ -67,12 +68,13 @@ const SPOT_RADIUS_KM = 15;
  * Push deliveries (notify): at least once. A lease stops two workers sending the same push;
  * a crash between the send and the mark can still repeat one, and the phone folds the two
  * into one notification by its tag (web/public/sw.js). Backoff after the 1st, 2nd, ... failure.
+ * sendMs: the deadline on one send, well inside the lease (the push adapter has its own).
  */
-export const DELIVERY = Object.freeze({ leaseMs: 60_000, maxAttempts: 6, backoffMs: [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 3 * 3600_000], ttlMs: 12 * 3600_000, keepMs: 14 * 24 * 3600_000 });
+export const DELIVERY = Object.freeze({ leaseMs: 60_000, sendMs: 20_000, maxAttempts: 6, backoffMs: [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 3 * 3600_000], ttlMs: 12 * 3600_000, keepMs: 14 * 24 * 3600_000 });
 const iso = (/** @type {number} */ ms) => new Date(ms).toISOString();
 /** What the confirm screens say when the sloth (Gemma) was busy and code made the draft. */
 export const BEST_GUESS = "The sloth was busy, so this is a best guess. Fix anything that's off.";
-export const BUDGETS = { pinMs: 8000, weatherMs: 6000, gemmaMs: 35_000, pickPlacesMs: 8000, pickWeatherMs: 8000, pickWaitMs: 25_000 };
+export const BUDGETS = { pinMs: 8000, weatherMs: 6000, gemmaMs: 35_000, pickPlacesMs: 8000, pickWeatherMs: 8000, pickWaitMs: 25_000, pushSendMs: DELIVERY.sendMs };
 const OUTDOOR_KINDS = ["park", "garden", "nature", "beach", "waterfront", "square", "heritage"];
 
 /** A crew draft's fields, named as Gemma names them, for the logs. */
@@ -105,6 +107,9 @@ const planFields = (/** @type {any} */ d) => ({ title: d.title, start: d.start, 
  */
 export function createService({ store, ai, geocoder, places, weather, pages, push, spots, prompts, ids, now, cfg, log = () => {}, routes = null, wikidata = null, timing = false, budgets = {}, prewarm = false }) {
   const budget = { ...BUDGETS, ...budgets };
+  // background jobs with a lease: only the worker holding the current claim records an outcome
+  const pickJobs = claimedJobs({ store, coll: "crews", at: "firstPick", newToken: () => ids.id("claim") });
+  const deliveryJobs = claimedJobs({ store, coll: "deliveries", newToken: () => ids.id("claim") });
   /** A stopwatch for one flow; it logs only when timing is on. */
   const watch = (/** @type {string} */ flow) => stopwatch(flow, { on: timing, log });
   // ------------------------------------------------------------ where a crew is
@@ -784,7 +789,13 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     return job;
   }
 
-  /** One attempt: mark it started, pick, and record what happened. Safe to run twice. */
+  /**
+   * One attempt: claim it, pick, and record what happened. Safe to run twice, and on two
+   * instances at once: the claim (src/app/claims.mjs) carries an attempt token, and only the
+   * attempt that still holds it records its outcome. An attempt that stalled past
+   * FIRST_PICK.staleMs while another took over records nothing (the review of d01a23b: a
+   * late failure had overwritten the newer attempt's ready pick).
+   */
   async function firstPickJob(/** @type {string} */ crewId, force = false) {
     const crew = /** @type {Crew|null} */ (await store.get("crews", crewId));
     if (!crew?.firstPick) return null;
@@ -793,8 +804,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     if (!fresh && !(force && state.status === "pending") && !shouldRun(state, now(), { running: false })) return state;
     const begun = beginPick(state, now());
     // a claim: only the job that moves the state from what it read starts the pick
-    const claimed = await store.update("crews", crewId, { set: { firstPick: begun } }, { ifMatch: { "firstPick.status": state.status, "firstPick.attempts": state.attempts, "firstPick.startedAt": state.startedAt ?? null } });
-    if (!claimed) return /** @type {Crew|null} */ ((await store.get("crews", crewId)))?.firstPick ?? state;
+    const job = await pickJobs.claim(crewId, {
+      when: { "firstPick.status": state.status, "firstPick.attempts": state.attempts, "firstPick.startedAt": state.startedAt ?? null },
+      set: { status: begun.status, startedAt: begun.startedAt, updatedAt: begun.updatedAt, nextTryAt: null },
+    });
+    if (!job) return /** @type {Crew|null} */ ((await store.get("crews", crewId)))?.firstPick ?? state;
     const t0 = now();
     /** @type {{ planId?: string|null, reason: string }} */
     let outcome;
@@ -804,11 +818,16 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       log("first_pick_error", { crew: crewId, message: String(/** @type {any} */ (e)?.message).slice(0, 200) });
       outcome = { reason: "error" };
     }
-    const done = finishPick(begun, outcome, now());
-    // only the pick's own field: a rename or a taste saved meanwhile stays
-    await store.update("crews", crewId, { set: { firstPick: done } });
+    const done = finishPick({ ...begun, attempts: job.attempts }, outcome, now());
+    // only the pick's own fields, and only while this attempt holds the claim: a rename or a
+    // taste saved meanwhile stays, and so does a newer attempt's outcome
+    const saved = done.status === "failed" ? await pickJobs.fail(job, done) : await pickJobs.complete(job, done);
+    if (!saved) {
+      log("first_pick_stale", { crew: crewId, status: done.status, attempts: job.attempts, ms: now() - t0 });
+      return /** @type {Crew|null} */ ((await store.get("crews", crewId)))?.firstPick ?? done;
+    }
     log("first_pick", { crew: crewId, status: done.status, reason: done.reason, attempts: done.attempts, ms: now() - t0 });
-    return done;
+    return saved.firstPick;
   }
 
   /**
@@ -1265,14 +1284,26 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * One attempt at a delivery, if it can be claimed: due and not leased, or leased by a
    * worker whose lease ran out (it crashed, or the instance went to sleep). True when the
    * push service accepted it.
+   *
+   * The claim carries an attempt token (src/app/claims.mjs), and every outcome is written
+   * only while this attempt still holds it: a worker that stalled past its lease while
+   * another took over cannot turn the other's success back into a failure to retry (the
+   * review of d01a23b reproduced that, and the retry sent the push again). The send itself
+   * has a deadline (DELIVERY.sendMs) well inside the lease.
    */
   async function deliver(/** @type {string} */ id) {
     const t = now();
     const due = { state: { $in: ["pending", "retryable-failed"] }, nextAt: { $lte: iso(t) } };
     const stale = { state: "leased", leaseUntil: { $lt: iso(t) } };
-    const d = await store.update("deliveries", id, { set: { state: "leased", leaseUntil: iso(t + DELIVERY.leaseMs) }, inc: { attempts: 1 } }, { ifMatch: { $or: [due, stale] } });
-    if (!d) return false;
-    const finish = (/** @type {string} */ state, /** @type {Record<string, any>} */ more = {}) => store.update("deliveries", id, { set: { state, leaseUntil: null, updatedAt: iso(now()), ...more } });
+    const job = await deliveryJobs.claim(id, { when: { $or: [due, stale] }, set: { state: "leased", leaseUntil: iso(t + DELIVERY.leaseMs) } });
+    if (!job) return false;
+    const d = job.doc;
+    const finish = async (/** @type {string} */ state, /** @type {Record<string, any>} */ more = {}) => {
+      const fields = { state, leaseUntil: null, updatedAt: iso(now()), ...more };
+      const saved = state === "succeeded" ? await deliveryJobs.complete(job, fields) : await deliveryJobs.fail(job, fields);
+      if (!saved) log("push_stale_outcome", { state, attempts: job.attempts });
+      return saved;
+    };
     if (Date.parse(d.sendBy) <= t) {
       await finish("expired");
       return false;
@@ -1284,13 +1315,20 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     }
     /** @type {{ ok: boolean, gone: boolean, permanent?: boolean, status?: number }} */
     let r;
+    const noAnswer = { ok: false, gone: false, status: 0 };
     try {
-      r = await push.send({ endpoint: s.endpoint, keys: s.keys }, d.msg);
+      r = await within(push.send({ endpoint: s.endpoint, keys: s.keys }, d.msg), Math.min(budget.pushSendMs, DELIVERY.sendMs), noAnswer);
     } catch (e) {
-      r = { ok: false, gone: false, status: 0 };
+      r = noAnswer;
     }
     if (r.ok) {
-      await finish("succeeded", { sentAt: iso(now()) });
+      const sentAt = iso(now());
+      if (!(await finish("succeeded", { sentAt }))) {
+        // this attempt's lease ran out and another worker took over, but the push service
+        // took this one: the push is out, so that is recorded unless a final outcome already
+        // is, and the newer claim is voided so its retry does not send it once more
+        await store.update("deliveries", id, { set: { state: "succeeded", claim: null, leaseUntil: null, sentAt, updatedAt: sentAt } }, { ifMatch: { state: { $in: ["pending", "leased", "retryable-failed"] } } });
+      }
       return true;
     }
     if (r.gone) await store.delete("push", s.id);
