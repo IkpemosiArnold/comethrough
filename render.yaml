@@ -1,9 +1,67 @@
 # Render Blueprint for Come Through: one free Node web service in Frankfurt (next to the
-# MongoDB Atlas cluster in eu-central-1) that serves the API and the built web app from
-# one origin. The heartbeat is a GitHub Actions schedule (.github/workflows/tick.yml),
-# because Render cron jobs are not free and the free service sleeps when idle.
-# Step by step: docs/DEPLOY.md.
+# MongoDB Atlas cluster in eu-central-1) that serves the API (and the built web app, for
+# old links and link previews), and a free static site in front of it that serves the app's
+# pages and forwards /api, /cal and /basic to the web service. The static site never sleeps
+# and uses no instance hours; the web service sleeps after 15 quiet minutes. The heartbeat is
+# a GitHub Actions schedule (.github/workflows/tick.yml), because Render cron jobs are not
+# free. Step by step: docs/DEPLOY.md.
+#
+# The live services were made by hand and through the API (23 Oct 2026), not from this
+# Blueprint, and no Blueprint is linked to the repository: this file describes them.
 services:
+  - type: web
+    name: comethrough-web
+    runtime: static
+    # only a change to the app (or the shared drawing code) rebuilds it, which saves build minutes
+    buildFilter:
+      paths: ["web/**", "src/core/**"]
+    buildCommand: npm --prefix web ci --include=dev && npm --prefix web run build
+    staticPublishPath: web/dist
+    pullRequestPreviewsEnabled: false
+    # in order: the first that matches wins; a file that exists is served as it is
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://comethrough.onrender.com/api/*
+      - type: rewrite
+        source: /cal/*
+        destination: https://comethrough.onrender.com/cal/*
+      - type: rewrite
+        source: /healthz
+        destination: https://comethrough.onrender.com/healthz
+      - type: rewrite
+        source: /basic/*
+        destination: https://comethrough.onrender.com/basic/*
+      # the app's own routes (/c/..., /start, /share): the single-page app
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      # links carry their key (?t=), so a page never sends its address to another site; the
+      # <noscript> link to the plain page reads it from the same site (src/server/basic.mjs)
+      - path: /*
+        name: Referrer-Policy
+        value: same-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: no-cache
+      - path: /manifest.webmanifest
+        name: Content-Type
+        value: application/manifest+json
+    domains:
+      - comethrough.ikpemosi.work
   - type: web
     name: comethrough
     runtime: node
@@ -48,5 +106,15 @@ services:
       # curl -H 'X-Forwarded-For: 1.2.3.4' $PUBLIC_URL/healthz must show your own address in "you".
       - key: TRUST_PROXY_HOPS
         value: "3"
+      # requests forwarded by the static site arrive through Render's own proxy, which adds
+      # "client, cloudflare-edge, cloudflare-edge" and connects from 74.220.48.0/20 (measured
+      # 23 Oct 2026); the server then takes the real client from 3 entries further left.
+      # FRONT_PROXY_CIDRS (default 74.220.48.0/20) and FRONT_PROXY_HOPS (default 3) change it.
+      # The awake window (src/core/warm.mjs): the server pings its own RENDER_EXTERNAL_URL
+      # while it is useful, at most this many hours a month. The workspace's 750 free hours
+      # are shared by every free web service in it; if they run out, Render suspends them all
+      # until the next month. 0 turns the window off.
+      - key: WARM_CAP_HOURS
+        value: "150"
       - key: CONTACT
         value: https://github.com/IkpemosiArnold/comethrough

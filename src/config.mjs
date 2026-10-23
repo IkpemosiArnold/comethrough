@@ -111,6 +111,25 @@ export function config(env = process.env) {
     tickSecret: env.TICK_SECRET || "",
     /** proxies in front that append to X-Forwarded-For: 3 on Render behind Cloudflare (measured for Selects), 0 locally */
     trustProxyHops: num(env.TRUST_PROXY_HOPS, env.RENDER ? 3 : 0),
+    /**
+     * The static site in front (comethrough-web, docs/DEPLOY.md) forwards /api and /cal from
+     * Render's own proxy, which adds "client, cloudflare-edge, cloudflare-edge" to
+     * X-Forwarded-For and connects from Render's 74.220.48.0/20 (measured 23 Oct 2026). When
+     * the trusted entry is one of these addresses, the real client is that many entries further
+     * left. Comma-separated CIDRs; "off" turns it off.
+     */
+    frontProxy: {
+      cidrs: env.FRONT_PROXY_CIDRS === "off" ? [] : list(env.FRONT_PROXY_CIDRS || "74.220.48.0/20"),
+      hops: num(env.FRONT_PROXY_HOPS, 3),
+    },
+    /**
+     * The awake window (src/core/warm.mjs): the server pings its own public address while it is
+     * useful, up to this many hours a month (Render's 750 free hours are shared by every free
+     * service in the workspace). 0 turns it off.
+     */
+    warmCapHours: num(env.WARM_CAP_HOURS, 150),
+    /** the service's own public address for those pings; Render sets RENDER_EXTERNAL_URL */
+    selfUrl: (env.SELF_URL || env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, ""),
     imageMaxBytes: num(env.IMAGE_MAX_BYTES, 5 * 1024 * 1024),
     uidDomain: env.UID_DOMAIN || publicHost(env.PUBLIC_URL) || "comethrough.ikpemosi.work",
     /** the built web app, served by this server when the folder exists (one origin, no CORS needed) */

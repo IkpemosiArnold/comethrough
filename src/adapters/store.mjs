@@ -43,7 +43,8 @@ import path from "node:path";
  * @typedef {{ set?: Record<string, any>, unset?: string[], inc?: Record<string, number> }} Change
  */
 
-export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "deliveries", "podcache", "flyers", "faces"];
+// meta: small server state, such as the awake window's month of warm hours (src/app/warm.mjs)
+export const COLLECTIONS = ["crews", "members", "plans", "push", "cache", "sent", "deliveries", "podcache", "flyers", "faces", "meta"];
 
 /** A path segment may not start with $ or hold a dot inside it (ids are [A-Za-z0-9_-]). */
 const SAFE_PATH = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;

@@ -53,15 +53,53 @@ export function makeLimiter(now = () => Date.now()) {
  * (hops 0, local runs and tests) the socket address is the only truth.
  * Check after a deploy: `curl -H 'X-Forwarded-For: 1.2.3.4' <api>/healthz` must report your
  * own address in "you".
+ *
+ * A front proxy we run ourselves (the static site's rewrite of /api and /cal, docs/DEPLOY.md)
+ * adds its own entries first: "client, cloudflare-edge, cloudflare-edge", then connects from
+ * Render's addresses. So when the trusted entry is one of `front.cidrs`, the real client is
+ * `front.hops` entries further left (measured 23 Oct 2026). The trusted entry was written by
+ * Cloudflare, so nobody can fake being the front proxy without connecting from its addresses.
  * @param {Req} req
  * @param {number} hops
+ * @param {{ cidrs: string[], hops: number }} [front]
  */
-export function clientIp(req, hops = 0) {
+export function clientIp(req, hops = 0, front = { cidrs: [], hops: 0 }) {
   if (hops > 0) {
     const xs = String(req.headers["x-forwarded-for"] || "").split(",").map((x) => x.trim()).filter(Boolean);
-    if (xs.length >= hops) return xs[xs.length - hops];
+    if (xs.length >= hops) {
+      const trusted = xs[xs.length - hops];
+      const beyond = xs.length - hops - front.hops;
+      if (front.hops > 0 && beyond >= 0 && inCidrs(trusted, front.cidrs)) return xs[beyond];
+      return trusted;
+    }
   }
   return req.socket.remoteAddress || "unknown";
+}
+
+/** An IPv4 address as a number, or null. */
+const ipv4 = (/** @type {string} */ s) => {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(s).replace(/^::ffff:/, ""));
+  if (!m) return null;
+  const parts = m.slice(1).map(Number);
+  return parts.some((n) => n > 255) ? null : ((parts[0] << 24) >>> 0) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+};
+
+/**
+ * True when an IPv4 address is inside one of the CIDR blocks ("74.220.48.0/20").
+ * @param {string} ip
+ * @param {string[]} cidrs
+ */
+export function inCidrs(ip, cidrs) {
+  const n = ipv4(ip);
+  if (n == null) return false;
+  return cidrs.some((c) => {
+    const [base, bits = "32"] = c.split("/");
+    const b = ipv4(base);
+    const k = Number(bits);
+    if (b == null || !Number.isInteger(k) || k < 0 || k > 32) return false;
+    const mask = k === 0 ? 0 : (~0 << (32 - k)) >>> 0;
+    return ((n & mask) >>> 0) === ((b & mask) >>> 0);
+  });
 }
 
 /**

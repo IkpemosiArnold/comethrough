@@ -16,6 +16,7 @@ import { makeIds, safeEqual } from "../app/ids.mjs";
 import { loadPrompts } from "../app/prompts.mjs";
 import { createIdeas } from "../app/ideas.mjs";
 import { createService } from "../app/service.mjs";
+import { createWarm } from "../app/warm.mjs";
 import { withEntries } from "../core/places.mjs";
 import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather, fakeWikidata } from "../adapters/fakes.mjs";
 import { createFeeds } from "../adapters/feeds.mjs";
@@ -58,8 +59,9 @@ export const RATE = {
  * @param {() => number} [opts.now]
  * @param {(event: string, fields?: Record<string, any>) => void} [opts.log]
  * @param {ReturnType<typeof createIdeas>|null} [opts.ideas]  "The sloth has 3 ideas"; null answers 503
+ * @param {ReturnType<typeof createWarm>|null} [opts.warm]  the awake window (src/app/warm.mjs); null never extends it
  */
-export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas = null }) {
+export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas = null, warm = null }) {
   const limiter = makeLimiter(now);
   // link previews: every plan and crew link gets its own card (src/server/og.mjs)
   const og = service.growth ? createOg({ growth: service.growth, publicUrl: cfg.publicUrl, log }) : null;
@@ -79,7 +81,8 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
 
   /** @type {[string, RegExp, (ctx: any) => Promise<any>][]} */
   const routes = [
-    ["GET", /^\/healthz$/, async ({ ip }) => ({ ...(await service.health()), you: ip })],
+    // /api/healthz too: the static site forwards /api and /cal, and the app wakes the server with it
+    ["GET", /^\/(?:api\/)?healthz$/, async ({ ip }) => ({ ...(await service.health()), you: ip })],
     ["GET", /^\/api\/push\/key$/, () => service.pushKey()],
     ["GET", /^\/api\/areas$/, ({ url, ip }) => {
       limit("areas", ip);
@@ -104,6 +107,12 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       }
       aiLimits(ip);
       return service.draftCrew({ sentence: body.sentence, into: body.into, hint: body.hint });
+    }],
+    // "Tell the crew" was tapped (a beacon from the app; the token may come as ?t=): friends will
+    // open the link soon, so the server stays awake for them (src/core/warm.mjs)
+    ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/shared$/, async ({ m, token }) => {
+      await service.getCrew({ slug: m[1], token });
+      return { status: 204, body: null };
     }],
     ["POST", /^\/api\/crews\/([a-z0-9-]{1,64})\/taste$/, async ({ m, token, req, ip }) => {
       const body = await readJson(req, 8 * 1024);
@@ -160,7 +169,10 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       const out = await service.tick();
       // the curated guides' feeds, at most once a day each, in the background (Gemma reads new posts)
       if (ideas) ideas.refreshAll([{ pack: LAGOS, region: LAGOS_REGION }]).catch((e) => log("feed_error", { message: String(e?.message).slice(0, 120) }));
-      return out;
+      // a plan starting soon keeps the server awake now; `wake` tells the heartbeat when to come back
+      if (!warm) return out;
+      await warm.step("tick", { fresh: true }).catch(() => null);
+      return { ...out, wake: await warm.upcoming().catch(() => []) };
     }],
     ["GET", /^\/cal\/([A-Za-z0-9_-]{16,64})\.ics$/, async ({ m, req }) => {
       const ics = await service.feed({ calToken: m[1] });
@@ -214,7 +226,7 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
   return http.createServer(async (req, res) => {
     const t0 = now();
     const url = new URL(req.url || "/", "http://x");
-    const ip = clientIp(req, cfg.trustProxyHops);
+    const ip = clientIp(req, cfg.trustProxyHops, cfg.frontProxy);
     const isApi = url.pathname.startsWith("/api/") || url.pathname === "/healthz" || url.pathname.startsWith("/cal/");
     let status = 500;
     try {
@@ -239,6 +251,9 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
           res.writeHead(status, { ...BASE_HEADERS, ...wrapped.headers, ...(status === 304 ? {} : { "content-length": String(Buffer.isBuffer(wrapped.raw) ? wrapped.raw.length : Buffer.byteLength(wrapped.raw)) }) });
           res.end(status === 304 ? undefined : wrapped.raw);
         } else sendJson(res, status, wrapped.body);
+        // something friends will follow soon: stay awake for them (src/core/warm.mjs)
+        const why = warm && status < 300 ? warmReason(req.method, url.pathname, status) : null;
+        if (why) warm?.extend(why);
         // work that must not hold up the answer (the first pick)
         if (typeof wrapped.after === "function") setImmediate(() => Promise.resolve().then(wrapped.after).catch((e) => log("error", { path: url.pathname, message: String(e?.message).slice(0, 200) })));
         return;
@@ -248,6 +263,8 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
         limit("api", ip);
         if (await serveBasic(req, res, url)) {
           status = res.statusCode;
+          // an answer or a join from the plain pages
+          if (req.method === "POST" && status < 400) warm?.extend("basic");
           return;
         }
       }
@@ -272,9 +289,26 @@ export function createApi({ service, cfg, now = Date.now, log = () => {}, ideas 
       }
     } finally {
       // never log query strings: they carry tokens
-      if (isApi) log("req", { method: req.method, path: url.pathname.replace(/\/cal\/[^/]+/, "/cal/:token").replace(/\/(c|p|m)_[a-z0-9_]+/g, "/:id"), status, ms: now() - t0 });
+      // self: the awake window's own ping (src/app/warm.mjs), so the logs show it arriving
+      if (isApi) log("req", { method: req.method, path: url.pathname.replace(/\/cal\/[^/]+/, "/cal/:token").replace(/\/(c|p|m)_[a-z0-9_]+/g, "/:id"), status, ms: now() - t0, ...(/^ComeThrough-warm\//.test(String(req.headers["user-agent"] || "")) ? { self: true } : {}) });
     }
   });
+}
+
+/**
+ * Which successful answers keep the server awake for the next 3 hours, and why: a crew made,
+ * someone joining, a plan made, edited or answered, "Tell the crew" tapped.
+ * @param {string|undefined} method
+ * @param {string} pathname
+ * @param {number} status
+ */
+export function warmReason(method, pathname, status) {
+  if (method === "POST" && pathname === "/api/crews") return status === 201 ? "crew" : null;
+  if (method === "POST" && /^\/api\/crews\/[a-z0-9-]+\/members$/.test(pathname)) return "join";
+  if (method === "POST" && /^\/api\/crews\/[a-z0-9-]+\/plans$/.test(pathname)) return "plan";
+  if (method === "POST" && /^\/api\/crews\/[a-z0-9-]+\/shared$/.test(pathname)) return "share";
+  if (method === "PATCH" && /^\/api\/plans\/[A-Za-z0-9_-]+$/.test(pathname)) return "plan_edit";
+  return null;
 }
 
 /** One JSON line per event on stdout (Render keeps them). */
@@ -323,14 +357,19 @@ async function main() {
   const deps = await buildDeps(cfg);
   const service = createService({ ...deps, cfg });
   const ideas = createIdeas({ store: deps.store, cache: deps.cache, ai: deps.ai, feeds: deps.feeds, weather: deps.weather, geocoder: deps.geocoder, candidatesNear: service._internal.candidatesNear, spots: deps.spots, prompts: deps.prompts, now: deps.now, log: jsonLog, timing: deps.timing });
-  const server = createApi({ service, cfg, log: jsonLog, ideas });
+  // the awake window: pings its own public address while it is useful, up to WARM_CAP_HOURS a month
+  const warm = createWarm({ store: deps.store, selfUrl: cfg.offline ? "" : cfg.selfUrl, capHours: cfg.warmCapHours, log: jsonLog });
+  const server = createApi({ service, cfg, log: jsonLog, ideas, warm });
   // a local model on a laptop can take minutes; the request must outlive it
   server.requestTimeout = cfg.llm === "ollama" && !cfg.offline ? Math.max(60_000, cfg.ollama.timeoutMs + 15_000) : 60_000;
   server.headersTimeout = 20_000;
   server.listen(cfg.port, () => {
-    jsonLog("listening", { port: cfg.port, store: deps.store.kind, ai: deps.ai.available ? cfg.offline ? "offline stand-in" : describeLlm(cfg) : "off", push: deps.push.enabled, web: !!staticHandler(cfg.staticDir), offline: cfg.offline, trustProxyHops: cfg.trustProxyHops });
+    jsonLog("listening", { port: cfg.port, store: deps.store.kind, ai: deps.ai.available ? cfg.offline ? "offline stand-in" : describeLlm(cfg) : "off", push: deps.push.enabled, web: !!staticHandler(cfg.staticDir), offline: cfg.offline, trustProxyHops: cfg.trustProxyHops, warmCapHours: cfg.warmCapHours, selfPing: !!cfg.selfUrl && !cfg.offline });
+    // a plan window or an activity's 3 hours that was running before a deploy carries on
+    warm.start().catch((e) => jsonLog("warm_error", { message: String(e?.message).slice(0, 160) }));
   });
   const stop = async () => {
+    warm.stop();
     server.close();
     await deps.store.close().catch(() => {});
     process.exit(0);
