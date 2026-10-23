@@ -58,7 +58,8 @@ dimension: dev has 30 crews, test has 30.
 ## Amendments
 
 - **23 Oct 2026: scored runs are pinned.** An external review pointed out that the first scored test run (the baseline) ran from the shared working tree. From now on the only way to score the test set is `node eval/scored.mjs --commit <sha> --label <label>`. It checks the commit out into a clean git worktree, runs the committed harness against it, refuses to score when anything outside eval/ differs from that commit, and writes the commit and "clean: true" into the report. The baseline is labelled in its report as a working-tree snapshot whose src is identical to 5d84a9b, except eval/. Each label is scored once. The persona file, its split and its hash are unchanged.
-- **22 to 23 Oct 2026: the Gemma cap.** The cap on live Gemma calls across both sets was raised with approval from 250 to 370, then 420, then 520 (Gemma on the Gemini API is free; calls stay 4.5 s apart). The ledger in eval/world/2026-10-24 records every raise.
+- **22 to 23 Oct 2026: the Gemma cap.** The cap on live Gemma calls across all sets was raised with approval from 250 to 370, then 420, then 520, then 650 for test-2 (Gemma on the Gemini API is free; calls stay 4.5 s apart). The harness enforces the cap given with `--llm-cap`, up to a ceiling fixed in `eval/run.mjs`. That ceiling was 520 until commit 803b039 and has been 650 since. The ledger in eval/world/2026-10-24 records every raise (`capChanges`). The test-2 recording ran under 650 and left the ledger at 520 live calls.
+- **23 Oct 2026: one test persona seen by the fix agent.** While reading files, the agent fixing the three bug classes saw one persona of the original test split (lag-alte-yaba), and reports that it did not tune on it. The original test set was already spent (scored twice) by then. Test-2 was never exposed: only this harness reads it, and only to record and score.
 
 ## test-2: a second held-out set (frozen 23 Oct 2026)
 
