@@ -170,7 +170,7 @@ test("a hosted plan from one sentence: draft, confirm, and the private address",
 });
 
 test("push: subscribe, then new plans and pods buzz the right people once", async () => {
-  const sub = (/** @type {string} */ n) => ({ subscription: { endpoint: `https://push.example/${n}`, keys: { p256dh: "BKey", auth: "auth" } } });
+  const sub = (/** @type {string} */ n) => ({ subscription: { endpoint: `https://fcm.googleapis.com/fcm/send/${n}`, keys: { p256dh: "BKey", auth: "auth" } } });
   assert.equal((await call("POST", `/api/members/${S.keneId}/push-subscription`, { token: S.kene, body: sub("kene") })).status, 204);
   assert.equal((await call("POST", `/api/members/${S.adaId}/push-subscription`, { token: S.ada, body: sub("ada") })).status, 204);
   assert.equal((await call("POST", `/api/members/${S.adaId}/push-subscription`, { token: S.kene, body: sub("x") })).status, 403, "only for yourself");
@@ -198,7 +198,7 @@ test("push: subscribe, then new plans and pods buzz the right people once", asyn
   S.beach = created.json.plan.id;
   assert.equal(created.json.plan.source.imageUrl, parsed.json.draft.source.imageUrl, "the plan keeps its flyer");
   assert.equal(created.json.plan.source.flyerId, undefined, "the internal id stays inside");
-  assert.deepEqual(push.sent.map((m) => m.endpoint).sort(), ["https://push.example/ada", "https://push.example/kene"]);
+  assert.deepEqual(push.sent.map((m) => m.endpoint).sort(), ["https://fcm.googleapis.com/fcm/send/ada", "https://fcm.googleapis.com/fcm/send/kene"]);
   assert.match(push.sent[0].title, /^New plan: Beach day$/);
   assert.equal(created.json.plan.weather.rainProb, 60, "an outdoor plan gets the forecast for its own hours");
   // not an image, and too big

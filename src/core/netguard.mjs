@@ -101,6 +101,51 @@ export function checkUrl(raw) {
 }
 
 /**
+ * The web push services a browser's subscription may point at. A subscription's endpoint is
+ * a URL the server later POSTs to, so without this list a member could make the server
+ * connect anywhere, including inside its own network (the review of d01a23b). Checked
+ * 23 Oct 2026:
+ *   - Chrome, and Chromium browsers that use Google's service: fcm.googleapis.com
+ *     (developer.chrome.com/blog/web-push-interop-wins, last updated 2016-07-27: "if the
+ *     origin is fcm.googleapis.com, it's working").
+ *   - Firefox: updates.push.services.mozilla.com (Mozilla's autopush-rs docs,
+ *     docs/src/index.md, last changed 2026-02-20: "Endpoint: https://updates.push.services.mozilla.com/").
+ *   - Safari and iPhone home screen apps: any host under push.apple.com, in practice
+ *     web.push.apple.com (developer.apple.com, "Sending web push notifications in web apps
+ *     and browsers": "allow access for https://*.push.apple.com").
+ *   - Edge on Windows: hosts under notify.windows.com (learn.microsoft.com, "Enterprise
+ *     firewall and proxy configurations to support WNS traffic", updated 2025-07-29: cloud
+ *     services send to *.notify.windows.com).
+ */
+export const PUSH_HOSTS = Object.freeze({
+  exact: Object.freeze(["fcm.googleapis.com", "updates.push.services.mozilla.com"]),
+  under: Object.freeze(["push.apple.com", "notify.windows.com"]),
+});
+
+/**
+ * Whether a push subscription's endpoint is one of the known push services: https on the
+ * default port, no login in the URL, and a host from PUSH_HOSTS. The adapter still resolves
+ * the host and refuses a private address before it connects.
+ * @param {string} raw
+ * @returns {{ ok: boolean, url?: URL, reason?: string }}
+ */
+export function checkPushEndpoint(raw) {
+  let url;
+  try {
+    url = new URL(String(raw));
+  } catch {
+    return { ok: false, reason: "not a URL" };
+  }
+  if (url.protocol !== "https:") return { ok: false, reason: "not https" };
+  if (url.username || url.password) return { ok: false, reason: "credentials in the URL" };
+  if (url.port && url.port !== "443") return { ok: false, reason: "not port 443" };
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  const known = PUSH_HOSTS.exact.includes(host) || PUSH_HOSTS.under.some((d) => host.endsWith(`.${d}`) && /^[a-z0-9.-]+$/.test(host));
+  if (!known) return { ok: false, reason: "not a known push service" };
+  return { ok: true, url };
+}
+
+/**
  * Sites that hand servers an empty page instead of the post (Instagram, Facebook and
  * Threads, checked 21 Oct 2026). Their links are never fetched: the person is asked for
  * the flyer picture instead.
