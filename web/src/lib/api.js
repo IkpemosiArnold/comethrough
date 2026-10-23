@@ -4,9 +4,27 @@
 //
 // Auth: `Authorization: Bearer <token>`, the member token when this phone has one for the
 // crew, otherwise the crew's invite token. The .ics download carries the token as ?t=.
+//
+// The server naps when nobody has used it for a while: every call goes through the waker
+// (./wake.js), which holds it while the server wakes and asks again when the answer came from
+// Render rather than from Come Through.
 
 import { getCrew, saveCrew, sessionGet, sessionSet, readCrewCache, writeCrewCache } from './store.js';
 import { areaContext, hint, setPlace } from './place.js';
+import { waker } from './wake.js';
+
+const ASLEEP = "The sloth won't wake up. Try again in a minute.";
+const OFFLINE = "Couldn't reach Come Through. Check your data and try again.";
+
+/** fetch() through the waker; a server that never woke is an ApiError with code "asleep". */
+async function send(path, init) {
+  try {
+    return await waker().call(path, init);
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
+    throw e?.asleep ? new ApiError(ASLEEP, 503, 'asleep') : new ApiError(OFFLINE, 0, 'offline');
+  }
+}
 
 const q = new URLSearchParams(location.search);
 if (q.has('mock')) sessionSet('ct.mock', q.get('mock') === '0' ? '0' : '1');
@@ -40,12 +58,7 @@ async function req(method, path, { slug, invite, body, form, token } = {}) {
   let payload;
   if (form) payload = form;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
-  let res;
-  try {
-    res = await fetch(path, { method, headers, body: payload });
-  } catch {
-    throw new ApiError("Couldn't reach Come Through. Check your data and try again.", 0, 'offline');
-  }
+  const res = await send(path, { method, headers, body: payload });
   if (res.status === 204) return null;
   const text = await res.text();
   let data = null;
@@ -161,12 +174,7 @@ export const api = {
     const c = getCrew(slug);
     if (MOCK) return { faceV: 'mock' };
     const t = c?.memberToken;
-    let res;
-    try {
-      res = await fetch(`/api/members/${enc(c?.memberId || '')}/face`, { method: 'PUT', headers: { Authorization: `Bearer ${t}`, 'Content-Type': blob.type || 'image/webp' }, body: blob });
-    } catch {
-      throw new ApiError("Couldn't reach Come Through. Check your data and try again.", 0, 'offline');
-    }
+    const res = await send(`/api/members/${enc(c?.memberId || '')}/face`, { method: 'PUT', headers: { Authorization: `Bearer ${t}`, 'Content-Type': blob.type || 'image/webp' }, body: blob });
     const data = await res.json().catch(() => null);
     if (!res.ok) throw new ApiError(data?.error?.message || "Couldn't save your photo. Try again.", res.status, data?.error?.code);
     return data;
@@ -223,7 +231,7 @@ export const api = {
   // else to the visitor's zone): [{ label, detail, lat, lon }]
   async geocode(text, signal) {
     if (MOCK) return (await mock()).areas(text);
-    const res = await fetch(`/api/areas?q=${enc(text)}${areaContext()}`, { signal });
+    const res = await send(`/api/areas?q=${enc(text)}${areaContext()}`, { signal });
     if (!res.ok) return [];
     const data = await res.json();
     return data.results || [];
@@ -249,6 +257,15 @@ export const api = {
     const r = await req('POST', `/api/crews/${enc(slug)}/plans`, { slug, body: { plan: draft } });
     return r.plan;
   },
+  // The plan as this phone last saw it (the crew's cached read), shown at once while the
+  // server answers: { ...plan, cached: true }, or null.
+  cachedPlan(slug, id) {
+    const data = readCrewCache(slug);
+    const plan = (data?.plans || []).find((p) => p.id === id);
+    if (!plan) return null;
+    setPlace(data.crew);
+    return { ...plan, members: data.members || [], crew: data.crew, viewer: data.you, cached: true };
+  },
   // There is no single-plan read in the contract, so the plan page reads the crew.
   async getPlan(slug, id, invite) {
     let data, offline = false;
@@ -256,10 +273,10 @@ export const api = {
       data = await api.getCrew(slug, invite);
       writeCrewCache(slug, data);
     } catch (e) {
-      data = e.code === 'offline' ? readCrewCache(slug) : null;
+      data = e.code === 'offline' || e.code === 'asleep' ? readCrewCache(slug) : null;
       if (!data) throw e;
       setPlace(data.crew);
-      offline = true;
+      offline = e.code; // "offline" or "asleep"
     }
     const plan = (data.plans || []).find((p) => p.id === id);
     if (!plan) throw new ApiError("That plan isn't here any more. It may have ended.", 404);

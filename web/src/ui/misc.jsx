@@ -1,4 +1,6 @@
+import { useEffect } from 'preact/hooks';
 import { Icon } from './icons.jsx';
+import { waker } from '../lib/wake.js';
 import { back } from '../lib/router.js';
 import { firstName } from '../lib/format.js';
 
@@ -43,8 +45,19 @@ export function KindSticker({ kind, host = null }) {
   return <span class={`sticker sticker-${k.cls}`}>{label}</span>;
 }
 
+// What this phone saw last is on screen while the server answers.
+export function Refreshing() {
+  return <p class="offline-note refreshing" role="status">Saved on this phone. Refreshing <Dots /></p>;
+}
+
 export function ErrorNote({ error, onRetry }) {
-  if (!error) return null;
+  // the server never woke: try again by itself once it does (the retry under the waking card)
+  useEffect(() => {
+    if (error?.code !== 'asleep' || !onRetry) return;
+    return waker().subscribe((s) => { if (s.phase === 'up') onRetry(); });
+  }, [error, onRetry]);
+  // the waking card at the top already says so, with its own Try again
+  if (!error || (error.code === 'asleep' && onRetry)) return null;
   return (
     <div class="error-note" role="alert">
       <p>{error.message || String(error)}</p>

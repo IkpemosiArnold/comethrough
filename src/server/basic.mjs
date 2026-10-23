@@ -72,7 +72,28 @@ function sendHtml(/** @type {Res} */ res, /** @type {Req} */ req, /** @type {num
   res.end(body);
 }
 
-const link = (/** @type {string} */ slug, /** @type {string|null} */ id, /** @type {string} */ token) => `/c/${encodeURIComponent(slug)}${id ? `/p/${encodeURIComponent(id)}` : ""}?t=${encodeURIComponent(token)}&basic=1`;
+// /basic/c/...: the static site in front forwards /basic to this server, while /c/... is the
+// app's own page there (docs/DEPLOY.md), so the plain pages link to each other under /basic
+const link = (/** @type {string} */ slug, /** @type {string|null} */ id, /** @type {string} */ token) => `/basic/c/${encodeURIComponent(slug)}${id ? `/p/${encodeURIComponent(id)}` : ""}?t=${encodeURIComponent(token)}`;
+
+/**
+ * The plain page for the app page someone was on, from the Referer of the <noscript> link
+ * ("/basic/here"): the static site cannot put the page's own address into that link. Only a
+ * path of this site comes back (never another host), so it cannot redirect anyone elsewhere.
+ * @param {string|undefined} referer
+ * @returns {string|null}
+ */
+export function basicFromReferer(referer) {
+  try {
+    const u = new URL(String(referer || ""));
+    if (!PAGE_ROUTE.test(u.pathname)) return null;
+    u.searchParams.delete("basic");
+    const q = u.searchParams.toString();
+    return `/basic${u.pathname}${q ? `?${q}` : ""}`;
+  } catch {
+    return null;
+  }
+}
 
 /** The WhatsApp message for a plan, as the app writes it: the plan first, one link per answer. */
 function planShare(/** @type {any} */ plan, /** @type {any} */ crew, /** @type {string} */ webUrl) {
@@ -177,7 +198,15 @@ export function basicHandler({ service, webUrl }) {
     const token = url.searchParams.get("t") || "";
     try {
       if (req.method === "GET") {
-        const m = PAGE_ROUTE.exec(url.pathname);
+        // the <noscript> link of the static site's page: back to the page it was on, plain
+        if (url.pathname === "/basic/here") {
+          const to = basicFromReferer(req.headers.referer);
+          if (to) res.writeHead(303, { ...BASE_HEADERS, location: to }).end();
+          else sendHtml(res, req, 200, page("Come Through", "<h1>Open your link again</h1><p>Open the plan or crew link from the group chat again.</p>"));
+          return true;
+        }
+        // /basic/c/<slug>...: the plain pages under /basic (what the static site forwards here)
+        const m = PAGE_ROUTE.exec(url.pathname.startsWith("/basic/c/") ? url.pathname.slice("/basic".length) : url.pathname);
         if (!m) {
           if (!APP_ROUTE.test(url.pathname)) return false;
           sendHtml(res, req, 200, page("Come Through", "<h1>This part needs the full app</h1><p>Starting a crew and adding a plan need a browser that runs the full app, such as Chrome, or Opera with data savings set to off or high. Opera Mini's extreme mode cannot run it.</p><p>Plan links from the group chat work here: open one to see the plan and say if you're coming.</p>"));

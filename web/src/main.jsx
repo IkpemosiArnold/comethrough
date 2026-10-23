@@ -8,6 +8,7 @@ import { App } from './app.jsx';
 import { installLinkInterceptor } from './lib/router.js';
 import { MOCK } from './lib/api.js';
 import { getCrew } from './lib/store.js';
+import { waker } from './lib/wake.js';
 
 const q = new URLSearchParams(location.search);
 if (q.has('fast')) window.__CT_FAST = true;
@@ -33,6 +34,25 @@ function watchVisibility() {
   set();
 }
 
+// The server may be napping: ask if it is awake right away, beside the screen's own requests,
+// so the sloth's waking card shows only when it really is asleep (lib/wake.js).
+if (!MOCK) waker().wake();
+
+// "Tell the crew" on WhatsApp: friends will open the link in the next minutes, so the server
+// is asked to stay awake for them (a beacon; nothing waits for it).
+function watchShares() {
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
+    const m = location.pathname.match(/^\/c\/([^/]+)/);
+    if (!a || !m || MOCK || !navigator.sendBeacon) return;
+    const slug = decodeURIComponent(m[1]);
+    const c = getCrew(slug);
+    const t = c?.memberToken || c?.invite;
+    if (!t) return;
+    try { navigator.sendBeacon(`/api/crews/${encodeURIComponent(slug)}/shared?t=${encodeURIComponent(t)}`); } catch { /* best effort */ }
+  }, true);
+}
+
 async function boot() {
   // Demo mode: open a crew link and you're already a member, unless ?guest=1
   if (MOCK) {
@@ -47,6 +67,7 @@ async function boot() {
     if (m && !q.has('guest') && (!getCrew(m[1])?.memberId || q.has('data'))) (await import('./lib/mock.js'))._seedMember(m[1]);
   }
   installLinkInterceptor();
+  watchShares();
   watchKeyboard();
   watchVisibility();
   render(<App />, document.getElementById('app'));

@@ -4,7 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Come Through</title>
-    <meta name="description" content="The lazy way to link up. You send one sentence, your crew taps once. Plans from a flyer, a link or a sentence, and rides that sort themselves." />
+    <meta name="description" content="The lazy way to link up. You send one sentence, your crew taps once." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Come Through" />
+    <meta property="og:title" content="Come Through" />
+    <meta property="og:description" content="The lazy way to link up. You send one sentence, your crew taps once." />
+    <meta property="og:image" content="https://comethrough.ikpemosi.work/og-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Come Through: a sloth hanging from a branch" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Come Through" />
+    <meta name="twitter:description" content="The lazy way to link up. You send one sentence, your crew taps once." />
+    <meta name="twitter:image" content="https://comethrough.ikpemosi.work/og-card.png" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F1E7" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#16130F" />
     <meta name="color-scheme" content="light dark" />
@@ -15,13 +28,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Come Through" />
-    <meta property="og:title" content="Come Through" />
-    <meta property="og:description" content="The lazy way to link up. You send one sentence, your crew taps once." />
-    <meta property="og:image" content="/icons/og.png" />
+    <script>
+      // Before the app loads: Opera Mini runs scripts on Opera's servers for only a moment, so
+      // a crew or plan link goes to its plain page; everyone else starts waking the server,
+      // which naps when nobody has used it for a while (web/src/lib/wake.js picks this up).
+      (function () {
+        var l = location;
+        if (/Opera Mini/i.test(navigator.userAgent) && /^\/c\//.test(l.pathname)) { l.replace('/basic' + l.pathname + l.search); return; }
+        if (/[?&]mock=/.test(l.search) || !window.fetch) return;
+        try { window.__ctWake = fetch('/api/healthz', { cache: 'no-store' }); window.__ctWake.catch(function () {}); } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>
-    <noscript><p style="font:16px/1.5 sans-serif;padding:16px">This browser isn't running JavaScript, so the full app can't start. <a href="?basic=1">Open the basic version</a> to see the plan and say if you're coming.</p></noscript>
+    <noscript><p style="font:16px/1.5 sans-serif;padding:16px">This browser isn't running JavaScript, so the full app can't start. <a href="/basic/here">Open the basic version</a> to see the plan and say if you're coming.</p></noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

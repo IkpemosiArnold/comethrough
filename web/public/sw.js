@@ -51,16 +51,19 @@ self.addEventListener('fetch', (event) => {
 
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  // The API and calendar feeds always go to the network.
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/cal/')) return;
+  // The API, calendar feeds and the plain pages always go to the network.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/cal/') || url.pathname.startsWith('/basic/')) return;
 
   // Pages: network first so the app is fresh, the cached shell when offline.
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       try {
         const res = await fetch(req);
-        const cache = await caches.open(SHELL);
-        cache.put('/', res.clone());
+        // only the app's own page becomes the shell, never an error or a host's loading page
+        if (res.ok && /text\/html/.test(res.headers.get('content-type') || '')) {
+          const cache = await caches.open(SHELL);
+          cache.put('/', res.clone());
+        }
         return res;
       } catch {
         return (await caches.match('/')) || Response.error();

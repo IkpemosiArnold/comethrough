@@ -153,6 +153,7 @@ Motion is used only at a real moment, never as decoration. Each item below is ti
 | Your ride pod forms | A small danfo pulls out from behind the faces and brakes at its stop (spring, damping 0.7) | Parked |
 | Rain on a plan | The rain icon drips four times, then holds still | Still |
 | The Status card | The card drops onto the wall and a strip of tape presses on it | A fade |
+| The server is asleep (Render's free plan naps after 15 quiet minutes) | A painted sign drops in at the top: the sloth asleep with its "zzz", "The sloth is waking up", the seconds counting, "It naps when the crew is quiet." (12 words). When the server answers, the sloth opens its eyes, "Awake", and the sign lifts away. After about 90 s: "Still asleep", one plain line and Try again. A crew this phone saw before shows at once underneath, marked "Saved on this phone. Refreshing" | The sign fades in and out, the "zzz" stays still, the seconds still count |
 
 Considered and left out: a sun shimmer on dry days and idle bobbing (motion with nothing behind it), confetti, a yawn (more drawing for little gain), and transforms on page changes (they would trap the fixed bottom bar).
 

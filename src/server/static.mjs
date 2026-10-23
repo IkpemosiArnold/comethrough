@@ -63,10 +63,14 @@ export function staticHandler(dir, { headFor } = {}) {
     let body = null;
     const head = name === "index.html" && headFor && req.method === "GET" ? await headFor(pathname, search).catch(() => null) : null;
     if (name === "index.html" && (search || head)) {
-      // the <noscript> link keeps this page's own address (with its ?t= key) and adds basic=1
+      // the <noscript> link goes to this page's own plain version (with its ?t= key) under
+      // /basic; the static site's copy of this page keeps "/basic/here", which finds the page
+      // from the Referer instead (src/server/basic.mjs)
       const q = new URLSearchParams(search);
-      q.set("basic", "1");
-      let html = (await fsp.readFile(file, "utf8")).replace('href="?basic=1"', `href="${`${pathname}?${q}`.replace(/&/g, "&amp;").replace(/"/g, "%22")}"`);
+      q.delete("basic");
+      const qs = q.toString();
+      const plain = `/basic${pathname}${qs ? `?${qs}` : ""}`.replace(/&/g, "&amp;").replace(/"/g, "%22");
+      let html = (await fsp.readFile(file, "utf8")).replace(/href="(?:\?basic=1|\/basic\/here)"/, `href="${plain}"`);
       // a link's own preview: WhatsApp, Facebook, X, iMessage and Slack read these tags
       if (head) html = withHead(html, head);
       enc = pickEncoding(req.headers["accept-encoding"]);

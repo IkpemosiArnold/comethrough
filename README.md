@@ -183,8 +183,11 @@ For UI work, `npm --prefix web run dev` starts Vite on port 5173 and proxies the
 
 ## Deploy
 
-One free Render web service in Frankfurt, MongoDB Atlas M0 in Frankfurt, and a GitHub
-Actions schedule for the heartbeat. `render.yaml` describes the service. The steps, the
+One free Render web service in Frankfurt for the API, a free Render static site in front of
+it for the pages (it never sleeps, and forwards `/api` and `/cal`), MongoDB Atlas M0 in
+Frankfurt, and a GitHub Actions schedule for the heartbeat. `render.yaml` describes both. The
+free web service naps after 15 quiet minutes: the app says so while it wakes, and the server
+keeps itself awake around activity and plans, under a monthly cap. The steps, the
 checks after deploy, and the list of things to try on a real phone are in
 [docs/DEPLOY.md](docs/DEPLOY.md).
 

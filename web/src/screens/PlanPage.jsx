@@ -16,7 +16,7 @@ import { MapSnippet, mapsUrl } from '../ui/MapSnippet.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { weatherIcon, weatherWords } from '../ui/Weather.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
-import { TopBar, KindSticker, ErrorNote, Spinner } from '../ui/misc.jsx';
+import { TopBar, KindSticker, ErrorNote, Spinner, Refreshing } from '../ui/misc.jsx';
 import { toast } from '../ui/toast.jsx';
 import { NameSheet } from '../ui/NameSheet.jsx';
 import { AreaAsk } from '../ui/AreaAsk.jsx';
@@ -28,7 +28,8 @@ export function PlanPage({ params, query }) {
   // a guest becomes a member at their first "I'm going", on this same page
   const [meId, setMeId] = useState(mine?.memberId || null);
   const [ask, setAsk] = useState(null); // the answer waiting for a name: 'going' | 'maybe'
-  const [plan, setPlan] = useState(null);
+  // the plan as this phone last saw it shows at once, marked as refreshing, while the server answers
+  const [plan, setPlan] = useState(() => (MOCK ? null : api.cachedPlan(slug, id)));
   const [pods, setPods] = useState(null);
   const [unplaced, setUnplaced] = useState([]);
   const [myArea, setMyArea] = useState(null);
@@ -56,7 +57,8 @@ export function PlanPage({ params, query }) {
   useEffect(load, [slug, id]);
   const [posted, setPosted] = useState(() => !!query.get('posted'));
 
-  if (error && !plan) {
+  // a cached plan stands in only while the server answers; a real error (the plan is gone) wins
+  if (error && (!plan || plan.cached)) {
     return (
       <div class="column screen-enter">
         <TopBar backTo={`/c/${slug}`} title="" />
@@ -162,7 +164,8 @@ export function PlanPage({ params, query }) {
         </aside>
       )}
 
-      {plan.offline && <p class="offline-note">You're offline, so this is what the phone saw last. <button class="link-btn" onClick={load}>Refresh</button></p>}
+      {plan.offline && <p class="offline-note">{plan.offline === 'asleep' ? "The sloth won't wake up yet, so this is what the phone saw last." : "You're offline, so this is what the phone saw last."} <button class="link-btn" onClick={load}>Refresh</button></p>}
+      {plan.cached && <Refreshing />}
 
       <header class="plan-head">
         <div class="row plan-head-tags">

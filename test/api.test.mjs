@@ -280,7 +280,8 @@ test("Opera Mini and phones without JavaScript: plain pages to see the plan, say
   assert.match(plan.text, /https:\/\/wa\.me\/\?text=/);
   const said = await post(`/basic/rsvp/${S.beach}`, { t: S.kene, rsvp: "maybe" });
   assert.equal(said.status, 303);
-  assert.match(said.location, new RegExp(`^/c/${S.slug}/p/${S.beach}\\?t=.*&basic=1$`));
+  // under /basic: the static site in front forwards /basic here, while /c/... is the app there
+  assert.match(said.location, new RegExp(`^/basic/c/${S.slug}/p/${S.beach}\\?t=[^&]+$`));
   assert.equal((await call("GET", `/api/plans/${S.beach}`, { token: S.kene })).json.plan.you, "maybe");
   assert.match((await get(said.location)).text, /You said maybe/);
   // a guest with the invite link joins from the plain page and lands back on the plan
@@ -296,7 +297,16 @@ test("Opera Mini and phones without JavaScript: plain pages to see the plan, say
   assert.match((await get(`/c/${S.slug}?t=${S.kene}&basic=1`, chrome)).text, /Coming up/);
   const app = await get(`/c/${S.slug}/p/${S.beach}?t=${S.kene}`, chrome);
   assert.match(app.text, /<title>Come Through<\/title>/);
-  assert.ok(app.text.includes(`href="/c/${S.slug}/p/${S.beach}?t=${S.kene}&amp;basic=1"`), "the noscript link keeps the key and adds basic=1");
+  assert.ok(app.text.includes(`href="/basic/c/${S.slug}/p/${S.beach}?t=${S.kene}"`), "the noscript link keeps the key and goes to the plain page");
+  // the plain pages under /basic work in any browser (the static site's Opera Mini redirect and links)
+  assert.match((await get(`/basic/c/${S.slug}/p/${S.beach}?t=${S.kene}`, chrome)).text, /<h1>Beach day<\/h1>/);
+  assert.match((await get(`/basic/c/${S.slug}?t=${S.kene}`, chrome)).text, /Coming up/);
+  // the static site's <noscript> link ("/basic/here") finds the page it was on from the Referer
+  const here = await fetch(`${base}/basic/here`, { redirect: "manual", headers: { "user-agent": chrome, referer: `https://comethrough.ikpemosi.work/c/${S.slug}/p/${S.beach}?t=${S.kene}` } });
+  assert.equal(here.status, 303);
+  assert.equal(here.headers.get("location"), `/basic/c/${S.slug}/p/${S.beach}?t=${S.kene}`);
+  const lost = await fetch(`${base}/basic/here`, { redirect: "manual", headers: { "user-agent": chrome, referer: "https://elsewhere.example/steal" } });
+  assert.equal(lost.status, 200, "no redirect for a page that is not a crew or plan link");
   // the join link works; starting a crew says it needs the full app
   assert.match((await get(`/c/${S.slug}/join?t=${S.invite}`)).text, /<h2>Join /);
   assert.match((await get("/")).text, /This part needs the full app/);

@@ -13,7 +13,7 @@ import { Faces } from '../ui/Avatar.jsx';
 import { Sloth } from '../ui/Sloth.jsx';
 import { Icon, WhatsAppIcon } from '../ui/icons.jsx';
 import { WeatherChip, weatherIcon, weatherWords } from '../ui/Weather.jsx';
-import { KindSticker, ErrorNote, Dots } from '../ui/misc.jsx';
+import { KindSticker, ErrorNote, Dots, Refreshing } from '../ui/misc.jsx';
 import { NameSheet } from '../ui/NameSheet.jsx';
 import { toast } from '../ui/toast.jsx';
 import { CrewName } from '../ui/CrewName.jsx';
@@ -37,6 +37,8 @@ export function CrewHome({ params, query, askName = false }) {
   const [asking, setAsking] = useState(askName && !mine?.memberId);
   // a cached crew shows at once, in its own time zone
   const [data, setData] = useState(() => { const c = readCache(slug); if (c?.crew) setPlace(c.crew); return c; });
+  // true until the server's answer replaces what this phone saw last
+  const [stale, setStale] = useState(() => !!data);
   const [error, setError] = useState(null);
   const [onceDone, setOnceDone] = useState(false);
 
@@ -44,6 +46,7 @@ export function CrewHome({ params, query, askName = false }) {
     setError(null);
     api.getCrew(slug, key).then((d) => {
       setData(d);
+      setStale(false);
       writeCache(slug, d);
       if (d?.you?.id) setMeId(d.you.id);
     }).catch(setError);
@@ -107,6 +110,7 @@ export function CrewHome({ params, query, askName = false }) {
 
       {error && !data && <ErrorNote error={error} onRetry={load} />}
       {error && data && <p class="offline-note">Showing what this phone saw last. <button class="link-btn" onClick={load}>Refresh</button></p>}
+      {!error && data && stale && <Refreshing />}
 
       {crew && <RitualPanel crew={crew} ritual={ritual} byId={byId} slug={slug} meId={meId} />}
 

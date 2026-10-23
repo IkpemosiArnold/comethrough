@@ -8,6 +8,8 @@ import { getCrew, saveCrew } from './lib/store.js';
 import { PlanPage } from './screens/PlanPage.jsx';
 import { OneTapIn, OneTapMaybe } from './screens/OneTap.jsx';
 import { NotFound } from './screens/NotFound.jsx';
+import { WakeCard } from './ui/Wake.jsx';
+import { MOCK } from './lib/api.js';
 
 // Screens only the organiser needs load on first use, so a friend arriving from WhatsApp
 // downloads only the crew, the plan and the one-tap answer.
@@ -64,6 +66,7 @@ export function App() {
       <main class="desk-main">
         <View key={path} params={params} query={query} />
       </main>
+      {!MOCK && <WakeCard />}
       <Toaster />
       <DataToggle />
     </div>
