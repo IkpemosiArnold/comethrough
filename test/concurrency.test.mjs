@@ -18,7 +18,8 @@ import { fakeAi, fakeGeocoder, fakeOverpass, fakePageMeta, fakePush, fakeWeather
 import { fileStore, memoryStore, mongoStore } from "../src/adapters/store.mjs";
 import { CREW, MEMBERS, makePlan, makeRitual } from "./fixtures/plans.mjs";
 
-const mongoUri = process.env.MONGODB_URI_TEST || process.env.MONGODB_URI || "";
+// Never fall back to MONGODB_URI: that is the live database.
+const mongoUri = process.env.MONGODB_URI_TEST || "";
 const now = () => Date.parse("2026-10-21T09:00:00Z");
 const cfg = { publicUrl: "https://x.test", webUrl: "https://x.test", uidDomain: "x.test" };
 
