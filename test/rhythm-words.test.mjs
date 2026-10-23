@@ -38,6 +38,9 @@ test("other time-of-day phrasings", () => {
     ["The guys, Saturday afternoons between 2 and 6, around Yaba", { every: "1w", day: 6, window: { from: "14:00", to: "18:00" } }],
   ];
   for (const [s, want] of cases) assert.deepEqual(rhythmOf(guessCrew(s), s), want, s);
+  // a night shift is not when they meet
+  const shift = "We work night shift, Saturday afternoons, around Ikeja";
+  assert.deepEqual(rhythmOf(gemma({ day: "Saturday" }), shift), { every: "1w", day: 6, window: { from: "13:00", to: "17:00" } });
   // what is not a rhythm stays one: a single Saturday morning, or no one day
   assert.equal(rhythmOf(guessCrew("The guys, this Saturday morning, around Yaba"), "The guys, this Saturday morning, around Yaba"), null);
   assert.equal(everyIn("weekend mornings around Yaba").every, null);

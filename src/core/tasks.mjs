@@ -403,7 +403,10 @@ export function everyIn(sentence) {
 
 /** The day part a sentence says ("mornings", "after work"), as a window, or null. */
 export function dayPartIn(/** @type {string} */ sentence) {
-  const m = String(sentence ?? "").toLowerCase().match(/\b(morning|afternoon|evening|night|after work|after church|daytime)s?\b/);
+  const t = String(sentence ?? "").toLowerCase();
+  // the day part next to the day first ("work night shift ... Saturday afternoons"), and
+  // never a night shift or a night out read as when they meet
+  const m = t.match(/\b(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+(morning|afternoon|evening|night)s?\b/) ?? t.match(/\b(morning|afternoon|evening|night|after work|after church|daytime)s?\b(?!\s*(?:shifts?|owls?|out))/);
   return m ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (m[1])] : null;
 }
 
