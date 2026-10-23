@@ -59,3 +59,32 @@ dimension: dev has 30 crews, test has 30.
 
 - **23 Oct 2026: scored runs are pinned.** An external review pointed out that the first scored test run (the baseline) ran from the shared working tree. From now on the only way to score the test set is `node eval/scored.mjs --commit <sha> --label <label>`. It checks the commit out into a clean git worktree, runs the committed harness against it, refuses to score when anything outside eval/ differs from that commit, and writes the commit and "clean: true" into the report. The baseline is labelled in its report as a working-tree snapshot whose src is identical to 5d84a9b, except eval/. Each label is scored once. The persona file, its split and its hash are unchanged.
 - **22 to 23 Oct 2026: the Gemma cap.** The cap on live Gemma calls across both sets was raised with approval from 250 to 370, then 420, then 520 (Gemma on the Gemini API is free; calls stay 4.5 s apart). The ledger in eval/world/2026-10-24 records every raise.
+
+## test-2: a second held-out set (frozen 23 Oct 2026)
+
+| File | SHA-256 |
+|---|---|
+| `eval/personas/test2.json` | `9c85e913c269b4415fc650cbd83a2654a98f3ad3c38d3f0ef3f1afe69a975cde` |
+
+Frozen on Friday 23 October 2026, before the fix commit it will measure existed. Committed and pushed before that commit landed; the git history shows the order. `node eval/personas/build-test2.mjs --check` confirms the file is what the builder makes.
+
+**Why a second set.** The original test set had been scored twice: the working-tree baseline, and the pinned run of release d1770d0. The bugs it found were then being fixed, so it is spent for claims about those fixes.
+
+**How it was made.** The procedure is written in full at the top of `eval/personas/build-test2.mjs`:
+- **The frame.** The 30 slots keep the original test crews' cities, languages, group sizes, sensitive needs and constraint types. That gives Lagos 18; Accra, Nairobi, London, Bengaluru and São Paulo 2 each; Abuja and Berlin 1 each; 5 Pidgin, 4 mixed and 21 plain; one LGBTQ+ crew and one religious-minority crew.
+- **The draw** (seed 20261023). Each slot gets a new interest (never its original one), and a budget and an age band with v2's frequencies. It gets new areas from the city's neighbourhoods, drawn with a fixed chance of stating a time, of saying free only, and of being planned from a browser abroad.
+- **The sentences.** I wrote each one by hand for its drawn tuple. Every sentence shares under 45% of its words with each of the 60 v2 sentences; the highest is 42%, a new crew with a wheelchair user against v2's.
+- **The hard checks** are derived from the tuple by the same rules as v2.
+
+**What was known when it was frozen,** so a reader can judge its independence. An agent was about to fix three bug classes. Each was found on the original test set or its release run, and is to be checked on dev only:
+1. Taste grounding that leaves a crew with no kinds of place should fall back to the kinds its needs imply.
+2. A stated clock time ("Saturday mornings around 7am") should become the rhythm's window.
+3. A crew's areas should be looked up in the crew's own country, whatever the organiser's browser zone.
+
+The set was not designed to target these classes, and not designed to avoid them. The draw put crews into some of them: one crew states a morning time (07:00 to 11:00), one is planned from a browser abroad (Houston), three are free only, and several state a time. These are where the procedure put them; no crew was added, removed or reworded after the draw.
+
+**The rules.**
+- Each labelled run of test-2 is scored once.
+- The first is the release d1770d0 (`test2-d1770d0`), recorded and scored before the fix commit. The second is the fix commit, when it lands.
+- Both are pinned (`node eval/scored.mjs --commit <sha> --set test2 --label test2-<commit>`).
+- No prompt or code change may be made because of test-2 results without a new freeze, said so in the post.
