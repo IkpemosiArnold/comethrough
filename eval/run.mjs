@@ -13,6 +13,7 @@
 // shared caches then differ from a full run, so a replay may miss), --rerun-reason "..."
 // (a second scored test run, said at the top of the report).
 
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -44,17 +45,18 @@ const PERSONAS = path.join(EVAL, "personas/v2.json");
 const WORLD = path.join(EVAL, "world/2026-10-24");
 const RESULTS = path.join(EVAL, "results");
 /**
- * Scored test runs are labelled: "baseline" (the first, the reported numbers before the
- * crew-parsing fixes) and "after-fix" (one more, after they land). Each label is scored once;
- * neither overwrites the other's results, sheet or marker.
+ * Scored test runs are labelled: "baseline" (the first) and one label per later scored run
+ * (for example "after-fix", or the commit it pins). Each label is scored once; none
+ * overwrites another's results, sheet or marker. Scored runs start from eval/scored.mjs,
+ * which pins the app to one commit in a clean worktree.
  */
-const SCORED_LABELS = ["baseline", "after-fix"];
 const labelArg = () => {
   const i = process.argv.indexOf("--label");
   return i >= 0 ? process.argv[i + 1] : null;
 };
 const label = labelArg();
 const TEST_MARKER = path.join(RESULTS, `.v2-test-scored${label && label !== "baseline" ? `-${label}` : ""}.json`);
+const PINNED = process.env.EVAL_PINNED || null;
 /** Live Gemma calls across both sets: 250 by default; raised with approval to at most 370 for the dev after-run, then 420 for the after-fix test run (Gemma on the Gemini API is free; calls stay 4.5 s apart). */
 const LLM_CAP_DEFAULT = 250;
 const BIG = 600_000;
@@ -91,8 +93,19 @@ const scoredTest = set === "test" && mode === "replay";
 if (scoredTest) {
   if (!flag("--scored")) die("The test set is scored once, after the freeze: add --scored when that is what this is.");
   if (only) die("The scored test run takes the whole set.");
-  if (!label || !SCORED_LABELS.includes(label)) die(`Label the scored test run: --label ${SCORED_LABELS.join(" or --label ")}.`);
-  if (label === "after-fix" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("The after-fix run compares with the baseline: score --label baseline first.");
+  if (!label || !/^[a-z0-9][a-z0-9-]{0,40}$/.test(label)) die("Label the scored test run: --label baseline, or a short label of your own (a-z, 0-9, dashes).");
+  if (label !== "baseline" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("A later scored run compares with the baseline: score --label baseline first.");
+  // pinned and clean: only eval/scored.mjs starts a scored run, in a worktree at one commit
+  const pinned = process.env.EVAL_PINNED;
+  if (!pinned) die("Scored runs are pinned to a commit in a clean worktree: run node eval/scored.mjs --commit <sha> --label <label>.");
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+  const dirty = execFileSync("git", ["status", "--porcelain", "--", ".", ":(exclude)eval", ":(exclude)node_modules", ":(exclude).env"], { cwd: ROOT, encoding: "utf8" }).trim();
+  if (head !== pinned || dirty) die(`Refusing to score: the app tree is ${head !== pinned ? `at ${head}, not the pinned ${pinned}` : `dirty:\n${dirty}`}.`);
+  if (flag("--check-pin")) {
+    // a dry run of the pinning: nothing is scored and no marker is written
+    console.error(`pin ok: HEAD ${head}, clean outside eval/; app modules load from ${ROOT}`);
+    process.exit(0);
+  }
   if (fs.existsSync(TEST_MARKER) && !opt("--rerun-reason")) die(`The test set was already scored (${fs.readFileSync(TEST_MARKER, "utf8").trim()}). A second scored run needs --rerun-reason "...", which goes at the top of the report.`);
 }
 const writesResults = mode === "replay";
@@ -333,6 +346,7 @@ const meta = {
   rerunReason: opt("--rerun-reason"),
   note: opt("--note"),
   label: scoredTest ? label : null,
+  pinned: scoredTest ? { commit: PINNED, clean: true, harness: process.env.EVAL_HARNESS || null, worktree: true } : null,
 };
 fs.writeFileSync(path.join(runDir, "meta.json"), JSON.stringify(meta, null, 1));
 console.error(`world: ${world.stats.hits} answered from the world, ${world.stats.recorded} recorded now (${world.stats.recordedFailures} failures kept), ${world.stats.misses} misses`);
@@ -363,10 +377,10 @@ process.exit(world.stats.misses || llm.stats.misses ? 1 : 0);
 
 function gitState() {
   try {
-    const head = fs.readFileSync(path.join(ROOT, ".git/HEAD"), "utf8").trim();
-    const ref = head.startsWith("ref: ") ? fs.readFileSync(path.join(ROOT, ".git", head.slice(5)), "utf8").trim() : head;
-    return { head: ref };
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+    const dirty = execFileSync("git", ["status", "--porcelain", "--", "src", "data", "package.json"], { cwd: ROOT, encoding: "utf8" }).trim();
+    return { head, appClean: !dirty };
   } catch {
-    return { head: null };
+    return { head: null, appClean: null };
   }
 }

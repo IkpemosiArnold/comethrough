@@ -259,7 +259,16 @@
   },
   "rerunReason": null,
   "note": "Baseline scored run. App at commit 4e85ffb (src identical to origin/main 099b111 and to 5096115; the freeze reference 8efe98e differs only by moving the sensitive-word lists into src/core/sensitive.mjs, lists identical). Replayed with the recorded latencies.",
-  "label": "baseline"
+  "label": "baseline",
+  "provenance": {
+   "pinned": false,
+   "kind": "working-tree snapshot",
+   "headAtLaunch": "4e85ffb046859d07ba050d9b01e23028d259c900",
+   "headAtEnd": "b897e4985681edebe958e51e2fd69db7b1a6df16",
+   "srcIdenticalTo": "5d84a9b96c6958c1e2e2129ffcdc552009cbb42e",
+   "except": "eval/",
+   "checkedBy": "git diff of src, data and package.json between 4e85ffb, b897e49 and 5d84a9b (all empty); git status clean under src/ at launch, checked by hand"
+  }
  },
  "crews": [
   {
@@ -357,7 +366,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 96%), so the sloth picked somewhere with a roof: Cafe Neo, 3 pm to 6 pm.",
-    "why": "Cafe Neo is a café, about 17 minutes for whoever is furthest.",
+    "why": "Cafe Neo is a caf\u00e9, about 17 minutes for whoever is furthest.",
     "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
     "weather": null,
     "trips": {
@@ -415,7 +424,7 @@
       "outdoor": false
      },
      "price": null,
-     "why": "Cafe Neo is a café and is only 5 minutes from Yaba.",
+     "why": "Cafe Neo is a caf\u00e9 and is only 5 minutes from Yaba.",
      "by": "gemma",
      "source": null,
      "longest": 15,
@@ -1508,7 +1517,7 @@
       "outdoor": false
      },
      "price": null,
-     "why": "Choco-Latte is a café for Saturday 24 October from 4 pm to 7 pm.",
+     "why": "Choco-Latte is a caf\u00e9 for Saturday 24 October from 4 pm to 7 pm.",
      "by": "gemma",
      "source": null,
      "longest": 40,
@@ -1673,7 +1682,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: Dreamfield Juice & Salad Bar, 1 pm to 4 pm.",
-    "why": "Dreamfield Juice & Salad Bar is a café, about 22 minutes for whoever is furthest.",
+    "why": "Dreamfield Juice & Salad Bar is a caf\u00e9, about 22 minutes for whoever is furthest.",
     "invite": "Catch us at Dreamfield Juice & Salad Bar this Saturday from 1 pm to 4 pm. Come when you can and leave when you like. No need to answer this.",
     "weather": null,
     "trips": {
@@ -2649,7 +2658,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 3 pm to 6:30 pm (up to 79%), so the sloth picked somewhere with a roof: 33, 3 pm to 6 pm.",
-    "why": "33 is a café, quiet enough to hear each other, about 49 minutes for whoever is furthest.",
+    "why": "33 is a caf\u00e9, quiet enough to hear each other, about 49 minutes for whoever is furthest.",
     "invite": "Catch us at 33 this Saturday from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
     "weather": null,
     "trips": {
@@ -3370,7 +3379,7 @@
       "outdoor": false
      },
      "price": null,
-     "why": "Purple Jasmine cafe is a low-key café for Saturday 24 October from 4 pm to 7 pm.",
+     "why": "Purple Jasmine cafe is a low-key caf\u00e9 for Saturday 24 October from 4 pm to 7 pm.",
      "by": "gemma",
      "source": null,
      "longest": 7,
@@ -4155,7 +4164,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 1 pm to 5 pm (up to 96%), so the sloth picked somewhere with a roof: Cafe Neo, 1 pm to 4 pm.",
-    "why": "Cafe Neo is a café, quiet enough to hear each other, about 17 minutes for whoever is furthest.",
+    "why": "Cafe Neo is a caf\u00e9, quiet enough to hear each other, about 17 minutes for whoever is furthest.",
     "invite": "Catching up this Saturday at Cafe Neo from 1 pm to 4 pm. Show up if you can, skip it if you can't. No RSVP.",
     "weather": null,
     "trips": {
@@ -4211,7 +4220,7 @@
       "outdoor": false
      },
      "price": null,
-     "why": "Cafe Neo is a café that is only 15 minutes away.",
+     "why": "Cafe Neo is a caf\u00e9 that is only 15 minutes away.",
      "by": "gemma",
      "source": null,
      "longest": 15,
@@ -4594,7 +4603,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 3 pm to 6 pm (up to 100%), so the sloth picked somewhere with a roof: Afrikiko, 3 pm to 6 pm.",
-    "why": "Afrikiko is a garden café, about 5 minutes for whoever is furthest.",
+    "why": "Afrikiko is a garden caf\u00e9, about 5 minutes for whoever is furthest.",
     "invite": "Let's hang out this Saturday at Afrikiko from 3 pm to 6 pm. Since rain is likely, we'll be under the roof. Come when you can and leave when you like. No need to answer this.",
     "weather": null,
     "trips": {
@@ -5840,7 +5849,7 @@
      "opening_hours": "Mo-Th 15:00-22:00; Fr 15:00-23:00; Sa 13:00-23:00; Su 13:00-22:30",
      "outdoor_seating": "yes",
      "wheelchair": "yes",
-     "addr:street": "Müllerstraße",
+     "addr:street": "M\u00fcllerstra\u00dfe",
      "addr:city": "Berlin"
     },
     "kind": "cafe",
@@ -5855,7 +5864,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 1 pm to 5 pm (up to 64%), so the sloth picked somewhere with a roof: Fedora, 1 pm to 4 pm.",
-    "why": "Fedora: a garden café, quiet enough to hear each other, with the longest trip about 5 minutes.",
+    "why": "Fedora: a garden caf\u00e9, quiet enough to hear each other, with the longest trip about 5 minutes.",
     "invite": "Saturday at Fedora from 1 pm to 4 pm. Pull up when you can, nobody is taking attendance.",
     "weather": null,
     "trips": {
@@ -5881,7 +5890,7 @@
      "end": "2026-10-24T17:00:00+02:00",
      "place": {
       "name": "Bruno-Loesche-Bibliothek",
-      "address": "Perleberger Straße, Berlin",
+      "address": "Perleberger Stra\u00dfe, Berlin",
       "area": null,
       "lat": 52.5312448,
       "lon": 13.3475136,
@@ -5897,7 +5906,7 @@
       "amenity": "library",
       "opening_hours": "Mo 10:00-19:30; Tu 10:00-19:30; We 10:00-19:30; Th 10:00-19:30; Fr 10:00-19:30; Sa 10:00-19:30; PH off",
       "wheelchair": "yes",
-      "addr:street": "Perleberger Straße",
+      "addr:street": "Perleberger Stra\u00dfe",
       "addr:city": "Berlin",
       "website": "http://www.berlin.de/stadtbibliothek-mitte/bibliotheken/bruno-loesche-bibliothek/"
      },
@@ -5911,14 +5920,14 @@
      "end": "2026-10-24T17:00:00+02:00",
      "place": {
       "name": "Coffee Star",
-      "address": "Müllerstraße, Berlin",
+      "address": "M\u00fcllerstra\u00dfe, Berlin",
       "area": null,
       "lat": 52.5476798,
       "lon": 13.3563426,
       "outdoor": false
      },
      "price": null,
-     "why": "Coffee Star is a café that is low-key and only 7 minutes away.",
+     "why": "Coffee Star is a caf\u00e9 that is low-key and only 7 minutes away.",
      "by": "gemma",
      "source": null,
      "longest": 7,
@@ -5928,7 +5937,7 @@
       "opening_hours": "Mo-Fr 08:00-19:00; Sa 10:00-16:00",
       "outdoor_seating": "sidewalk",
       "wheelchair": "no",
-      "addr:street": "Müllerstraße",
+      "addr:street": "M\u00fcllerstra\u00dfe",
       "addr:city": "Berlin",
       "website": "https://www.coffeestar.net"
      },
@@ -6107,7 +6116,7 @@
     "status": "on",
     "rain": "covered",
     "rainNote": "Rain is likely from 3 pm to 6 pm (up to 92%), so the sloth picked somewhere with a roof: Costa, 3 pm to 6 pm.",
-    "why": "Costa: a café, with the longest trip about 11 minutes.",
+    "why": "Costa: a caf\u00e9, with the longest trip about 11 minutes.",
     "invite": "Hey everyone, we are hanging out at Costa this Saturday from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
     "weather": null,
     "trips": {
@@ -6605,7 +6614,7 @@
      "end": "2026-10-24T19:00:00-03:00",
      "place": {
       "name": "Oregan Hamburger",
-      "address": "Rua dos Pinheiros, São Paulo",
+      "address": "Rua dos Pinheiros, S\u00e3o Paulo",
       "area": null,
       "lat": -23.5678632,
       "lon": -46.688752,
@@ -6620,7 +6629,7 @@
       "name": "Oregan Hamburger",
       "amenity": "fast_food",
       "addr:street": "Rua dos Pinheiros",
-      "addr:city": "São Paulo"
+      "addr:city": "S\u00e3o Paulo"
      },
      "placeKind": "street food"
     },
@@ -6632,7 +6641,7 @@
      "end": "2026-10-24T19:00:00-03:00",
      "place": {
       "name": "Suqueria",
-      "address": "Rua Wisard, São Paulo",
+      "address": "Rua Wisard, S\u00e3o Paulo",
       "area": null,
       "lat": -23.5558242,
       "lon": -46.6906648,
@@ -6647,7 +6656,7 @@
       "name": "Suqueria",
       "amenity": "fast_food",
       "addr:street": "Rua Wisard",
-      "addr:city": "São Paulo"
+      "addr:city": "S\u00e3o Paulo"
      },
      "placeKind": "street food"
     },
@@ -6659,7 +6668,7 @@
      "end": "2026-10-24T19:00:00-03:00",
      "place": {
       "name": "Vrau Smash Burger",
-      "address": "Rua Girassol, São Paulo",
+      "address": "Rua Girassol, S\u00e3o Paulo",
       "area": null,
       "lat": -23.5569546,
       "lon": -46.6882497,
@@ -6674,7 +6683,7 @@
       "name": "Vrau Smash Burger",
       "amenity": "fast_food",
       "addr:street": "Rua Girassol",
-      "addr:city": "São Paulo"
+      "addr:city": "S\u00e3o Paulo"
      },
      "placeKind": "street food"
     }
@@ -6725,7 +6734,7 @@
   },
   {
    "id": "sp-usp-broke",
-   "sentence": "Broke USP students around Butantã and Pinheiros, every Saturday, free stuff only",
+   "sentence": "Broke USP students around Butant\u00e3 and Pinheiros, every Saturday, free stuff only",
    "error": null,
    "timings": {
     "draft": 6085,
@@ -6767,7 +6776,7 @@
     },
     "areas": [
      {
-      "label": "Butantã",
+      "label": "Butant\u00e3",
       "lat": -23.5693582,
       "lon": -46.7278225
      },
@@ -6818,7 +6827,7 @@
      "maxMin": 15,
      "trips": [
       {
-       "from": "Butantã",
+       "from": "Butant\u00e3",
        "minutes": 15
       },
       {
@@ -6831,29 +6840,29 @@
    "ideas": [
     {
      "kind": "place",
-     "title": "Biblioteca Álvaro Guerra",
+     "title": "Biblioteca \u00c1lvaro Guerra",
      "when": "Saturday 24 October, 4 pm to 7 pm",
      "start": "2026-10-24T16:00:00-03:00",
      "end": "2026-10-24T19:00:00-03:00",
      "place": {
-      "name": "Biblioteca Álvaro Guerra",
-      "address": "Avenida Pedroso de Morais, São Paulo",
+      "name": "Biblioteca \u00c1lvaro Guerra",
+      "address": "Avenida Pedroso de Morais, S\u00e3o Paulo",
       "area": null,
       "lat": -23.5580215,
       "lon": -46.7008315,
       "outdoor": false
      },
      "price": null,
-     "why": "Biblioteca Álvaro Guerra is a library with a longest trip of 10 minutes.",
+     "why": "Biblioteca \u00c1lvaro Guerra is a library with a longest trip of 10 minutes.",
      "by": "gemma",
      "source": null,
      "longest": 10,
      "tags": {
-      "name": "Biblioteca Álvaro Guerra",
+      "name": "Biblioteca \u00c1lvaro Guerra",
       "amenity": "library",
       "opening_hours": "Mo-Fr 09:00-18:00; Sa 10:00-14:00",
       "addr:street": "Avenida Pedroso de Morais",
-      "addr:city": "São Paulo",
+      "addr:city": "S\u00e3o Paulo",
       "website": "https://www.prefeitura.sp.gov.br/cidade/secretarias/cultura/bibliotecas/bibliotecas_bairro/bibliotecas_a_l/alvaroguerra/"
      },
      "placeKind": "library"

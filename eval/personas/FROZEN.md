@@ -54,3 +54,8 @@ dimension: dev has 30 crews, test has 30.
 7. **Gemma's answers are a separate cache, keyed by the prompt's hash**, so a changed prompt
    is asked again against the same frozen world. Live Gemma calls across both sets are
    capped at 250 (a ledger in the world folder counts them).
+
+## Amendments
+
+- **23 Oct 2026: scored runs are pinned.** An external review pointed out that the first scored test run (the baseline) ran from the shared working tree. From now on the only way to score the test set is `node eval/scored.mjs --commit <sha> --label <label>`. It checks the commit out into a clean git worktree, runs the committed harness against it, refuses to score when anything outside eval/ differs from that commit, and writes the commit and "clean: true" into the report. The baseline is labelled in its report as a working-tree snapshot whose src is identical to 5d84a9b, except eval/. Each label is scored once. The persona file, its split and its hash are unchanged.
+- **22 to 23 Oct 2026: the Gemma cap.** The cap on live Gemma calls across both sets was raised with approval from 250 to 370, then 420, then 520 (Gemma on the Gemini API is free; calls stay 4.5 s apart). The ledger in eval/world/2026-10-24 records every raise.

@@ -3,7 +3,7 @@
 //
 //   node eval/score.mjs                 the test set's sheet (eval/results/v2-human-sheet.json)
 //   node eval/score.mjs --sheet dev     the dev set's sheet
-//   node eval/score.mjs --sheet after-fix   the second scored test run's sheet
+//   node eval/score.mjs --sheet <label>  a later scored test run's sheet (its --label)
 //   node eval/score.mjs --summary       print the scores so far
 //
 // It listens on the local network and prints an address with a key in it; open that on the
@@ -21,8 +21,9 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
 const which = argv.includes("--sheet") ? argv[argv.indexOf("--sheet") + 1] : "test";
-const sheetFile = path.join(here, "results", which === "dev" ? "v2-dev-human-sheet.json" : which === "after-fix" ? "v2-human-sheet-after-fix.json" : "v2-human-sheet.json");
-const scoresFile = path.join(here, "results", which === "dev" ? "v2-dev-human-scores.json" : which === "after-fix" ? "v2-human-scores-after-fix.json" : "v2-human-scores.json");
+const tail = which === "test" || which === "baseline" ? "" : `-${which}`;
+const sheetFile = path.join(here, "results", which === "dev" ? "v2-dev-human-sheet.json" : `v2-human-sheet${tail}.json`);
+const scoresFile = path.join(here, "results", which === "dev" ? "v2-dev-human-scores.json" : `v2-human-scores${tail}.json`);
 const port = Number(argv.includes("--port") ? argv[argv.indexOf("--port") + 1] : 8787);
 
 if (!fs.existsSync(sheetFile)) {

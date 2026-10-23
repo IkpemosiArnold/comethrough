@@ -107,8 +107,10 @@ export function writeReports({ set, rows, meta, resultsDir, file, suffix = "" })
 
   // ---- the markdown
   const L = [];
-  const title = set === "test" ? `Persona eval v2: test set, ${meta.label === "after-fix" ? "after the crew-parsing fixes (second scored run)" : "baseline (first scored run)"}` : "Persona eval v2: dev set";
+  const title = set === "test" ? `Persona eval v2: test set, ${meta.label && meta.label !== "baseline" ? `scored run "${meta.label}"` : "baseline (first scored run)"}` : "Persona eval v2: dev set";
   L.push(`# ${title}`, "");
+  if (meta.pinned) L.push(`**App pinned at commit \`${meta.pinned.commit}\`, clean: true.** Run from a clean git worktree checked out at that commit (src/, data/ and package.json exactly as committed); harness at \`${String(meta.pinned.harness).slice(0, 12)}\`.`, "");
+  else if (set === "test") L.push("**Not pinned:** this run used a working tree, not a clean worktree at one commit.", "");
   if (meta.note) L.push(`_${esc(meta.note)}_`, "");
   if (meta.rerunReason) L.push(`**This is a second scored run of the test set. Reason given: ${esc(meta.rerunReason)}**`, "");
   L.push(`Run ${meta.at.slice(0, 16).replace("T", " ")} UTC, ${rows.length} crews (${set}), ${meta.llm}, app at git ${String(meta.git?.head).slice(0, 7)}${meta.git?.head ? "" : ""} (working tree as it stood, other builders' uncommitted changes included). Personas: \`eval/personas/v2.json\` (sha256 ${meta.sha.slice(0, 12)}, frozen). The app's clock: ${meta.clock}; the target is Saturday 24 October 2026 for every crew.`, "");

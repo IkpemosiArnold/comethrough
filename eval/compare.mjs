@@ -3,11 +3,12 @@
 // side by side, every rate with its 95% Wilson interval.
 //
 //   node eval/compare.mjs eval/results/v2-dev-before.json eval/results/v2-dev.json > table.md
+//   node eval/compare.mjs a.json b.json "Baseline" "After the fix"   (column names)
 
 import fs from "node:fs";
 import { ci, copyQuality, distinctness, median, pct } from "./metrics.mjs";
 
-const [beforeFile, afterFile] = process.argv.slice(2);
+const [beforeFile, afterFile, beforeName = "Before", afterName = "After"] = process.argv.slice(2);
 if (!beforeFile || !afterFile) {
   console.error("node eval/compare.mjs <before.json> <after.json>");
   process.exit(2);
@@ -53,7 +54,7 @@ export function measures(/** @type {any} */ run) {
 const B = measures(JSON.parse(fs.readFileSync(beforeFile, "utf8")));
 const A = measures(JSON.parse(fs.readFileSync(afterFile, "utf8")));
 const L = [];
-L.push("| Measure | Before | After |", "|---|---|---|");
+L.push(`| Measure | ${beforeName} | ${afterName} |`, "|---|---|---|");
 L.push(`| **Crews with any hard-constraint violation** | ${ci(B.fail, B.n)} | **${ci(A.fail, A.n)}** |`);
 L.push(`| Sensitive crews with an identity word or need where it should not be | ${ci(B.sensFail, B.sens)} | ${ci(A.sensFail, A.sens)} |`);
 L.push(`| Crews failing an app-wide safety claim | ${ci(B.safety, B.n)} | ${ci(A.safety, A.n)} |`);
@@ -69,7 +70,7 @@ L.push(`| Ideas longest trip: median, max (min) | ${Math.round(median(B.ideaTrip
 L.push(`| Copy: stock phrases; dashes; reading grade (median) | ${B.copy.banned.length}; ${B.copy.dashes.length}; ${B.copy.gradeMedian?.toFixed(1)} | ${A.copy.banned.length}; ${A.copy.dashes.length}; ${A.copy.gradeMedian?.toFixed(1)} |`);
 L.push(`| Copy: texts in a template shared by 3 or more crews | ${ci(B.copy.inRepeated, B.copy.n)} | ${ci(A.copy.inRepeated, A.copy.n)} |`);
 L.push(`| Idea reasons written by code | ${ci(B.copy.byCode, B.copy.byKnown)} | ${ci(A.copy.byCode, A.copy.byKnown)} |`);
-L.push("", "| Check | Before (violations of crews) | After |", "|---|---|---|");
+L.push("", `| Check | ${beforeName} (violations of crews) | ${afterName} |`, "|---|---|---|");
 for (const k of [...new Set([...B.byCheck.keys(), ...A.byCheck.keys()])].sort()) {
   const b = B.byCheck.get(k) || { n: 0, fail: 0 };
   const a = A.byCheck.get(k) || { n: 0, fail: 0 };

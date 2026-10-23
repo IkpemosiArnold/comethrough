@@ -1,0 +1,28 @@
+{
+ "runId": "test-record-afb4ebd (stopped)",
+ "started": "2026-10-22T21:48:05Z",
+ "at": "2026-10-23T09:21:51.801Z",
+ "app": "afb4ebd (the shared checkout, src identical to afb4ebd)",
+ "note": "Fill-only recording for a later scored test run of afb4ebd. The pass stalled overnight in a network outage and was stopped part way through; a restart on 23 Oct made no live calls and was stopped when that run was called off. The entries are valid recordings and are kept; nothing was overwritten.",
+ "added": {
+  "total": 23,
+  "failuresKept": 2,
+  "byService": {
+   "overpass": 13,
+   "osrm": 10
+  },
+  "first": "2026-10-22T21:49:13.616Z",
+  "last": "2026-10-23T09:21:51.801Z"
+ },
+ "llm": {
+  "recorded": 51,
+  "byTask": {
+   "explain-pick": 11,
+   "rank-ideas": 14,
+   "parse-crew": 19,
+   "write-invite": 7
+  },
+  "liveCallsInLedger": 52
+ },
+ "ledger": 338
+}
