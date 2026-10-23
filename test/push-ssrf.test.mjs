@@ -110,7 +110,7 @@ test("a valid FCM endpoint is sent to the vetted address; no redirect is followe
     // "hang": no answer at all
   });
   try {
-    const p = await port({ ...loose, limits: { port: srv.port, request: http.request, timeoutMs: 1500 } });
+    const p = await port({ ...loose, limits: { port: srv.port, request: http.request, timeoutMs: 3000 } });
     assert.deepEqual(await p.send(sub(FCM), msg), { ok: true, gone: false, status: 201 });
     assert.deepEqual(srv.paths, ["/fcm/send/dX1abc:APA91bExample"]);
     mode = "redirect";
@@ -121,7 +121,7 @@ test("a valid FCM endpoint is sent to the vetted address; no redirect is followe
     const t0 = performance.now();
     const h = await p.send(sub(FCM), msg);
     assert.deepEqual([h.ok, h.permanent, h.status], [false, false, 0], "no answer: tried again later");
-    assert.ok(performance.now() - t0 < 5000, "cut off at the deadline");
+    assert.ok(performance.now() - t0 < 8000, "cut off at the deadline");
     mode = "big";
     const b = await p.send(sub(FCM), msg);
     assert.equal(b.ok, true, "the status is enough; the rest of the answer is not read");

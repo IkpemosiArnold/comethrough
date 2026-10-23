@@ -16,7 +16,7 @@
 
 import { AREA_SPREAD_KM, centroid, clusterAreas, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
 import { NEAR_KM } from "../adapters/geocode.mjs";
-import { areaQueries, citiesFor, cleanRegion, hintRegion, localeRegion, packFor, packView, regionOf } from "../packs/index.mjs";
+import { areaQueries, citiesFor, cityNamedIn, cleanRegion, hintRegion, localeRegion, packFor, packView, regionOf, zoneOfCountry } from "../packs/index.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
@@ -392,9 +392,14 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     const notes = [...r.notes];
     if (guessed) notes.unshift(BEST_GUESS);
     readLog("parse-crew", g, crewFields(r.draft), { fallback: guessed });
-    const city = clip(hint?.city, 60) ?? cityIn([s, i].filter(Boolean).join(" "), start.countryCode);
-    const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, notes, { city }));
-    const region = (await sw.time("region", regionFrom(located.found, start))) ?? start;
+    // a city the sentence names counts whatever the visitor's zone ("in Lagos" typed in London)
+    const named = cityIn([s, i].filter(Boolean).join(" "), start.countryCode);
+    const city = clip(hint?.city, 60) ?? named?.city ?? null;
+    const located = await sw.time("areas", locateAreas(r.draft.areaLabels, start, notes, { city, country: hint?.city ? null : named?.country ?? null, soft: true }));
+    // the areas named in the sentence decide the country, and with it the zone to fall back
+    // on when the zone at the centre is not known: never the visitor's own zone over them
+    const base = located.country && located.country !== start.countryCode ? { ...start, countryCode: located.country, timezone: zoneOfCountry(located.country) ?? start.timezone } : start;
+    const region = (await sw.time("region", regionFrom(located.found, base))) ?? start;
     sw.end({ areas: located.areas.length, ai: !g.error });
     const { areaLabels, ...rest } = r.draft;
     const { pack } = placeOf({ region });
@@ -421,23 +426,45 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * to Wuse is the Abuja one, not the Jigawa town. A name with nothing near the others is
    * looked up once more near them, with their city; still nothing, and it is asked about
    * ("Did you mean ...?") instead of pinned 38 km away.
+   *
+   * For a new crew (`soft`), the zone's country is only a hint: an area anywhere comes
+   * before a shop or a street in the zone's country, and once the named areas land in
+   * another country, every name is looked up again there (a Lagos crew set up from London
+   * names Yaba and Surulere: the pinned run of d1770d0 found a London result taking over).
    * @param {string[]} labels
    * @param {Region} start  country level at most (hintRegion), or a crew's region
    * @param {string[]} notes
-   * @param {{ city?: string|null }} [opts]
+   * @param {{ city?: string|null, country?: string|null, soft?: boolean }} [opts]  country: the country of a city the sentence names
    */
-  async function locateAreas(labels, start, notes, { city = null } = {}) {
-    const country = start.countryCode ?? (await zoneCountry(start.timezone));
-    const majors = citiesFor(country);
-    const big = majors.length ? new RegExp(`\\b(${[...majors, "Federal Capital Territory"].join("|")})\\b`, "i") : null;
+  async function locateAreas(labels, start, notes, { city = null, country: said = null, soft = false } = {}) {
+    let country = said ?? start.countryCode ?? (await zoneCountry(start.timezone));
     const inCity = city ? new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i") : null;
+    const lookUp = (/** @type {string|null} */ cc) => {
+      const majors = citiesFor(cc);
+      const big = majors.length ? new RegExp(`\\b(${[...majors, "Federal Capital Territory"].join("|")})\\b`, "i") : null;
+      return Promise.all(labels.map(async (label) => {
+        const rs = await candidatesFor(clip(label, 60) || "", cc, city, { soft });
+        // the city the organiser named first, then a big city's namesake before a village's
+        const rank = (/** @type {any} */ r) => (inCity?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 2) + (big?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 1);
+        return rs.map((r, k) => ({ r, k })).sort((a, b) => rank(a.r) - rank(b.r) || a.k - b.k).map((x) => x.r);
+      }));
+    };
     /** @type {any[][]} */
-    const lists = await Promise.all(labels.map(async (label) => {
-      const rs = await candidatesFor(clip(label, 60) || "", country, city);
-      // the city the organiser named first, then a big city's namesake before a village's
-      const rank = (/** @type {any} */ r) => (inCity?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 2) + (big?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 1);
-      return rs.map((r, k) => ({ r, k })).sort((a, b) => rank(a.r) - rank(b.r) || a.k - b.k).map((x) => x.r);
-    }));
+    let lists = await lookUp(country);
+    if (soft) {
+      // where the named areas are, by the country most of their best area matches are in
+      /** @type {Map<string, number>} */
+      const n = new Map();
+      for (const l of lists) {
+        const cc = l.find((r) => r.isArea && r.country)?.country;
+        if (cc) n.set(cc, (n.get(cc) || 0) + 1);
+      }
+      const top = [...n.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (top && top[0] !== country && top[1] > (country ? n.get(country) ?? 0 : 0)) {
+        country = top[0];
+        lists = await lookUp(country);
+      }
+    }
     const { anchor, picks } = clusterAreas(lists, AREA_SPREAD_KM);
     /** @type {Awaited<ReturnType<typeof resolveArea>>[]} */
     const got = [];
@@ -465,7 +492,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
           : `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.`,
       });
     }
-    return { ...collect(got, notes), suggestions };
+    return { ...collect(got, notes), suggestions, country };
   }
 
   /**
@@ -473,23 +500,27 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * city the organiser named, then country-wide, then any kind of place, then anywhere. The
    * first query that finds anything wins. Photon first, and Nominatim when Photon is down or
    * finds no such area (the geocoder's fallback; single lookups only). Never throws.
+   * `soft`: the country is only the visitor's zone, so an area anywhere comes before any
+   * other kind of place in that country. Each result says whether it came back as an area.
    * @param {string} label
    * @param {string|null} country
    * @param {string|null} city
+   * @param {{ soft?: boolean }} [opts]
    */
-  async function candidatesFor(label, country, city) {
+  async function candidatesFor(label, country, city, { soft = false } = {}) {
     if (label.length < 2) return [];
     for (const q of areaQueries(label, country)) {
+      const anywhere = country ? [{ text: q, areas: true, country: null, fallback: false }] : [];
+      const inCountry = { text: q, areas: false, country, fallback: false };
       const tries = [
         ...(city && !q.toLowerCase().includes(city.toLowerCase()) ? [{ text: `${q}, ${city}`, areas: true, country, fallback: true }] : []),
         { text: q, areas: true, country, fallback: true },
-        { text: q, areas: false, country, fallback: false },
-        ...(country ? [{ text: q, areas: true, country: null, fallback: false }] : []),
+        ...(soft ? [...anywhere, inCountry] : [inCountry, ...anywhere]),
       ];
       for (const t of tries) {
         try {
           const rs = await geocoder.search(t.text, { limit: 5, areas: t.areas, fallback: t.fallback, ...(t.country ? { country: t.country } : {}) });
-          if (rs.length) return rs;
+          if (rs.length) return rs.map((r) => ({ ...r, isArea: t.areas }));
         } catch (e) {
           log("geocode_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
         }
@@ -1742,13 +1773,14 @@ function clip(v, max) {
 }
 
 /**
- * A city of the country named in the crew's own sentence ("Muslim sisters in Abuja"), as
- * context for its area names; null when none is.
+ * A city named in the crew's own sentence ("Muslim sisters in Abuja"), as context for its
+ * area names, with its country: the visitor's country first, then any we know, so a zone
+ * never hides it ("in Lagos" typed in London). Null when none is.
  * @param {string} text
  * @param {string|null} countryCode
  */
 function cityIn(text, countryCode) {
-  return citiesFor(countryCode).find((c) => new RegExp(`\\b${c}\\b`, "i").test(text)) ?? null;
+  return cityNamedIn(text, countryCode);
 }
 
 /** The first http(s) link in a text, for a shared message that carries the link in the text. */

@@ -139,6 +139,30 @@ export function citiesFor(/** @type {string|null|undefined} */ countryCode) {
   return countryCode === "NG" ? [...NG_CITIES] : [];
 }
 
+/** Countries whose cities citiesFor knows by name. */
+const CITY_COUNTRIES = ["NG"];
+
+/**
+ * A city a text names, from the cities we know, in the visitor's country first and then in
+ * any other: { city, country }, or null. "Old school friends in Lagos" typed with a London
+ * zone is in Lagos, Nigeria: the zone never hides a city the sentence names.
+ * @param {string} text
+ * @param {string|null|undefined} countryCode
+ */
+export function cityNamedIn(text, countryCode) {
+  for (const cc of [...new Set([countryCode, ...CITY_COUNTRIES])]) {
+    if (!cc) continue;
+    const city = citiesFor(cc).find((c) => new RegExp(`\\b${c}\\b`, "i").test(String(text ?? "")));
+    if (city) return { city, country: cc };
+  }
+  return null;
+}
+
+/** The zone of a country with one zone we know (Nigeria, Ghana), or null. */
+export function zoneOfCountry(/** @type {string|null|undefined} */ countryCode) {
+  return Object.entries(ZONE_COUNTRY).find(([, cc]) => cc === countryCode)?.[0] ?? null;
+}
+
 /** What the web app may know about a crew's pack: its id, name and context-aware examples. */
 export function packView(/** @type {CityPack} */ pack, /** @type {Region} */ region) {
   return { id: pack.id, name: pack.name, directions: pack.rides.length === 0, ...pack.ui, city: region.city, countryCode: region.countryCode };
