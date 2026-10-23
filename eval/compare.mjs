@@ -13,7 +13,7 @@ if (!beforeFile || !afterFile) {
   console.error("node eval/compare.mjs <before.json> <after.json>");
   process.exit(2);
 }
-const personas = JSON.parse(fs.readFileSync(new URL("./personas/v2.json", import.meta.url), "utf8")).personas;
+const personas = ["v2.json", "test2.json"].flatMap((f) => (fs.existsSync(new URL(`./personas/${f}`, import.meta.url)) ? JSON.parse(fs.readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8")).personas : []));
 
 /** The measures of one run, from its JSON. */
 export function measures(/** @type {any} */ run) {

@@ -107,14 +107,14 @@ export function writeReports({ set, rows, meta, resultsDir, file, suffix = "" })
 
   // ---- the markdown
   const L = [];
-  const title = set === "test" ? `Persona eval v2: test set, ${meta.label && meta.label !== "baseline" ? `scored run "${meta.label}"` : "baseline (first scored run)"}` : "Persona eval v2: dev set";
+  const title = set === "test2" ? `Persona eval v2: test-2 (a second held-out set), scored run "${meta.label}"` : set === "test" ? `Persona eval v2: test set, ${meta.label && meta.label !== "baseline" ? `scored run "${meta.label}"` : "baseline (first scored run)"}` : "Persona eval v2: dev set";
   L.push(`# ${title}`, "");
   if (meta.pinned) L.push(`**App pinned at commit \`${meta.pinned.commit}\`, clean: true.** Run from a clean git worktree checked out at that commit (src/, data/ and package.json exactly as committed); harness at \`${String(meta.pinned.harness).slice(0, 12)}\`.`, "");
   else if (set === "test") L.push("**Not pinned:** this run used a working tree, not a clean worktree at one commit.", "");
   if (meta.note) L.push(`_${esc(meta.note)}_`, "");
   if (meta.rerunReason) L.push(`**This is a second scored run of the test set. Reason given: ${esc(meta.rerunReason)}**`, "");
   L.push(`Run ${meta.at.slice(0, 16).replace("T", " ")} UTC, ${rows.length} crews (${set}), ${meta.llm}, app at git ${String(meta.git?.head).slice(0, 7)}${meta.git?.head ? "" : ""} (working tree as it stood, other builders' uncommitted changes included). Personas: \`eval/personas/v2.json\` (sha256 ${meta.sha.slice(0, 12)}, frozen). The app's clock: ${meta.clock}; the target is Saturday 24 October 2026 for every crew.`, "");
-  L.push(`The world (eval/world/2026-10-24): ${meta.world.hits} answers replayed${meta.fast ? "" : " with their recorded latencies"}, ${meta.world.misses} misses${meta.world.misses ? ` (**the run is not clean**: ${[...new Set(meta.worldMisses.map((/** @type {any} */ m) => m.service))].join(", ")})` : ""}. Gemma: ${meta.llmStats.hits} answers from the eval's LLM cache (keyed by prompt hash), ${meta.llmStats.misses} misses; live calls so far across both sets: ${meta.ledger.liveCalls} of ${meta.ledger.cap}. Reproduce: \`node eval/run.mjs --set ${set} --replay${set === "test" ? " --scored" : ""}\`.`, "");
+  L.push(`The world (eval/world/2026-10-24): ${meta.world.hits} answers replayed${meta.fast ? "" : " with their recorded latencies"}, ${meta.world.misses} misses${meta.world.misses ? ` (**the run is not clean**: ${[...new Set(meta.worldMisses.map((/** @type {any} */ m) => m.service))].join(", ")})` : ""}. Gemma: ${meta.llmStats.hits} answers from the eval's LLM cache (keyed by prompt hash), ${meta.llmStats.misses} misses; live calls so far across both sets: ${meta.ledger.liveCalls} of ${meta.ledger.cap}. Reproduce: ${meta.pinned ? `\`node eval/scored.mjs --commit ${meta.pinned.commit.slice(0, 7)}${set === "test2" ? " --set test2" : ""} --label ${meta.label}\` (a labelled run is scored once)` : `\`node eval/run.mjs --set ${set} --replay\``}.`, "");
   if (meta.world.hitsExtended) {
     const ext = (meta.appends || []).filter((/** @type {any} */ a) => a.at >= meta.extendedSince);
     const by = /** @type {Record<string, number>} */ ({});
@@ -234,8 +234,8 @@ export function writeReports({ set, rows, meta, resultsDir, file, suffix = "" })
     invite: r.ritual?.invite ?? null,
     ideas: (r.ideas || []).map((/** @type {any} */ i) => ({ title: i.title, when: i.when, why: i.why, price: i.price?.text ?? null })),
   }));
-  const sheetBase = set === "test" ? `v2-human-sheet${suffix}` : "v2-dev-human-sheet";
-  const H = [`# Persona eval v2${set === "test" ? "" : " (dev)"}: human scores`, "", `${crews.length} crews from the ${set} set, in random order (seed 20261024), with nothing but what the crew typed and what the sloth answered. For each: **fit** from 1 (wrong for this crew) to 5 (exactly what they would pick), and a flag for anything off (unsafe, wrong city, wrong time, a bad sentence, a place that is not what it says). On a phone: \`node eval/score.mjs${set === "test" ? (suffix ? ` --sheet ${suffix.slice(1)}` : "") : " --sheet dev"}\` and open the address it prints.`, ""];
+  const sheetBase = set === "test2" ? `v2-human-sheet-test2${suffix}` : set === "test" ? `v2-human-sheet${suffix}` : "v2-dev-human-sheet";
+  const H = [`# Persona eval v2${set === "test" ? "" : " (dev)"}: human scores`, "", `${crews.length} crews from the ${set} set, in random order (seed 20261024), with nothing but what the crew typed and what the sloth answered. For each: **fit** from 1 (wrong for this crew) to 5 (exactly what they would pick), and a flag for anything off (unsafe, wrong city, wrong time, a bad sentence, a place that is not what it says). On a phone: \`node eval/score.mjs${set === "test2" ? ` --sheet test2${suffix}` : set === "test" ? (suffix ? ` --sheet ${suffix.slice(1)}` : "") : " --sheet dev"}\` and open the address it prints.`, ""];
   for (const c of crews) {
     H.push(`## Crew ${c.n}`, "", `> ${c.sentence}`, "");
     if (c.ritual) H.push(`**The sloth's pick:** ${c.ritual.skipped ? `skipped (${c.ritual.note ?? "rain"})` : `${c.ritual.place}, ${c.ritual.when}`}${c.ritual.why ? `. ${c.ritual.why}` : ""}`, "");

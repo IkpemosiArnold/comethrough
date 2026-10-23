@@ -41,7 +41,8 @@ import { writeReports } from "./report.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const EVAL = path.join(ROOT, "eval");
-const PERSONAS = path.join(EVAL, "personas/v2.json");
+/** The frozen persona files: v2.json (dev and test) and test2.json (a second held-out set). */
+const PERSONA_FILES = { dev: "v2.json", test: "v2.json", test2: "test2.json" };
 const WORLD = path.join(EVAL, "world/2026-10-24");
 const RESULTS = path.join(EVAL, "results");
 /**
@@ -55,7 +56,7 @@ const labelArg = () => {
   return i >= 0 ? process.argv[i + 1] : null;
 };
 const label = labelArg();
-const TEST_MARKER = path.join(RESULTS, `.v2-test-scored${label && label !== "baseline" ? `-${label}` : ""}.json`);
+
 const PINNED = process.env.EVAL_PINNED || null;
 /** Live Gemma calls across both sets: 250 by default; raised with approval to at most 370 for the dev after-run, then 420, then 520 for the pinned scored runs (Gemma on the Gemini API is free; calls stay 4.5 s apart). */
 const LLM_CAP_DEFAULT = 250;
@@ -78,18 +79,23 @@ const die = (/** @type {string} */ m) => {
   console.error(m);
   process.exit(2);
 };
-if (set !== "dev" && set !== "test") die("Say --set dev or --set test.");
+if (set !== "dev" && set !== "test" && set !== "test2") die("Say --set dev, --set test or --set test2.");
+const PERSONAS = path.join(EVAL, "personas", PERSONA_FILES[set]);
+/** test: the baseline has no suffix, later runs their label; test2: every run is labelled (test2-<commit>). */
+const TEST_MARKER = set === "test2" ? path.join(RESULTS, `.v2-test2-scored-${label}.json`) : path.join(RESULTS, `.v2-test-scored${label && label !== "baseline" ? `-${label}` : ""}.json`);
 if (!mode) die("Say --record or --replay.");
 if (blind && mode !== "record") die("--blind is a recording pass.");
 
 const raw = fs.readFileSync(PERSONAS, "utf8");
 const sha = crypto.createHash("sha256").update(raw).digest("hex");
-const frozen = /`([0-9a-f]{64})`/.exec(fs.readFileSync(path.join(EVAL, "personas/FROZEN.md"), "utf8"))?.[1];
-if (sha !== frozen) die(`eval/personas/v2.json (${sha.slice(0, 12)}) does not match the hash in FROZEN.md (${String(frozen).slice(0, 12)}). The sets are frozen.`);
+// the hash on the FROZEN.md table row that names this file
+const frozenRow = fs.readFileSync(path.join(EVAL, "personas/FROZEN.md"), "utf8").split("\n").find((l) => l.includes(`eval/personas/${PERSONA_FILES[set]}\``) && /`[0-9a-f]{64}`/.test(l));
+const frozen = frozenRow ? /`([0-9a-f]{64})`/.exec(frozenRow)?.[1] : null;
+if (sha !== frozen) die(`eval/personas/${PERSONA_FILES[set]} (${sha.slice(0, 12)}) does not match its hash in FROZEN.md (${String(frozen).slice(0, 12)}). The sets are frozen.`);
 const file = JSON.parse(raw);
 let personas = file.personas.filter((/** @type {any} */ p) => p.split === set);
 if (only) personas = personas.filter((/** @type {any} */ p) => only.includes(p.id));
-const scoredTest = set === "test" && mode === "replay";
+const scoredTest = (set === "test" || set === "test2") && mode === "replay";
 // pinned runs (eval/scored.mjs): the app is one commit, checked out in a clean worktree; this
 // checks it from the inside, for recording passes and scored runs alike
 const pinnedTo = process.env.EVAL_PINNED || null;
@@ -107,7 +113,8 @@ if (scoredTest) {
   if (!flag("--scored")) die("The test set is scored once, after the freeze: add --scored when that is what this is.");
   if (only) die("The scored test run takes the whole set.");
   if (!label || !/^[a-z0-9][a-z0-9-]{0,40}$/.test(label)) die("Label the scored test run: --label baseline, or a short label of your own (a-z, 0-9, dashes).");
-  if (label !== "baseline" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("A later scored run compares with the baseline: score --label baseline first.");
+  if (set === "test" && label !== "baseline" && !fs.existsSync(path.join(RESULTS, ".v2-test-scored.json"))) die("A later scored run compares with the baseline: score --label baseline first.");
+  if (set === "test2" && !label.startsWith("test2-")) die("Label a test-2 run test2-<commit>.");
   // pinned and clean: only eval/scored.mjs starts a scored run, in a worktree at one commit
   if (!pinnedTo) die("Scored runs are pinned to a commit in a clean worktree: run node eval/scored.mjs --commit <sha> --label <label>.");
   if (fs.existsSync(TEST_MARKER) && !opt("--rerun-reason")) die(`The test set was already scored (${fs.readFileSync(TEST_MARKER, "utf8").trim()}). A second scored run needs --rerun-reason "...", which goes at the top of the report.`);
@@ -374,7 +381,7 @@ if (world.stats.misses || llm.stats.misses) {
   console.error(`NOT CLEAN: ${world.stats.misses} world misses and ${llm.stats.misses} Gemma misses. No results written (the run's raw output is in ${path.relative(ROOT, runDir)}). Record the missing entries first.`);
   process.exit(1);
 }
-const out = writeReports({ set, rows, meta, resultsDir: RESULTS, file, suffix: scoredTest && label !== "baseline" ? `-${label}` : "" });
+const out = writeReports({ set, rows, meta, resultsDir: RESULTS, file, suffix: set === "test2" ? `-${String(label).replace(/^test2-/, "")}` : scoredTest && label !== "baseline" ? `-${label}` : "" });
 if (scoredTest) fs.writeFileSync(TEST_MARKER, `${JSON.stringify({ at: meta.at, runId, sha, rerunReason: meta.rerunReason, label })}\n`);
 console.error(`wrote ${out.map((f) => path.relative(ROOT, f)).join(", ")}; ${errors} crews errored; world misses ${world.stats.misses}, LLM misses ${llm.stats.misses}`);
 process.exit(world.stats.misses || llm.stats.misses ? 1 : 0);

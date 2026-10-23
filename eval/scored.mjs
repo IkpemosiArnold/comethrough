@@ -2,7 +2,7 @@
 // A scored test run, pinned to one commit of the app. This is the only way to score the
 // held-out set:
 //
-//   node eval/scored.mjs --commit <sha> --label <label> [--note "..."] [--fast]
+//   node eval/scored.mjs --commit <sha> --label <label> [--set test|test2] [--note "..."] [--fast]
 //   node eval/scored.mjs --commit <sha> --label <label> --check-pin   (a dry run: pin, verify, stop)
 //   node eval/scored.mjs --commit <sha> --record [--set test|dev] [--llm-cap N]
 //        a fill-only recording pass against the same pinned commit (no scoring, no label);
@@ -75,7 +75,7 @@ try {
   const rest = argv.filter((a, i) => !["--commit", "--set", "--record"].includes(a) && !["--commit", "--set"].includes(argv[i - 1]));
   const args = recording
     ? [path.join(ev, "run.mjs"), "--set", opt("--set") || "test", "--record", ...rest]
-    : [path.join(ev, "run.mjs"), "--set", "test", "--replay", "--scored", ...rest];
+    : [path.join(ev, "run.mjs"), "--set", opt("--set") || "test", "--replay", "--scored", ...rest];
   console.error(`${recording ? `recording (fill only) the ${opt("--set") || "test"} set` : "scoring the held-out set"} against ${sha} (clean worktree ${wt}), harness ${harness.slice(0, 7)}`);
   const r = spawnSync(process.execPath, args, { cwd: wt, stdio: "inherit", env: { ...process.env, EVAL_PINNED: sha, EVAL_HARNESS: harness } });
   code = r.status ?? 1;
