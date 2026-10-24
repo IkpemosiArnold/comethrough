@@ -1,6 +1,6 @@
 {
  "cap": 650,
- "liveCalls": 520,
+ "liveCalls": 562,
  "runs": [
   {
    "label": "dev record only lag-bookclub-yaba",
@@ -78,6 +78,12 @@
    "label": "test2 record",
    "at": "2026-10-23T13:10:30.738Z",
    "live": 130,
+   "failed": 0
+  },
+  {
+   "label": "test2 record",
+   "at": "2026-10-24T10:42:47.307Z",
+   "live": 42,
    "failed": 0
   }
  ],
