@@ -242,9 +242,12 @@ await check("the ritual plan, with weather", async () => {
   const rituals = r.data.plans.filter((/** @type {any} */ p) => p.kind === "ritual");
   must(rituals.length === 1, `rituals: ${rituals.length}`);
   const p = rituals[0];
-  // outdoor picks carry the forecast in `weather`; a covered pick made because of rain carries it in `rainPlan`
-  must(p.weather || p.rainPlan?.wanted?.rainProb != null, "no weather on the ritual (neither weather nor rainPlan)");
-  return { ...short(p), why: p.why, invite: p.invite, rainPlan: p.rainPlan ?? null, aiNote: p.aiNote ?? null };
+  // outdoor picks carry the forecast in `weather`; a covered pick made because of rain carries it in `rainPlan`.
+  // Open-Meteo forecasts 7 days ahead, so a ritual further out (run on a Saturday afternoon,
+  // an every-other-Saturday crew's next slot is 14 days away) has no forecast yet, honestly
+  const daysOut = (Date.parse(p.start) - Date.now()) / 86_400_000;
+  must(p.weather || p.rainPlan?.wanted?.rainProb != null || daysOut > 7, `no weather on the ritual (neither weather nor rainPlan), ${daysOut.toFixed(1)} days out`);
+  return { ...short(p), why: p.why, invite: p.invite, rainPlan: p.rainPlan ?? null, aiNote: p.aiNote ?? null, ...(daysOut > 7 && !p.weather ? { beyondForecast: true } : {}) };
 });
 
 const report = { base: BASE, at: new Date().toISOString(), health, typeahead, failed, steps };
