@@ -22,6 +22,7 @@ import { cleanConfidence, lowFields } from "./plans.mjs";
 import { cleanEventTitle } from "./titles.mjs";
 import { VIBE_MATCHERS } from "./places.mjs";
 import { ENERGY, HIGH_RISK, NEEDS, PLACE_KIND_NAMES, TASTE_WORDS, UNSOURCED_CLAIM, cleanTaste, hasSensitive, plainTaste, scrubSensitive } from "./taste.mjs";
+import { GENERIC_SOCIAL_HOURS, clockWords } from "./weather.mjs";
 import { DAY_NAMES, DEFAULT_TZ, isAmbiguousTime, isDate, isTime, resolveDateWords, resolveTimeWords, toIsoLocal, zonedToMs, minutesOfDay, addDays, daysBetween, weekdayOf, weekdayInWords } from "./time.mjs";
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -295,10 +296,34 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
     // a clock time the sentence says is the window's start, whatever word the model gave
     // ("Saturday mornings around 7am": Gemma's "morning" would be 9 to 12); then the model's
     // time or day part ("mornings" as "morning"); then a day part the sentence says
-    const clock = clockIn(sentence);
+    /** @type {{ from: string, to: string|null }|null} */
+    let clock = clockIn(sentence);
     const part = (/** @type {any} */ w) => (typeof w === "string" ? DAYPARTS[/** @type {keyof typeof DAYPARTS} */ (w.toLowerCase().trim().replace(/^(?:in the|on|every|around|about)\s+/, "").replace(/s$/, ""))] ?? null : null);
-    const time = (/** @type {any} */ w) => (typeof w === "string" ? resolveTimeWords(w.trim().replace(/^(?:around|about|at|from|by|approx\.?|~)\s*/i, "")) : null);
     const spoken = dayPartIn(sentence);
+    // the sentence's day part decides am or pm: a model's "7" or "7pm" for "Saturday mornings
+    // 7 to 11" is 7 am (the held-out test-2 run of 8584126 read 7 to 11 pm)
+    const lean = spoken ? (minutesOfDay(spoken[0]) < 12 * 60 ? "am" : "pm") : null;
+    const fit = (/** @type {string|null} */ t) => {
+      if (!t || !lean) return t;
+      const m = minutesOfDay(t);
+      if (lean === "am" && m >= 13 * 60) return addHours(t, -12);
+      if (lean === "pm" && m >= 60 && m < 12 * 60) return addHours(t, 12);
+      return t;
+    };
+    const time = (/** @type {any} */ w) => (typeof w === "string" ? fit(resolveTimeWords(w.trim().replace(/^(?:around|about|at|from|by|approx\.?|~)\s*/i, ""))) : null);
+    // still ambiguous (no day part, no am or pm: "Fridays 8 to 11"): the reading that fits the
+    // usual hours for that day, and the time is not treated as the crew's own
+    let ambiguous = !spoken && !clock && [d.from, d.to].some((w) => typeof w === "string" && isAmbiguousTime(w.trim().replace(/^(?:around|about|at|from|by)\s+/i, "")));
+    const c0 = clockIn(sentence);
+    if (c0?.ambiguous && c0.readings) {
+      ambiguous = true;
+      const usual = dayIdx === 0 || dayIdx === 6 ? GENERIC_SOCIAL_HOURS.weekendOutdoor : GENERIC_SOCIAL_HOURS.weekdayEvening;
+      const overlap = (/** @type {{ from: string, to: string }} */ r) => Math.max(0, Math.min(minutesOfDay(r.to), minutesOfDay(usual.to)) - Math.max(minutesOfDay(r.from), minutesOfDay(usual.from)));
+      const best = c0.readings.reduce((b, r) => (overlap(r) >= overlap(b) ? r : b));
+      // neither reading meets the usual hours: the usual window, and the organiser is asked
+      clock = overlap(best) > 0 ? best : { ...DEFAULT_WINDOW };
+      notes.push(`Is it ${c0.readings.map((r) => `${clockWords(r.from)} to ${clockWords(r.to)}`).join(" or ")}? The sloth could not tell, so check the time.`);
+    }
     let from = clock?.from ?? part(d.from)?.[0] ?? time(d.from) ?? spoken?.[0] ?? null;
     let to = clock ? clock.to ?? (time(d.to) && minutesOfDay(/** @type {string} */ (time(d.to))) > minutesOfDay(clock.from) ? time(d.to) : null) : part(d.from)?.[1] ?? time(d.to) ?? (from === spoken?.[0] ? spoken?.[1] ?? null : null);
     if (from && !to) to = addHours(from, 4);
@@ -311,7 +336,7 @@ export function readCrewSetup(data, { sentence, into = null }, local = {}) {
     // only a time the sentence itself says counts: a clock time, a day part, or the model's
     // time words found in it (a "3pm" the model added is not the crew's)
     const inSentence = (/** @type {any} */ w) => typeof w === "string" && !!norm(w) && ` ${norm(sentence)} `.includes(` ${norm(w).replace(/^(?:around|about|at|from|by) /, "")} `);
-    rhythm = { every, day: dayIdx, window: { from, to }, said: !filled.includes("rhythm.window") && (!!clock || !!spoken || inSentence(d.from)) };
+    rhythm = { every, day: dayIdx, window: { from, to }, said: !filled.includes("rhythm.window") && !ambiguous && (!!clock || !!spoken || inSentence(d.from)) };
   } else if (every || d.day) {
     notes.push("The rhythm needs both how often and which day.");
   }
@@ -421,7 +446,7 @@ export function dayPartIn(/** @type {string} */ sentence) {
  * ("mornings ... at 7" is 07:00); otherwise a bare number is an age or a head count ("13 to
  * 16", "8 of us") and is never read as a time. Null when there is none.
  * @param {string} sentence
- * @returns {{ from: string, to: string|null }|null}
+ * @returns {{ from: string, to: string|null, ambiguous?: boolean, readings?: { from: string, to: string }[] }|null}  ambiguous: no day part and no am or pm; readings: the ways it can be read
  */
 export function clockIn(sentence) {
   const t = String(sentence ?? "").toLowerCase().replace(/a\.m\./g, "am").replace(/p\.m\./g, "pm");
@@ -431,13 +456,37 @@ export function clockIn(sentence) {
   const notTime = String.raw`(?!\s*(?:years?|yrs?|y\/?o|of us|people|members|guys|kids|families|couples|\+|s\b))`;
   const T = String.raw`(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?`;
   const range = t.match(new RegExp(String.raw`(?:\b(between|from)\s+)?\b${T}\s*(?:-|–|to|and|till|until)\s*${T}${notTime}(?![\w])`));
-  if (range && (range[1] || range[4] || range[7])) {
-    const [, , h1, m1, ap1, h2, m2, ap2] = range;
-    const end = ap2 || lean;
-    const start = ap1 || (ap2 && Number(h1) <= Number(h2) ? ap2 : lean);
-    const from = at(h1, m1, start);
-    const to = at(h2, m2, end);
-    if (from && to && minutesOfDay(to) > minutesOfDay(from)) return { from, to };
+  if (range) {
+    const [, lead, h1, m1, ap1, h2, m2, ap2] = range;
+    const small = Number(h1) >= 1 && Number(h1) <= 12 && Number(h2) >= 1 && Number(h2) <= 12;
+    /** @param {string} a @param {string} b */
+    const pair = (a, b) => {
+      const from = at(h1, m1, a);
+      const to = at(h2, m2, b);
+      return from && to && minutesOfDay(to) > minutesOfDay(from) ? { from, to } : null;
+    };
+    if (ap1 || ap2) {
+      // "7-11am", "4pm to 8pm", "10am to 2": the am or pm said, the other end read to follow it
+      const end = ap2 || lean;
+      const start = ap1 || (ap2 && Number(h1) <= Number(h2) ? ap2 : lean);
+      const r = pair(start, end) ?? (ap1 && !ap2 ? pair(ap1, "pm") : null);
+      if (r) return r;
+    } else if (small && lean) {
+      // a bare range next to a day part takes its am or pm: "Saturday mornings 7 to 11" is
+      // 7 to 11 am, never 7 to 11 pm (the held-out test-2 run of 8584126); "evenings 6 to 9"
+      const r = pair(lean, lean) ?? (lean === "am" ? pair("am", "pm") : null);
+      if (r) return r;
+    } else if (small) {
+      // no day part and no am or pm ("Fridays 8 to 11"): both readings, for the caller to
+      // choose between, and never a stated time
+      // across noon only when the end is the smaller number ("10 to 2")
+      const readings = (Number(h1) > Number(h2) ? [pair("am", "pm")] : [pair("am", "am"), pair("pm", "pm")]).filter((x) => x !== null);
+      if (readings.length) return { ...readings[readings.length - 1], ambiguous: true, readings };
+    } else if (lead) {
+      // 24-hour times with "between" or "from": "between 14:00 and 18:00"
+      const r = pair("", "");
+      if (r) return r;
+    }
   }
   const one = t.match(new RegExp(String.raw`\b(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)\b`));
   if (one) {

@@ -48,3 +48,34 @@ test("other time-of-day phrasings", () => {
   assert.deepEqual(everyIn("we do Sunday evenings"), { every: "1w", day: 0 });
   assert.deepEqual(everyIn("every other Saturday mornings"), { every: "2w", day: 6 }, "every other still wins");
 });
+
+// The held-out test-2 run of 8584126: "Saturday mornings 7 to 11" was read as 7 to 11 pm, and
+// with the crew's own time winning, the crew was sent somewhere at night. The day part
+// decides am or pm, Gemma's reading and code's guess agree, and a range that is still
+// ambiguous is never the crew's stated time.
+test("a bare range takes its day part's am or pm; with no day part it stays ambiguous", () => {
+  /** @type {[string, any, any][]} */
+  const cases = [
+    ["Run crew, Saturday mornings 7 to 11, around Yaba", { day: "Saturday", from: "7", to: "11" }, { every: "1w", day: 6, window: { from: "07:00", to: "11:00" }, said: true }],
+    ["Run crew, Saturday mornings 7 to 11, around Yaba", { day: "Saturday", from: "7pm", to: "11pm" }, { every: "1w", day: 6, window: { from: "07:00", to: "11:00" }, said: true }],
+    ["Choir, Sunday evenings 6 to 9, around Yaba", { day: "Sunday", from: "6", to: "9" }, { every: "1w", day: 0, window: { from: "18:00", to: "21:00" }, said: true }],
+    ["Run crew, Saturday mornings 7-11am, around Yaba", { day: "Saturday", from: "7pm" }, { every: "1w", day: 6, window: { from: "07:00", to: "11:00" }, said: true }],
+  ];
+  for (const [s, model, want] of cases) {
+    assert.deepEqual(rhythmOf(gemma(model), s), want, `Gemma: ${s}`);
+    assert.deepEqual(rhythmOf(guessCrew(s), s), want, `code: ${s}`);
+  }
+  // no day part and no am or pm: the reading that fits the usual hours, never stated
+  const fri = "Chess club, Fridays 8 to 11, around Yaba";
+  for (const r of [rhythmOf(gemma({ day: "Friday", from: "8", to: "11" }), fri), rhythmOf(guessCrew(fri), fri)]) {
+    assert.equal(r?.said, false, JSON.stringify(r));
+    assert.deepEqual(r?.window, { from: "20:00", to: "23:00" }, "a Friday evening, as the usual hours have it");
+  }
+  const read = readCrewSetup(guessCrew(fri), { sentence: fri }, LAGOS_LOCAL);
+  assert.ok(read.notes.some((n) => /Is it 8 am to 11 am or 8 pm to 11 pm\?/.test(n)), read.notes.join(" | "));
+  // neither reading meets a Saturday's usual hours: the usual window, not stated
+  const sat = "Chess club, Saturdays 8 to 11, around Yaba";
+  assert.deepEqual(rhythmOf(guessCrew(sat), sat), { every: "1w", day: 6, window: { from: "15:00", to: "19:00" }, said: false });
+  // ages and head counts are still never times
+  assert.equal(rhythmOf(guessCrew("My teenagers, 13 to 16, every other Saturday around Festac"), "My teenagers, 13 to 16, every other Saturday around Festac")?.said, false);
+});
