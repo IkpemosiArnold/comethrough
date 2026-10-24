@@ -368,17 +368,39 @@ const GROUP_WORDS = /\b(students?|uni|university|campus|undergrads?|parents|mums
 /**
  * Indoor kinds to add for a wet day: kid-friendly crews get a cinema and a mall (indoor
  * play); a crew with no indoor kind at all gets a café and a restaurant (a quiet crew, a
- * café and a museum). Kinds a need rules out are never added.
+ * café and a museum). A free or cheap crew, or one that wants quiet, also gets roofed kinds
+ * it can use until it has three: a library alone is rarely near enough (the held-out test-2
+ * run of 8584126 skipped a quiet, free-only crew's wet Saturday with "a garden, a library").
+ * Kinds a need rules out are never added.
  * @param {string[]} kinds
  * @param {string[]} needs
+ * @param {"free"|"cheap"|"any"|null} [budget]
  */
-export function rainKinds(kinds, needs) {
+export function rainKinds(kinds, needs, budget = null) {
   /** @type {string[]} */
   const out = [];
   if (needs.includes("kid-friendly")) out.push("cinema", "mall");
   if (!kinds.some((k) => PLACE_KINDS[k]?.indoor)) out.push(...(needs.includes("discreet") || needs.includes("safe") ? ["cafe", "museum"] : ["cafe", "restaurant"]));
-  return out.filter((k) => !kinds.includes(k));
+  if (budget === "free" || budget === "cheap" || needs.includes("quiet")) {
+    const roofed = [...kinds, ...out].filter((k) => PLACE_KINDS[k]?.indoor);
+    for (const k of ROOFED_FOR[budget === "free" ? "free" : budget === "cheap" ? "cheap" : "quiet"]) {
+      if (roofed.length >= 3) break;
+      if (!roofed.includes(k)) {
+        out.push(k);
+        roofed.push(k);
+      }
+    }
+  }
+  const dry = needs.includes("no alcohol") || needs.includes("kid-friendly");
+  return [...new Set(out)].filter((k) => !kinds.includes(k) && (!dry || (!PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife)));
 }
+
+/** Roofed kinds a crew can use on a wet day, by budget or a quiet need: free ones first for a free crew (museums count only where the data says entry is free). */
+const ROOFED_FOR = Object.freeze({
+  free: ["library", "community centre", "mall", "museum"],
+  cheap: ["community centre", "mall", "library", "cafe"],
+  quiet: ["library", "cafe", "museum", "bookshop"],
+});
 
 /** Kinds of place a need points to, used only when Gemma named none. */
 export const NEED_KINDS = Object.freeze({
@@ -509,7 +531,7 @@ export function cleanTaste(raw, { sentence = null } = {}) {
     }
     // and somewhere under a roof for a wet day, so rain does not send every crew to the same
     // covered spot (the 22 Oct eval: Nike Art Gallery for alte, parents and corporate alike)
-    if (placeKinds.length) placeKinds = [...new Set([...placeKinds, ...rainKinds(placeKinds, needs)])].slice(0, 8);
+    if (placeKinds.length) placeKinds = [...new Set([...placeKinds, ...rainKinds(placeKinds, needs, budget)])].slice(0, 9);
   }
   // a need that rules out drink rules out the kinds that sell it
   if (needs.includes("no alcohol") || needs.includes("kid-friendly")) placeKinds = placeKinds.filter((k) => !PLACE_KINDS[k].alcohol && !PLACE_KINDS[k].nightlife);

@@ -27,7 +27,7 @@ import {
   CREW_SCHEMA, DEFAULT_WINDOW, EXPLAIN_SCHEMA, INVITE_SCHEMA, MAX_TOKENS, PLAN_SCHEMA, crewSetupMessages, explainMessages, guessCrew, guessPlan, inviteMessages, localisePrompt, planMessages,
   readCrewSetup, readExplain, readInvite, readPlan,
 } from "../core/tasks.mjs";
-import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, tasteView, withVibe } from "../core/taste.mjs";
+import { PLACE_KINDS, cleanTaste, hasSensitive, hasTaste, kindOfTags, osmTagsFor, rainKinds, tasteView, withVibe } from "../core/taste.mjs";
 import { DAY, DAY_NAMES, hhmm, isTime, isValidZone, localParts, minutesOfDay, parseInstant, weekdayOf, zonedToMs } from "../core/time.mjs";
 import { clipToSocial, clockWords, coveredNote, rainMovedIn, ritualWindow, socialWindow, weatherForPlan } from "../core/weather.mjs";
 import { crewHours, mayOffer, needsDaylight, outdoorInLight, timeSaid, within as inside } from "../core/hours.mjs";
@@ -1536,13 +1536,19 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
 
   /** Places of the kinds a crew's taste names (beyond parks and gardens), from Overpass. Never throws. */
   async function tastePlaces(/** @type {{ lat: number, lon: number }} */ center, /** @type {import("../core/taste.mjs").Taste|null} */ taste) {
-    const kinds = (taste?.placeKinds || []).filter((k) => !["park", "garden", "beach"].includes(k));
+    const own = taste?.placeKinds || [];
+    // roofed kinds the crew's needs and budget point to, for a wet day, when its own kinds
+    // have too few (a taste saved before rainKinds knew the budget gets them here too); a
+    // place found only for these goes under a roof, never into a dry day's open-air pool
+    const extra = own.length ? rainKinds(own, taste?.needs || [], taste?.budget ?? null) : [];
+    const kinds = [...new Set([...own, ...extra])].filter((k) => !["park", "garden", "beach"].includes(k));
     if (!kinds.length || !places.kindsNear) return [];
     try {
       const found = await places.kindsNear(center, SEARCH_RADII_M[0], osmTagsFor(kinds));
       return found.map((c) => {
         const kind = Object.entries(PLACE_KINDS).find(([, k]) => k.tags.some(([key, v]) => c.osm?.tags?.[key] === v));
-        return kind && kind[1].outdoor ? { ...c, outdoor: true } : { ...c, indoor: true };
+        const fallback = kind && !own.includes(kind[0]) ? { fallback: true } : {};
+        return kind && kind[1].outdoor ? { ...c, outdoor: true, ...fallback } : { ...c, indoor: true, ...fallback };
       });
     } catch (e) {
       log("overpass_error", { message: String(/** @type {any} */ (e).message).slice(0, 120) });
@@ -1594,7 +1600,7 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
     let window = rw ? rw.window : outdoorHours ? cut(outdoorHours) : null;
     /** @type {import("../core/weather.mjs").RainPlan|null} */
     let rainPlan = rw?.rainPlan ?? null;
-    const open = outdoorHours ? candidates.filter((c) => c.covered !== true) : [];
+    const open = outdoorHours ? candidates.filter((c) => c.covered !== true && c.fallback !== true) : [];
     let pool = open;
     if (rainPlan?.kind === "skip" || !outdoorHours) {
       // a source says it has a roof: a curated covered spot, or a gallery, museum or the like

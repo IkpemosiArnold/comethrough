@@ -93,3 +93,35 @@ test("rain: a crew whose taste grounding dropped every kind of place still gets 
   const r2 = await ritualInRain(crewOf(odd), [node("Book Cafe", 6.51, 3.37, { amenity: "cafe" })]);
   assert.equal(r2.plan?.place.name, "Book Cafe");
 });
+
+// The held-out test-2 run of 8584126: a quiet, free-only crew read as "a garden, a library";
+// no library was near, so a wet Saturday was skipped and there were no ideas. A free or quiet
+// crew gets roofed kinds it can use until it has three, at reading time and, for a taste
+// saved before, when its places are looked up.
+test("rain: a quiet, free-only crew with a garden and a library gets free roofed kinds, not a skip", async () => {
+  const t = cleanTaste({ basis: ["quiet"], placeKinds: ["garden", "library"], needs: ["quiet"], budget: "free" }, { sentence: "Quiet crew, free things only, around Yaba" });
+  for (const k of ["community centre", "mall"]) assert.ok(t.placeKinds.includes(k), `${k}: ${JSON.stringify(t.placeKinds)}`);
+  const { rainKinds } = await import("../src/core/taste.mjs");
+  assert.deepEqual(rainKinds(["garden", "library"], ["quiet"], "free"), ["community centre", "mall"]);
+  assert.deepEqual(rainKinds(["gallery"], []), [], "a crew with a roof and no budget or quiet need: as before");
+  assert.ok(!rainKinds(["park"], ["kid-friendly", "no alcohol"], "cheap").some((k) => ["bar", "pub", "nightclub"].includes(k)));
+  const hall = node("Mainland Community Hall", 6.508, 3.366, { amenity: "community_centre" });
+  const r = await ritualInRain(crewOf(t, "free"), [hall]);
+  assert.equal(r.plan?.place.name, "Mainland Community Hall", JSON.stringify({ reason: r.reason }));
+  assert.equal(r.plan?.rainPlan?.kind, "covered");
+  // a taste saved before (only a garden and a library): the roofed kinds are looked up anyway
+  const saved = { scenes: [], likes: [], placeKinds: ["garden", "library"], eventKeywords: [], avoid: [], needs: ["quiet"], budget: /** @type {"free"} */ ("free"), ageBand: null, energy: null };
+  const r2 = await ritualInRain(crewOf(saved, "free"), [hall]);
+  assert.equal(r2.plan?.place.name, "Mainland Community Hall", JSON.stringify({ reason: r2.reason }));
+});
+
+test("a place found only for a wet day never takes a dry day's open-air pick", async () => {
+  const saved = { scenes: [], likes: [], placeKinds: ["garden", "library"], eventKeywords: [], avoid: [], needs: ["quiet"], budget: /** @type {"free"} */ ("free"), ageBand: null, energy: null };
+  const store = memoryStore();
+  const hall = node("Mainland Community Hall", 6.5051, 3.3601, { amenity: "community_centre" });
+  const svc = createService({ store, ai: fakeAi({ answers: {} }), geocoder: fakeGeocoder(), places: fakeOverpass([node("Yaba Park", 6.506, 3.365, { leisure: "park" })], [hall]), weather: fakeWeather({ rain: () => 5 }), pages: fakePageMeta(), push: fakePush(), spots: [], prompts: loadPrompts(), ids: makeIds(), now, cfg });
+  const crew = crewOf(saved, "free");
+  await store.put("crews", crew);
+  const r = await svc._internal.makeRitual(crew, { date: "2026-10-24", window: { from: "15:00", to: "19:00" } }, []);
+  assert.equal(r.plan?.place.name, "Yaba Park");
+});
