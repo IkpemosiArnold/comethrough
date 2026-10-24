@@ -134,6 +134,17 @@ export function areaQueries(label, countryCode) {
   return (countryCode === "NG" ? NG_AREA_ALIASES[key] : null) ?? [label];
 }
 
+/**
+ * The countries whose packs know an area name as written ("VI" is Victoria Island in Lagos),
+ * whatever the visitor's zone: a short name is looked up there as well as anywhere.
+ * @param {string} label
+ * @returns {string[]}
+ */
+export function aliasCountries(label) {
+  const key = String(label || "").toLowerCase().replace(/\s+/g, " ").trim();
+  return NG_AREA_ALIASES[key] ? ["NG"] : [];
+}
+
 /** Cities to ask about when no area of a crew is on the map, for a country we know. */
 export function citiesFor(/** @type {string|null|undefined} */ countryCode) {
   return countryCode === "NG" ? [...NG_CITIES] : [];

@@ -16,7 +16,7 @@
 
 import { AREA_SPREAD_KM, centroid, clusterAreas, haversineKm, isLatLon, tripKey } from "../core/geo.mjs";
 import { NEAR_KM } from "../adapters/geocode.mjs";
-import { areaQueries, citiesFor, cityNamedIn, cleanRegion, hintRegion, localeRegion, packFor, packView, regionOf, zoneOfCountry } from "../packs/index.mjs";
+import { aliasCountries, areaQueries, citiesFor, cityNamedIn, cleanRegion, hintRegion, localeRegion, packFor, packView, regionOf, zoneOfCountry } from "../packs/index.mjs";
 import { calendarFeed, icsFileName, singleEvent } from "../core/ics.mjs";
 import { entryFor, placeKey, scorePlaces } from "../core/places.mjs";
 import { applyEdit, canEdit, createPlan, goingIds, isExpired, recentPlaces, upcoming, validateDraft, viewPlan } from "../core/plans.mjs";
@@ -438,12 +438,21 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
    * @param {{ city?: string|null, country?: string|null, soft?: boolean }} [opts]  country: the country of a city the sentence names
    */
   async function locateAreas(labels, start, notes, { city = null, country: said = null, soft = false } = {}) {
-    let country = said ?? start.countryCode ?? (await zoneCountry(start.timezone));
+    const zoneCC = start.countryCode ?? (await zoneCountry(start.timezone));
+    let country = said ?? zoneCC;
+    // a short name ("VI", "GRA") with no city or country in the sentence: the zone never picks
+    // its country (the held-out test-2 run of 8584126: "VI" from a Houston browser became the
+    // US Virgin Islands). It is looked up anywhere and wherever a pack knows it, an area in a
+    // city comes before a country or territory, and when nothing else places it, the
+    // organiser is asked which one is meant.
+    const guard = soft && !city && !said;
+    const shortOf = (/** @type {string} */ l) => guard && isShortName(l);
     const inCity = city ? new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i") : null;
     const lookUp = (/** @type {string|null} */ cc) => {
       const majors = citiesFor(cc);
       const big = majors.length ? new RegExp(`\\b(${[...majors, "Federal Capital Territory"].join("|")})\\b`, "i") : null;
       return Promise.all(labels.map(async (label) => {
+        if (shortOf(label)) return shortCandidates(clip(label, 60) || "");
         const rs = await candidatesFor(clip(label, 60) || "", cc, city, { soft });
         // the city the organiser named first, then a big city's namesake before a village's
         const rank = (/** @type {any} */ r) => (inCity?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 2) + (big?.test(`${r.city ?? ""} ${r.detail ?? ""}`) ? 0 : 1);
@@ -456,10 +465,11 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       // where the named areas are, by the country most of their best area matches are in
       /** @type {Map<string, number>} */
       const n = new Map();
-      for (const l of lists) {
+      lists.forEach((l, k) => {
+        if (shortOf(labels[k])) return; // a short name does not drag the others
         const cc = l.find((r) => r.isArea && r.country)?.country;
         if (cc) n.set(cc, (n.get(cc) || 0) + 1);
-      }
+      });
       const top = [...n.entries()].sort((a, b) => b[1] - a[1])[0];
       if (top && top[0] !== country && top[1] > (country ? n.get(country) ?? 0 : 0)) {
         country = top[0];
@@ -475,7 +485,22 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
       const label = clip(labels[i], 60);
       if (!label) continue;
       let hit = picks[i];
-      if (!hit && anchor) {
+      let which = false;
+      if (shortOf(label) && (hit || lists[i].length)) {
+        // placed only when something else says where: another area in the same country, or
+        // the one area in a city that matches (and, from a pack's list, the visitor's own
+        // country); otherwise "Which VI?"
+        const h = hit ?? lists[i][0];
+        const corroborated = picks.some((p, k) => k !== i && p && !shortOf(labels[k]) && p.country && p.country === h.country);
+        const countries = new Set(lists[i].filter((r) => placeTier(r) < 2 && r.country).map((r) => r.country));
+        // a pack's own name for it in the visitor's country ("VI" typed in Lagos) is two signals
+        const aliasHere = lists[i].find((r) => r.viaAlias === true && r.country === zoneCC && placeTier(r) < 2);
+        which = !corroborated && !aliasHere && (countries.size !== 1 || placeTier(h) === 2 || (h.viaAlias === true && h.country !== zoneCC));
+        if (!corroborated && aliasHere && !hit) hit = aliasHere;
+        if (!corroborated && aliasHere && hit && hit !== aliasHere && hit.country !== zoneCC) hit = aliasHere;
+        if (which) hit = null;
+      }
+      if (!hit && anchor && !which) {
         const again = await resolveArea(label, { near: anchor, country: anchor.country ?? country, cityFallback: city ?? anchor.city ?? null });
         if (again.area && isLatLon(again.area) && haversineKm(anchor, /** @type {any} */ (again.area)) <= AREA_SPREAD_KM) hit = { lat: again.area.lat, lon: again.area.lon, country: again.country, city: again.city };
       }
@@ -483,17 +508,33 @@ export function createService({ store, ai, geocoder, places, weather, pages, pus
         got.push({ area: { label, lat: hit.lat, lon: hit.lon }, note: null, country: hit.country, city: hit.city });
         continue;
       }
-      const options = lists[i].slice(0, 3).map((r) => ({ label: r.label, detail: r.detail ?? "", lat: r.lat, lon: r.lon, ...(r.country ? { country: r.country } : {}), ...(r.city ? { city: r.city } : {}) }));
+      // the visitor's own country first among the choices: a weak hint for the order only
+      const ranked = which ? [...lists[i]].sort((a, b) => Number(b.country === zoneCC) - Number(a.country === zoneCC) || placeTier(a) - placeTier(b)) : lists[i];
+      const options = ranked.slice(0, 3).map((r) => ({ label: r.label, detail: r.detail ?? "", lat: r.lat, lon: r.lon, ...(r.country ? { country: r.country } : {}), ...(r.city ? { city: r.city } : {}) }));
       suggestions[label] = options;
       const named = options.map((o) => (o.detail ? `${o.label} (${o.detail.split(",").slice(0, 2).join(",").trim()})` : o.label));
       got.push({
         area: { label, lat: null, lon: null },
-        note: options.length
-          ? `"${label}" is far from the crew's other areas on the map. Did you mean ${named.join(" or ")}? Pick the right one.`
-          : `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.`,
+        note: !options.length
+          ? `Could not find "${label}" on the map. Rides and fair picks will skip it until it is fixed.`
+          : which
+            ? `Which ${label}? ${named.join(" or ")}? Pick the right one.`
+            : `"${label}" is far from the crew's other areas on the map. Did you mean ${named.join(" or ")}? Pick the right one.`,
       });
     }
     return { ...collect(got, notes), suggestions, country };
+  }
+
+  /**
+   * Candidates for a short name, never by the visitor's zone: wherever a pack knows the name
+   * (its own queries, "VI" as Victoria Island in Nigeria), then anywhere. An area in a city
+   * comes before a city, and both before a country, state or territory (placeTier).
+   * @param {string} label
+   */
+  async function shortCandidates(label) {
+    const viaPacks = (await Promise.all(aliasCountries(label).map((cc) => candidatesFor(label, cc, null)))).flat().map((r) => ({ ...r, viaAlias: true }));
+    const anywhere = await candidatesFor(label, null, null);
+    return [...viaPacks, ...anywhere].map((r, k) => ({ r, k })).sort((a, b) => placeTier(a.r) - placeTier(b.r) || a.k - b.k).map((x) => x.r);
   }
 
   /**
@@ -1807,6 +1848,23 @@ function clip(v, max) {
  * @param {string} text
  * @param {string|null} countryCode
  */
+/**
+ * A short or abbreviated area name, as written: all capitals ("VI", "GRA", "V.I.") or two
+ * letters at most. "Ojo" or "Yaba" are names, not abbreviations.
+ * @param {string} label
+ */
+function isShortName(label) {
+  const s = String(label || "").replace(/[.\s]/g, "");
+  return s.length > 0 && (s.length <= 2 || /^[A-Z]{2,5}$/.test(s));
+}
+
+/** 0: an area in a city; 1: a city or a place we cannot tell; 2: a country, state or territory. */
+function placeTier(/** @type {any} */ r) {
+  if (/^(country|state|territory|region|province|county|archipelago|continent|dependency)$/i.test(String(r?.kind || ""))) return 2;
+  const norm = (/** @type {any} */ x) => String(x || "").toLowerCase().trim();
+  return r?.city && norm(r.city) !== norm(r.label) ? 0 : 1;
+}
+
 function cityIn(text, countryCode) {
   return cityNamedIn(text, countryCode);
 }

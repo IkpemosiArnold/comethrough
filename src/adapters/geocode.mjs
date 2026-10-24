@@ -16,7 +16,7 @@ import { cached, fetchJson, userAgent } from "./http.mjs";
 import { laneGate } from "./lanes.mjs";
 
 /** @typedef {import("./http.mjs").Cache} Cache */
-/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string, country?: string, city?: string }} GeoResult */
+/** @typedef {{ label: string, detail: string, lat: number, lon: number, osm?: { type: string, id: number }, cls?: string, kind?: string, country?: string, city?: string }} GeoResult  kind: what the place is (Photon's type, Nominatim's addresstype): "suburb", "city", "country", "territory" */
 /** @typedef {import("../packs/index.mjs").GeocodeContext} GeocodeContext */
 /**
  * @typedef {object} Geocoder
@@ -58,6 +58,7 @@ export function readPhoton(json, { countryCode = "" } = {}) {
         lon,
         ...(p.osm_type && p.osm_id ? { osm: { type: OSM_TYPES[/** @type {keyof typeof OSM_TYPES} */ (p.osm_type)] || p.osm_type, id: p.osm_id } } : {}),
         ...(p.osm_key ? { cls: p.osm_key } : {}),
+        ...(p.type || p.osm_value ? { kind: String(p.type || p.osm_value) } : {}),
         ...(p.countrycode ? { country: String(p.countrycode).toUpperCase() } : {}),
         ...(photonCity(p) ? { city: photonCity(p) } : {}),
       };
@@ -76,6 +77,7 @@ export function readNominatim(json) {
       lon: Number(r.lon),
       ...(r.osm_type && r.osm_id ? { osm: { type: OSM_TYPES[/** @type {keyof typeof OSM_TYPES} */ (r.osm_type)] || r.osm_type, id: Number(r.osm_id) } } : {}),
       ...(r.category ? { cls: r.category } : {}),
+      ...(r.addresstype || r.type ? { kind: String(r.addresstype || r.type) } : {}),
     };
   }).filter((r) => r.label && Number.isFinite(r.lat) && Number.isFinite(r.lon));
 }
