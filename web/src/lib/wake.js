@@ -10,22 +10,35 @@
 //   - if that has not answered in 1.5 s, the sloth is "waking" and the screen says so, with the
 //     seconds counting;
 //   - anything that is not our own JSON (Render's page, a 502, 503 or 504 from a proxy) means
-//     "still waking": wait, ask again with backoff, then send the request again. Such an answer
-//     never came from our server, so sending it again is safe, a POST too;
-//   - after about 90 s the sloth is "down": an honest message and a retry button.
+//     "still waking": ask again, then send the request again. Such an answer never came from
+//     our server, so sending it again is safe, a POST too;
+//   - while waking, one /api/healthz is always on its way: a try that comes back "still waking"
+//     is followed by the next one 1.5 s after it started (at once when it was held longer), with
+//     no growing backoff, so the first try after the server is up lands within about 1.5 s
+//     (24 Oct: a 1, 2, 3, 4, 5 s backoff left 8.8 s between "listening" and the first request);
+//   - after about 90 s the sloth is "down": an honest message and a retry button. Once the
+//     server is up nothing more is sent.
 
 export const WAKE = {
   /** how long to keep trying before giving up */
   budgetMs: 90_000,
   /** a quick answer never shows the waking state */
   showAfterMs: 1500,
-  /** waits between tries */
-  backoffMs: [1000, 2000, 3000, 4000, 5000],
+  /** while waking, a try starts at most this often (a try held longer is followed at once) */
+  retryMs: 1500,
   /** one try of /api/healthz may be held this long while the server boots */
   tryMs: 30_000,
   /** once seen awake, trust it for this long */
   freshMs: 4 * 60_000,
 };
+
+/**
+ * The wait before the next try, from how long the last one took: tries start every 1.5 s, and
+ * a try that was held longer than that is followed at once. Never more than what is left.
+ * @param {number} triedForMs
+ * @param {number} [leftMs]
+ */
+export const retryWait = (triedForMs, leftMs = Infinity) => Math.max(0, Math.min(WAKE.retryMs - Math.max(0, triedForMs), leftMs));
 
 /**
  * True when an answer came from Render's waking machinery, not from our server: our API
@@ -99,7 +112,8 @@ export function createWaker({ fetch, now = () => Date.now(), sleep = (ms) => new
     // a quick answer never shows the waking state
     const show = setTimer(() => { if (state.phase === 'checking') set({ phase: 'waking' }); }, WAKE.showAfterMs);
     probe = (async () => {
-      for (let i = 0; ; i++) {
+      for (;;) {
+        const tryStart = now();
         if (await tryHealth()) {
           clearTimer(show);
           set({ phase: 'up', upAt: now() });
@@ -108,7 +122,8 @@ export function createWaker({ fetch, now = () => Date.now(), sleep = (ms) => new
         if (state.phase === 'checking') set({ phase: 'waking' });
         const left = WAKE.budgetMs - (now() - started);
         if (left <= 0) break;
-        await sleep(Math.min(WAKE.backoffMs[Math.min(i, WAKE.backoffMs.length - 1)], left));
+        const wait = retryWait(now() - tryStart, left);
+        if (wait > 0) await sleep(wait);
         if (now() - started >= WAKE.budgetMs) break;
       }
       clearTimer(show);

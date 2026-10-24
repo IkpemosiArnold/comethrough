@@ -4,7 +4,7 @@
 // "Application loading" page (503 HTML), then our JSON.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { WAKE, createWaker, wakingAnswer } from "../web/src/lib/wake.js";
+import { WAKE, createWaker, retryWait, wakingAnswer } from "../web/src/lib/wake.js";
 
 const INTERSTITIAL = { status: 503, type: "text/html; charset=utf-8", routing: "hibernate-pending-wake", body: "<!doctype html><title>Render - Application loading</title>" };
 
@@ -98,9 +98,41 @@ test("it never wakes: after about 90 s an honest 'down', and the call says aslee
   await assert.rejects(r.w.call("/api/crews/uni-guys"), (e) => /** @type {any} */ (e).asleep === true);
   assert.equal(r.phases.at(-1), "down");
   assert.ok(r.now() >= WAKE.budgetMs && r.now() < WAKE.budgetMs + 10_000, `gave up at ${r.now()} ms`);
-  // the backoff spreads the tries out: about twenty, not hundreds
+  // one try every 1.5 s for 90 s: about 60, never hundreds
   const tries = r.calls.filter((c) => c.url === "/api/healthz").length;
-  assert.ok(tries >= 10 && tries <= 25, `${tries} tries`);
+  assert.ok(tries >= 55 && tries <= 65, `${tries} tries`);
+});
+
+test("the retry schedule: a try every 1.5 s, no growing backoff, and the first try after the server is up lands within 1.5 s", async () => {
+  assert.equal(retryWait(0), 1500, "an instant 'still waking' waits 1.5 s");
+  assert.equal(retryWait(400), 1100);
+  assert.equal(retryWait(1500), 0);
+  assert.equal(retryWait(25_000), 0, "a try held 25 s is followed at once");
+  assert.equal(retryWait(0, 300), 300, "never past the budget");
+
+  // Render answers "still waking" at once: tries start exactly 1.5 s apart, all the way
+  for (const wakesAt of [20_000, 21_000, 22_400, 47_123]) {
+    const r = rig({ wakesAt });
+    assert.equal(await r.w.wake(), true);
+    const starts = r.calls.filter((c) => c.url === "/api/healthz").map((c) => c.at);
+    const gaps = starts.slice(1).map((t, i) => t - starts[i]);
+    assert.ok(gaps.every((g) => g === 1500), `gaps ${gaps.join(",")}`);
+    const firstAfterUp = starts.find((t) => t >= wakesAt);
+    assert.ok(firstAfterUp - wakesAt <= 1500, `the first try after the server woke at ${wakesAt} was at ${firstAfterUp}`);
+    assert.equal(starts.at(-1), firstAfterUp, "nothing more is sent once it is up");
+  }
+
+  // a held try (2.5 s here) that still comes back "waking" is followed at once: one always on its way
+  const held = rig({ wakesAt: 20_000, holdMs: 2500 });
+  assert.equal(await held.w.wake(), true);
+  const starts = held.calls.map((c) => c.at);
+  const gaps = starts.slice(1).map((t, i) => t - starts[i]);
+  assert.ok(gaps.every((g) => g === 2500), `held gaps ${gaps.join(",")}`);
+
+  // once awake, a real request sends no extra checks
+  const before = held.calls.length;
+  await held.w.call("/api/crews/uni-guys");
+  assert.equal(held.calls.length, before + 1);
 });
 
 test("retry after 'down' starts over and comes back up", async () => {

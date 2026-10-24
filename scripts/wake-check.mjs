@@ -99,6 +99,13 @@ const invite = made.inviteToken;
 
 const chrome = await launch();
 fs.mkdirSync(OUT, { recursive: true });
+// the first page a freshly started Chrome opens is slow on a busy machine (5 s against 0.5 s,
+// 24 Oct): open one first so the checks measure the app, not Chrome's own start
+{
+  const warm = await chrome.page();
+  await warm.go(`${BASE}/how`, 1500);
+  await warm.close();
+}
 /** what the page shows: the waking card, its words and colours, the crew's name, the refreshing line */
 const LOOK = `(() => {
   const card = document.querySelector('.wake-card');
