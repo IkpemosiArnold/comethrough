@@ -1,0 +1,597 @@
+{
+ "set": "test2",
+ "at": "2026-10-24T10:41:34.815Z",
+ "crews": [
+  {
+   "n": 1,
+   "key": "deb87640ef",
+   "sentence": "Westlands creatives, 6 of us in our 20s, thrift, art na indie music, every other Saturday, poa vibes",
+   "ritual": {
+    "place": "Tribal Gallery",
+    "when": "Sunday 25 October, 4 pm to 7 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Tribal Gallery is an art gallery and about 6 minutes from the far end."
+   },
+   "invite": "Sunday at Tribal Gallery for some poa vibes. We are meeting from 4 pm to 7 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Fundii Centre for the Arts",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Fundii Centre for the Arts is an art gallery with a longest trip of 11 minutes.",
+     "price": null
+    },
+    {
+     "title": "The Art Space Kenya",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The Art Space Kenya is an art gallery with a longest trip of 12 minutes.",
+     "price": null
+    },
+    {
+     "title": "Kioki Mwitiki",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Kioki Mwitiki is an art gallery with a longest trip of 14 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "key": "a56ca4ce97",
+   "sentence": "Accra friends in our 30s, 6 of us from Labone and Madina, we like quiet places to talk, every other Saturday",
+   "ritual": {
+    "place": "D Cafe",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "D Cafe is a garden café, low-key, and about 13 minutes for whoever is furthest."
+   },
+   "invite": "Catch us at D Cafe this Saturday from 3 pm to 6 pm. Since rain is likely, we are staying under the roof. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Second Cup",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Second Cup is a café with a longest trip of 23 minutes.",
+     "price": null
+    },
+    {
+     "title": "Vida e Caffè",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Vida e Caffè is a garden café with a longest trip of 24 minutes.",
+     "price": null
+    },
+    {
+     "title": "Mango & Wheat",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Mango & Wheat is a café with a longest trip of 24 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "key": "bbac233025",
+   "sentence": "Ladies who never miss a Premier League game, 5 of us in our 30s, women only, around Ojodu and Yaba, Saturday matches every other week",
+   "ritual": {
+    "place": "Game Centre",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Game Centre: an arcade, with the longest trip about 42 minutes."
+   },
+   "invite": "Catch us at Game Centre this Saturday from 3 pm to 6 pm. Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "Game Centre",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Game Centre is an arcade, and nobody's trip is over about 42 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "key": "0812203831",
+   "sentence": "Old classmates, 14 of us now in our 30s, we love a good owambe with a live band and plenty of food, around Ikeja every other Saturday",
+   "ritual": {
+    "place": "Mama Cass",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Mama Cass is a restaurant, about 5 minutes for whoever is furthest."
+   },
+   "invite": "We are hanging out at Mama Cass this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Casper & Gambini's",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Casper & Gambini's is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Golden Eagle Spur",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Golden Eagle Spur is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Sweet Sensation",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Sweet Sensation is a restaurant, and nobody's trip is over about 9 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "key": "e9c0372264",
+   "sentence": "Football guys in Ogba, 8 of us in our 30s, money is tight so only free spots to watch the Saturday games, every week",
+   "ritual": {
+    "place": "Gani Fawehinmi Park",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": true,
+    "note": "No dry two hours this afternoon on Saturday (up to 75% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "No dry two hours this afternoon on Saturday (up to 75% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 6,
+   "key": "500597dd43",
+   "sentence": "Retired football fans in Nairobi, 11 of us, around Lavington and South B, we watch the Saturday matches together every week, nothing expensive",
+   "ritual": {
+    "place": "John Michuki Memorial Park",
+    "when": "Sunday 25 October, 4 pm to 7 pm",
+    "skipped": false,
+    "note": null,
+    "why": "John Michuki Memorial Park is green and low-key, and about 10 minutes for the furthest person."
+   },
+   "invite": "Join us this Sunday at John Michuki Memorial Park from 4 pm to 7 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Central Park",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Central Park is quiet and low-key with a longest trip of 15 minutes.",
+     "price": null
+    },
+    {
+     "title": "Jeevanjee Gardens",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Jeevanjee Gardens is quiet and low-key with a longest trip of 16 minutes.",
+     "price": null
+    },
+    {
+     "title": "Uhuru Park",
+     "when": "Sunday 25 October, 4 pm to 7 pm",
+     "why": "Uhuru Park is quiet and low-key with a longest trip of 16 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "key": "73d74d18b9",
+   "sentence": "Chess crew, 7 of us in our 20s, spread across Festac, Ketu and Yaba, every other Saturday, somewhere nice to play for a few hours, budget is not a problem",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café, quiet enough to hear each other, about 65 minutes for whoever is furthest."
+   },
+   "invite": "Let's hang at Cafe Neo this Saturday from 3 pm to 6 pm. It is somewhere nice to play for a few hours. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Central Library",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Central Library is a library for a quiet afternoon on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cafe Neo is a café for a chill afternoon on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "University of Lagos Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "University of Lagos Bookshop is a bookshop, quiet and low-key, and nobody's trip is over about 64 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "key": "8f8c0109e4",
+   "sentence": "Parents with young children in Basavanagudi, 4 families, every other Saturday, something the kids will love",
+   "ritual": {
+    "place": "Apsara IceCreams",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Apsara IceCreams: an ice cream spot, with the longest trip about 5 minutes."
+   },
+   "invite": "Hey guys, let's hang out at Apsara IceCreams this Saturday from 3 pm to 6 pm 🍦 Come when you can and leave when you like. No need to answer this.",
+   "ideas": [
+    {
+     "title": "Arctic Bites",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Arctic Bites is an ice cream spot open on Saturday 24 October from 4 pm to 7 pm with a 5 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Baskin-Robbins",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Baskin-Robbins is an ice cream spot open on Saturday 24 October from 4 pm to 7 pm with a 5 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Ibaco",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "low-key Ibaco is a nice ice cream spot open on Saturday 24 October from 4 pm to com 7 pm with a 5 minute trip.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "key": "b095bdf418",
+   "sentence": "Brunch crew in our 20s, 6 of us between Ikorodu and Yaba, we like to eat early, Saturdays from 7 to 11 in the morning, every other week",
+   "ritual": {
+    "place": "delite cravings",
+    "when": "Saturday 24 October, 7 pm to 9 pm",
+    "skipped": false,
+    "note": null,
+    "why": "delite cravings is a restaurant, about 51 minutes for whoever is furthest."
+   },
+   "invite": "We are hanging out at delite cravings this Saturday from 7 pm to 9 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Spog",
+     "when": "Saturday 24 October, 7 pm to 9 pm",
+     "why": "Spog is a restaurant with a longest trip of 54 minutes.",
+     "price": null
+    },
+    {
+     "title": "Temptation fast_food",
+     "when": "Saturday 24 October, 7 pm to 9 pm",
+     "why": "Temptation fast_food is a restaurant with a longest trip of 55 minutes.",
+     "price": null
+    },
+    {
+     "title": "mini delight",
+     "when": "Saturday 24 October, 7 pm to 9 pm",
+     "why": "mini delight is a restaurant with a longest trip of 56 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "key": "a12870b6f9",
+   "sentence": "Sikh women from the gurdwara in Schöneberg, 8 of us in our 40s and 50s, we love watching football together, every other Saturday from 4pm to 8pm, women only and no alcohol",
+   "ritual": {
+    "place": "Combat Berlin e.V.",
+    "when": "Sunday 25 October, 4 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Combat Berlin e.V. is a sports ground, and nobody travels more than about 6 minutes."
+   },
+   "invite": "Sunday at Combat Berlin e.V. from 4 pm to 5 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "Brammibal’s Donuts",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Brammibal’s Donuts is a garden café open on Saturday 24 October from 4 pm to 7 pm with a 5 minute trip.",
+     "price": null
+    },
+    {
+     "title": "Café Monaco",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Café Monaco is a garden café open on Saturday 24 October from 4 pm to 7 pm with a 5 minute trip.",
+     "price": null
+    },
+    {
+     "title": "A night in at one of yours",
+     "when": "Tomorrow, 6 pm to 8 pm",
+     "why": "A night in at one of yours is a low-key option for tomorrow from 6 pm to 8 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "key": "f23b4cdf26",
+   "sentence": "Five of us in our 40s who quit drinking, we still love watching football together, around Isolo, Oshodi and VI, every other Saturday, alcohol-free places only",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café and about 55 minutes for whoever is furthest."
+   },
+   "invite": "Catching up this Saturday at Cafe Neo from 3 pm to 6 pm. Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "Evans Square",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Evans Square is a sports ground for a chill afternoon on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Elegbata Playing Ground",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Elegbata Playing Ground is a sports ground available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Lagos National Stadium Complex",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Lagos National Stadium Complex is a sports ground for an active lifestyle on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "key": "c91a4e53c0",
+   "sentence": "Art lovers for Ikoyi, 4 of us for our early 20s, we wan dey go gallery and exhibition every other Saturday",
+   "ritual": {
+    "place": "African Artists' Foundation",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "African Artists' Foundation is an art space, about 7 minutes for whoever is furthest."
+   },
+   "invite": "We are hanging out at African Artists' Foundation this Saturday from 3 pm to 6 pm 🎨 Show up if you can, skip it if you can't. No RSVP.",
+   "ideas": [
+    {
+     "title": "African Artists' Foundation",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "African Artists' Foundation is an art space with a longest trip of 7 minutes.",
+     "price": null
+    },
+    {
+     "title": "TCA Gallery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "TCA Gallery is an art gallery with a longest trip of 7 minutes.",
+     "price": null
+    },
+    {
+     "title": "Didi Museum",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Didi Museum is a museum with a longest trip of 10 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "key": "5af602f97b",
+   "sentence": "Young women from our church in Teshie, 15 of us in our 20s, into fashion, art and indie music, every other Saturday, no alcohol and women only",
+   "ritual": {
+    "place": "Golden Apple",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Golden Apple is a café, and nobody travels more than about 9 minutes."
+   },
+   "invite": "Catch us at Golden Apple this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Tsui Bleo Market",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Tsui Bleo Market is a market for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Vala`s Bakery",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Vala`s Bakery is a café for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Nungua Market",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Nungua Market is a most suitable market for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "key": "f8469e7cee",
+   "sentence": "4 alte kids in Ogba, early 20s, vintage clothes, indie music and art, every other Saturday",
+   "ritual": {
+    "place": "Krispy Kreme",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Krispy Kreme is a café and about 17 minutes from the far end."
+   },
+   "invite": "We are hanging out at Krispy Kreme this Saturday from 3 pm to 6 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Mugg & Bean",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Mugg & Bean is a café with a longest trip of 13 minutes.",
+     "price": null
+    },
+    {
+     "title": "Silverbird",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Silverbird is a cinema with a longest trip of 13 minutes.",
+     "price": null
+    },
+    {
+     "title": "Oasis Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "why own Oasis Bookshop is a bookshop with a longest trip of 19 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 15,
+   "key": "d4364383aa",
+   "sentence": "Four foodies in our 20s, Croydon and Walthamstow, every other Saturday, happy to spend on a good meal",
+   "ritual": {
+    "place": "Village Kebab House",
+    "when": "Sunday 25 October, 3 pm to 5 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Village Kebab House: a food spot, with the longest trip about 35 minutes."
+   },
+   "invite": "Sunday at Village Kebab House from 3 pm to 5 pm. Pull up when you can, nobody is taking attendance.",
+   "ideas": [
+    {
+     "title": "Arments Pie & Mash",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Arments Pie & Mash is a restaurant for Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "K & F Restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "K & F Restaurant is a restaurant available on Saturday 24 October between 4 pm and 7 pm.",
+     "price": null
+    },
+    {
+     "title": "PizzaExpress",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "PizzaExpress is a restaurant for your weekend brunch and food interests on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "key": "5a7112dd77",
+   "sentence": "We dey work night for hospital, 7 of us wey like play game, na only Saturday afternoon 1 to 5 we dey free, around Ketu and Yaba, nothing wey cost too much",
+   "ritual": {
+    "place": "bbc",
+    "when": "Saturday 24 October, 2 pm to 5 pm",
+    "skipped": true,
+    "note": "Rain all afternoon on Saturday (up to 82% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "Rain all afternoon on Saturday (up to 82% between 11 am and 6:30 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  },
+  {
+   "n": 17,
+   "key": "8d0df17ea7",
+   "sentence": "Retired chess players, 8 of us, around Moema and Pinheiros, every Saturday, on a pension so keep it cheap",
+   "ritual": {
+    "place": "Le Pain Quotidien",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Le Pain Quotidien is a café, low-key, and about 7 minutes for whoever is furthest."
+   },
+   "invite": "Saturday at Le Pain Quotidien from 3 pm to 6 pm. Drop in any time in that window, no reply needed.",
+   "ideas": [
+    {
+     "title": "La Guapa",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "La Guapa is a low-key café on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Starbucks",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Starbucks is a low-key café available on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "Casa do Pão de Queijo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Casa do Pão de Queijo is a café, quiet and low-key, and nobody's trip is over about 8 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "key": "1f0eb2f032",
+   "sentence": "A few of us lesbian friends in our 30s, 5 people, around Yaba, every other Saturday, we just want to hang out somewhere calm without attention",
+   "ritual": {
+    "place": "Cafe Neo",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Cafe Neo is a café, quiet enough to hear each other, about 5 minutes for whoever is furthest."
+   },
+   "invite": "Join us at Cafe Neo this Saturday from 3 pm to 6 pm. It will be a calm spot to hang out. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Cafe Neo",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Cafe Neo is a café that is only 5 minutes away.",
+     "price": null
+    },
+    {
+     "title": "University of Lagos Bookshop",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "The University of Lagos Bookshop is a bookshop open on Saturday 24 October from 4 pm to 7 pm.",
+     "price": null
+    },
+    {
+     "title": "A night in at one of yours",
+     "when": "Saturday 24 October, 3 pm to 6 pm",
+     "why": "A night in at one of yours is a low-key option for Saturday 24 October from 3 pm to 6 pm.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "key": "6d1c51ee9a",
+   "sentence": "Na we be the parents wey dey carry our teenage pikin go out, 12 of us, for Ikorodu and Maryland, every other Saturday, we like better food, money dey",
+   "ritual": {
+    "place": "Mama T food canteen",
+    "when": "Saturday 24 October, 3 pm to 6 pm",
+    "skipped": false,
+    "note": null,
+    "why": "Mama T food canteen is a restaurant, and nobody travels more than about 35 minutes."
+   },
+   "invite": "We're hanging out at Mama T food canteen this Saturday from 3 pm to 6 pm. Come through if you're free. No need to reply.",
+   "ideas": [
+    {
+     "title": "Naina Food Canteen",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Naina Food Canteen is a restaurant with a longest trip of 40 minutes.",
+     "price": null
+    },
+    {
+     "title": "Sumptuous eatery & mini restaurant",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "Sumptuous eatery & mini restaurant is a restaurant with a longest trip of 41 minutes.",
+     "price": null
+    },
+    {
+     "title": "D,dots",
+     "when": "Saturday 24 October, 4 pm to 7 pm",
+     "why": "why own D,dots is a restaurant with a longest trip of 43 minutes.",
+     "price": null
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "key": "841344ac6f",
+   "sentence": "Devs de Liberdade e Pinheiros, 7 of us in our 20s, meetups e hackathons, every other Saturday",
+   "ritual": {
+    "place": "Augusta Park",
+    "when": "Saturday 24 October, 4 pm to 7 pm",
+    "skipped": true,
+    "note": "No dry two hours this afternoon on Saturday (up to 67% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+    "why": null
+   },
+   "invite": "No dry two hours this afternoon on Saturday (up to 67% between 11 am and 7 pm), and Sunday looks no better. The sloth is skipping this one. If it clears up, anyone can still add a plan.",
+   "ideas": []
+  }
+ ]
+}
